@@ -63,18 +63,13 @@ function getPlayerEffectiveOVR(player: Player, team: Team) {
   const lineupSlot = team.startingLineup.find(s => s.playerId === player.id);
   if (lineupSlot) {
     const penalty = getRolePenalty(player.role, lineupSlot.assignedRole);
-    const iglBonus = calculateEffectiveOverallWithIGL(
-      player.overall - penalty,
-      player.id,
-      team.iglId,
-      player.personality.leadership
-    ) - (player.overall - penalty);
+    const result = calculateEffectiveOverallWithIGL(player, team, team.startingLineup, -penalty);
 
     return {
-      effectiveOvr: player.overall - penalty + iglBonus,
-      baseOvr: player.overall,
-      rolePenalty: -penalty,
-      iglBonus,
+      effectiveOvr: result.effectiveOvr,
+      baseOvr: result.baseOvr,
+      rolePenalty: result.rolePenalty,
+      iglBonus: result.iglBonus,
       isStarter: true,
       assignedRole: lineupSlot.assignedRole,
     };
@@ -128,7 +123,6 @@ export default function App() {
   // UI store
   const screen = useUIStore(s => s.screen);
   const view = useUIStore(s => s.view);
-  const previousView = useUIStore(s => s.previousView);
   const selectedTeamId = useUIStore(s => s.selectedTeamId);
   const selectedPlayerId = useUIStore(s => s.selectedPlayerId);
   const selectedMatchId = useUIStore(s => s.selectedMatchId);
@@ -297,7 +291,7 @@ export default function App() {
 
   // Calculate standings at a specific day
   const calculateStandingsAtDay = (teamId: string, upToDay: number | undefined) => {
-    if (!gameState) return null;
+    if (!gameState) return undefined;
     if (upToDay === undefined) {
       return gameState.standings.find(s => s.teamId === teamId);
     }
@@ -804,12 +798,38 @@ export default function App() {
 
           {/* Power Rankings */}
           {view === "power-rankings" && (
-            <PowerRankingsPage gameState={gameState} onViewTeam={viewTeam} regionLogos={REGION_LOGOS} regionNames={REGION_NAMES} />
+            <PowerRankingsPage 
+              teams={gameState.teams} 
+              standings={gameState.standings}
+              schedule={gameState.schedule}
+              userTeamId={gameState.userTeamId}
+              onViewTeam={viewTeam} 
+              onViewPlayer={viewPlayer}
+            />
           )}
 
           {/* All Players */}
           {view === "players" && (
-            <PlayersPage teams={gameState.teams} userTeamId={gameState.userTeamId} onViewPlayer={viewPlayer} onViewTeam={viewTeam} />
+            <PlayersPage teams={gameState.teams} onViewPlayer={viewPlayer} onViewTeam={viewTeam} />
+          )}
+
+          {/* Roster (Your Team) */}
+          {view === "roster" && userTeam && (
+            <TeamView
+              team={userTeam}
+              teams={gameState.teams}
+              standings={gameState.standings}
+              schedule={gameState.schedule}
+              isUserTeam={true}
+              onBack={() => setView("dashboard")}
+              onViewPlayer={viewPlayer}
+              onViewMatch={viewMatch}
+              onNextTeam={() => viewNextTeam(gameState.teams)}
+              onPrevTeam={() => viewPrevTeam(gameState.teams)}
+              onSetIGL={(playerId) => setIGL(userTeam.id, playerId)}
+              onManageRoster={() => setView("roster-management")}
+              devMode={devMode}
+            />
           )}
 
           {/* Team View */}
@@ -835,48 +855,75 @@ export default function App() {
           {view === "player" && selectedPlayer && selectedPlayerTeam && (
             <>
               <div className="content-header">
-                <button className="back-btn" onClick={goBack}>← Back</button>
-                <h1>Player Profile</h1>
+                <button className="link-btn" onClick={() => viewTeam(selectedPlayerTeam.id)}>
+                  « Back to {selectedPlayerTeam.name}
+                </button>
+                <h1>{selectedPlayer.name}</h1>
               </div>
-              <div className="player-profile-header">
-                <div className="player-profile-main">
-                  <div className={`player-role-badge role-${selectedPlayer.role}`}>{selectedPlayer.role.toUpperCase()}</div>
+              <div className="player-profile">
+                <div className="player-profile-header">
                   <div className="player-profile-info">
-                    <h2 className="player-name">{selectedPlayer.name}</h2>
-                    <div className="player-meta">
-                      <span className="team-link" onClick={() => viewTeam(selectedPlayerTeam.id)}>{selectedPlayerTeam.name}</span>
-                      <span>Age: {selectedPlayer.age}</span>
-                      {selectedPlayerTeam.iglId === selectedPlayer.id && <span className="igl-badge">IGL</span>}
+                    <img
+                      src={selectedPlayerTeam.logo}
+                      alt={selectedPlayerTeam.name}
+                      className="player-team-logo"
+                    />
+                    <div>
+                      <h2>{selectedPlayer.name}</h2>
+                      <div className="player-profile-meta">
+                        <span className={`role-badge role-${selectedPlayer.role}`}>
+                          {selectedPlayer.role.toUpperCase()}
+                        </span>
+                        <span>{selectedPlayerTeam.name}</span>
+                        <span>Age: {selectedPlayer.age}</span>
+                        {selectedPlayerTeam.iglId === selectedPlayer.id && (
+                          <span className="igl-badge">IGL</span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  <div className="player-profile-ovr">
+                    {(() => {
+                      const ovrInfo = getPlayerEffectiveOVR(selectedPlayer, selectedPlayerTeam);
+                      const hasModifier = ovrInfo.rolePenalty !== 0 || ovrInfo.iglBonus !== 0;
+                      return (
+                        <>
+                          <div className="ovr-large">{ovrInfo.effectiveOvr}</div>
+                          <div className="ovr-label">{ovrInfo.isStarter ? 'EFF OVR' : 'OVR (Bench)'}</div>
+                          {ovrInfo.isStarter && hasModifier && (
+                            <div className="ovr-breakdown">
+                              <span className="base-ovr">Base: {ovrInfo.baseOvr}</span>
+                              {ovrInfo.rolePenalty !== 0 && (
+                                <span className={`modifier ${ovrInfo.rolePenalty > 0 ? 'positive' : 'negative'}`}>
+                                  Role: {ovrInfo.rolePenalty > 0 ? '+' : ''}{ovrInfo.rolePenalty}
+                                </span>
+                              )}
+                              {ovrInfo.iglBonus !== 0 && (
+                                <span className={`modifier ${ovrInfo.iglBonus > 0 ? 'positive' : 'negative'}`}>
+                                  IGL: {ovrInfo.iglBonus > 0 ? '+' : ''}{ovrInfo.iglBonus}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {ovrInfo.isStarter && ovrInfo.assignedRole !== selectedPlayer.role && (
+                            <div className="assigned-role-info">
+                              Playing as: <span className={`role-badge role-${ovrInfo.assignedRole}`}>
+                                {ovrInfo.assignedRole.toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                    {(devMode || selectedPlayerTeam.id === gameState?.userTeamId) && (
+                      <button className="edit-player-btn" onClick={openEditPlayerModal}>
+                        ✏️ Edit
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="player-profile-ovr">
-                  {(() => {
-                    const ovrInfo = getPlayerEffectiveOVR(selectedPlayer, selectedPlayerTeam);
-                    const hasModifier = ovrInfo.rolePenalty !== 0 || ovrInfo.iglBonus !== 0;
-                    return (
-                      <>
-                        <div className="ovr-large">{ovrInfo.effectiveOvr}</div>
-                        <div className="ovr-label">{ovrInfo.isStarter ? 'EFF OVR' : 'OVR (Bench)'}</div>
-                        {ovrInfo.isStarter && hasModifier && (
-                          <div className="ovr-breakdown">
-                            <span className="base-ovr">Base: {ovrInfo.baseOvr}</span>
-                            {ovrInfo.rolePenalty !== 0 && <span className={`modifier ${ovrInfo.rolePenalty > 0 ? 'positive' : 'negative'}`}>Role: {ovrInfo.rolePenalty > 0 ? '+' : ''}{ovrInfo.rolePenalty}</span>}
-                            {ovrInfo.iglBonus !== 0 && <span className={`modifier ${ovrInfo.iglBonus > 0 ? 'positive' : 'negative'}`}>IGL: {ovrInfo.iglBonus > 0 ? '+' : ''}{ovrInfo.iglBonus}</span>}
-                          </div>
-                        )}
-                        {ovrInfo.isStarter && ovrInfo.assignedRole !== selectedPlayer.role && (
-                          <div className="assigned-role-info">Playing as: <span className={`role-badge role-${ovrInfo.assignedRole}`}>{ovrInfo.assignedRole.toUpperCase()}</span></div>
-                        )}
-                      </>
-                    );
-                  })()}
-                  {(devMode || selectedPlayerTeam.id === gameState?.userTeamId) && (
-                    <button className="edit-player-btn" onClick={openEditPlayerModal}>✏️ Edit</button>
-                  )}
-                </div>
-              </div>
-              <div className="player-profile-grid">
+
+                <div className="player-profile-grid">
                 <div className="panel">
                   <div className="panel-header">Ratings</div>
                   <div className="panel-body">
@@ -936,6 +983,7 @@ export default function App() {
                 </div>
               </div>
               <PlayerStatsTable stats={selectedPlayer.careerStats} onMatchClick={viewMatch} />
+              </div>
               {showEditPlayerModal && (
                 <PlayerEditModal
                   player={selectedPlayer}
@@ -1055,7 +1103,7 @@ export default function App() {
               <RosterManagementPage
                 team={managedTeam}
                 onUpdateLineup={(lineup) => updateLineup(managedTeam.id, lineup)}
-                onUpdateIGL={(playerId) => setIGL(managedTeam.id, playerId)}
+                onUpdateIGL={(playerId) => playerId && setIGL(managedTeam.id, playerId)}
                 onBack={() => { setSelectedTeamId(managedTeam.id); setView("team"); }}
                 onViewPlayer={viewPlayer}
                 onNavigateToFreeAgency={() => setView("free-agency")}

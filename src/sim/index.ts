@@ -5,6 +5,7 @@ export * from './playerGenerator';
 export * from './scouting';
 export * from './teamRatings';
 export * from './matchSim';
-export * from './agentSelection';
+// export * from './agentSelection'; // TODO: Fix missing imports (MapName, AgentMapMeta, etc.)
 export * from './season';
-export * from './gameState';
+// Note: gameState has duplicate exports with season - import directly from gameState if needed
+// export * from './gameState';
