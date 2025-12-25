@@ -1,0 +1,268 @@
+/* src/ui/components/PlayerStatsTable.css */
+/* Styles for player stats table with expandable map details */
+
+.player-stats-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Career stats grid */
+.career-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .career-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.career-stat-group h4 {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.playoff-stats-summary {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.playoff-stats-summary h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+}
+
+.playoff-stats-row {
+  display: flex;
+  gap: 24px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Header hint */
+.panel-header .header-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: normal;
+  margin-left: 12px;
+  opacity: 0.7;
+}
+
+/* Stats table */
+.stats-table.expandable {
+  border-collapse: collapse;
+}
+
+.stats-table.expandable th,
+.stats-table.expandable td {
+  padding: 10px 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-table.expandable th {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Match row - clickable */
+.match-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.match-row:hover {
+  background-color: var(--bg-hover);
+}
+
+.match-row.expanded {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Expand icon */
+.expand-cell {
+  width: 30px;
+  text-align: center !important;
+}
+
+.expand-icon {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.expand-icon.expanded {
+  transform: rotate(90deg);
+}
+
+/* Day cell badges */
+.day-cell {
+  text-align: left !important;
+  white-space: nowrap;
+}
+
+.playoff-badge,
+.intl-badge {
+  margin-right: 4px;
+  font-size: 12px;
+}
+
+/* Opponent cell */
+.opponent-cell {
+  text-align: left !important;
+  padding-top: 13.5px !important;
+  padding-bottom: 13px !important;
+}
+
+.opponent-cell .vs {
+  color: var(--text-muted);
+  margin-right: 6px;
+  font-size: 11px;
+}
+
+.opponent-cell .opponent-abbr {
+  font-weight: 600;
+}
+
+/* Result cell */
+.result-cell {
+  font-weight: 600;
+}
+
+.result-cell.win {
+  color: #4ade80;
+}
+
+.result-cell.loss {
+  color: #f87171;
+}
+
+/* KD coloring */
+.positive {
+  color: #4ade80;
+}
+
+.negative {
+  color: #f87171;
+}
+
+/* ACS highlight */
+.acs {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* View match button */
+.view-match-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 8px;
+  transition: all 0.15s ease;
+}
+
+.view-match-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* Map detail row */
+.map-detail-row {
+  background-color: rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.map-detail-row td {
+  padding: 8px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.map-detail-row:last-of-type td {
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Map connector (tree lines) */
+.map-connector {
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: 14px;
+  opacity: 0.5;
+  text-align: center !important;
+  padding-left: 8px !important;
+}
+
+/* Map name cell */
+.map-name {
+  text-align: left !important;
+}
+
+.map-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.agent-icon-small {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.map-label {
+  text-transform: capitalize;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.agent-label {
+  text-transform: capitalize;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .stats-table.expandable {
+    font-size: 12px;
+  }
+
+  .stats-table.expandable th,
+  .stats-table.expandable td {
+    padding: 8px 4px;
+  }
+
+  .view-match-btn {
+    display: none;
+  }
+
+  .header-hint {
+    display: none;
+  }
+}
