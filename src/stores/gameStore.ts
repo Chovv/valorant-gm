@@ -229,7 +229,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setSetupSelectedTeamId: (id) => set({ setupSelectedTeamId: id }),
 
-  setSetupRegion: (region) => {
+  setSetupRegion: (_region) => {
     set({ setupSelectedTeamId: null });
   },
 
