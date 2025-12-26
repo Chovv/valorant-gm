@@ -1,0 +1,857 @@
+/* src/ui/components/PlayerDetailPage.css */
+/* Comprehensive player detail page styling */
+
+.player-detail-page {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Back Button */
+.player-detail-page .back-button {
+  background: transparent;
+  border: none;
+  color: var(--link);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 0;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s;
+}
+
+.player-detail-page .back-button:hover {
+  color: var(--text-primary);
+}
+
+/* Hero Section */
+.player-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px;
+  padding: 32px;
+  background: linear-gradient(135deg, rgba(255, 70, 85, 0.1), rgba(10, 200, 185, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  margin-bottom: 20px;
+}
+
+.hero-left {
+  flex: 1;
+}
+
+.player-identity {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.team-logo-large {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.player-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-detail-page .player-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1;
+}
+
+.player-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.role-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-tag.role-duelist { background: rgba(255, 70, 85, 0.2); color: var(--role-duelist); }
+.role-tag.role-controller { background: rgba(168, 85, 247, 0.2); color: var(--role-controller); }
+.role-tag.role-initiator { background: rgba(34, 197, 94, 0.2); color: var(--role-initiator); }
+.role-tag.role-sentinel { background: rgba(59, 130, 246, 0.2); color: var(--role-sentinel); }
+.role-tag.role-flex { background: rgba(251, 191, 36, 0.2); color: var(--role-flex); }
+
+.role-icon-small {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.team-name {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.player-age {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.igl-badge {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #1a1a2e;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.archetype-tag {
+  display: inline-block;
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 6px;
+  text-transform: capitalize;
+  margin-top: 4px;
+}
+
+/* Hero Right - OVR Display */
+.hero-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.ovr-display {
+  text-align: center;
+}
+
+.ovr-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 70, 85, 0.2), rgba(255, 70, 85, 0.05));
+  border: 3px solid var(--accent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 30px rgba(255, 70, 85, 0.2);
+}
+
+.ovr-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.ovr-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* OVR Breakdown - clean table-like layout */
+.ovr-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: 16px;
+  min-width: 90px;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.breakdown-row .breakdown-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.breakdown-row .breakdown-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.breakdown-row.base-row .breakdown-value {
+  color: var(--text-primary);
+}
+
+.breakdown-row.positive {
+  background: rgba(10, 200, 185, 0.1);
+}
+
+.breakdown-row.positive .breakdown-value {
+  color: var(--success);
+}
+
+.breakdown-row.negative {
+  background: rgba(255, 70, 85, 0.1);
+}
+
+.breakdown-row.negative .breakdown-value {
+  color: var(--danger);
+}
+
+.breakdown-row.comp-penalty {
+  background: rgba(255, 192, 72, 0.1);
+}
+
+.breakdown-row.comp-penalty .breakdown-value {
+  color: var(--warning, #ffc048);
+}
+
+.breakdown-row.off-role {
+  background: rgba(255, 192, 72, 0.08);
+}
+
+.breakdown-row.off-role .breakdown-label {
+  color: var(--text-muted);
+}
+
+.breakdown-row .role-text {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.breakdown-row .role-text.role-duelist { color: var(--role-duelist, #ff4655); }
+.breakdown-row .role-text.role-initiator { color: var(--role-initiator, #00c8ff); }
+.breakdown-row .role-text.role-controller { color: var(--role-controller, #9b59b6); }
+.breakdown-row .role-text.role-sentinel { color: var(--role-sentinel, #2ecc71); }
+.breakdown-row .role-text.role-flex { color: var(--role-flex, #f39c12); }
+
+.edit-button {
+  background: linear-gradient(135deg, var(--accent), #ff6b6b);
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.edit-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 70, 85, 0.3);
+}
+
+/* Development Banner */
+.development-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.phase-icon {
+  font-size: 24px;
+}
+
+.phase-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.phase-detail {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-left: auto;
+}
+
+/* Tab Navigation */
+.detail-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+.detail-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 20px;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.detail-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.detail-tab.active {
+  color: var(--text-primary);
+  background: rgba(255, 70, 85, 0.1);
+  border-bottom: 2px solid var(--accent);
+}
+
+/* Tab Content */
+.tab-content {
+  min-height: 400px;
+}
+
+/* Overview Grid */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.detail-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.detail-card h3 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Potential Card */
+.potential-card {
+  grid-column: span 2;
+}
+
+.potential-visual {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.potential-bar-container {
+  position: relative;
+}
+
+.potential-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.potential-bar {
+  height: 24px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.potential-range {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.4), rgba(251, 191, 36, 0.4));
+  border-radius: 12px;
+}
+
+.potential-current {
+  position: absolute;
+  top: -4px;
+  width: 4px;
+  height: 32px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transform: translateX(-50%);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.potential-labels {
+  position: relative;
+  height: 24px;
+  margin-top: 8px;
+}
+
+.potential-labels span {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.floor-label { color: var(--danger); }
+.current-label { color: var(--text-primary); top: -4px; }
+.ceiling-label { color: var(--success); }
+
+.potential-stats {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+}
+
+.pot-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pot-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pot-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.pot-value.floor { color: var(--danger); }
+.pot-value.current { color: var(--text-primary); }
+.pot-value.ceiling { color: var(--success); }
+
+.potential-progress-bar {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--success));
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  color: var(--text-primary);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+
+/* Agents Card */
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.agent-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border-left: 3px solid;
+}
+
+.agent-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.agent-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.agent-priority {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #1a1a2e;
+}
+
+.no-agents {
+  grid-column: span 2;
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px;
+}
+
+/* Info Card */
+.info-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-label {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.info-value {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 14px;
+  text-transform: capitalize;
+}
+
+.info-value.free-agent {
+  color: var(--success);
+}
+
+/* Personality Card */
+.personality-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.personality-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.pers-icon {
+  font-size: 16px;
+}
+
+.pers-label {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.pers-grade {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 4px;
+}
+
+/* Development Card */
+.dev-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dev-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dev-label {
+  width: 100px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.dev-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.dev-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dev-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.dev-bar-fill.learning {
+  background: var(--success);
+}
+
+.dev-bar-fill.volatility {
+  background: var(--warning);
+}
+
+.dev-percent {
+  width: 40px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.tooltip-icon {
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: help;
+  margin-left: 4px;
+}
+
+.dev-stat[title] {
+  cursor: help;
+}
+
+/* Ratings Section */
+.ratings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ratings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.rating-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.rating-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.rating-icon {
+  font-size: 18px;
+}
+
+.rating-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.rating-weight {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.rating-bar-container {
+  margin-bottom: 12px;
+}
+
+.rating-bar {
+  height: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.rating-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s;
+}
+
+.rating-bar-fill.grade-s { background: linear-gradient(90deg, #22c55e, #16a34a); }
+.rating-bar-fill.grade-a { background: linear-gradient(90deg, #0ac8b9, #0891b2); }
+.rating-bar-fill.grade-b { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+.rating-bar-fill.grade-c { background: linear-gradient(90deg, #f97316, #ea580c); }
+.rating-bar-fill.grade-d { background: linear-gradient(90deg, #ef4444, #dc2626); }
+.rating-bar-fill.grade-f { background: linear-gradient(90deg, #6b7280, #4b5563); }
+
+.rating-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rating-grade {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  padding: 2px 12px;
+  border-radius: 4px;
+}
+
+.rating-number {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Rating Summary */
+.rating-summary {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Stats Section */
+.stats-section {
+  /* Uses PlayerStatsTable component */
+}
+
+/* Grade Colors */
+.grade-s { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+.grade-a { background: rgba(10, 200, 185, 0.2); color: #0ac8b9; }
+.grade-b { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+.grade-c { background: rgba(249, 115, 22, 0.2); color: #f97316; }
+.grade-d { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+.grade-f { background: rgba(107, 114, 128, 0.2); color: #6b7280; }
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .overview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .potential-card {
+    grid-column: span 2;
+  }
+  
+  .ratings-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .player-hero {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 24px;
+  }
+  
+  .player-identity {
+    flex-direction: column;
+  }
+  
+  .player-detail-page .player-name {
+    font-size: 32px;
+  }
+  
+  .player-meta {
+    justify-content: center;
+  }
+  
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .potential-card {
+    grid-column: span 1;
+  }
+  
+  .ratings-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .detail-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .detail-tab {
+    flex: 1;
+    text-align: center;
+    min-width: 100px;
+  }
+  
+  .rating-summary {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .agents-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -242,30 +242,30 @@ function getDefaultArchetype(role: Role): PlayerArchetype {
 }
 
 // Agent pools by role
-const AGENT_POOLS: Record<Role, string[]> = {
-  duelist: ['jett', 'raze', 'phoenix', 'reyna', 'yoru', 'neon', 'iso'],
+export const AGENT_POOLS: Record<Role, string[]> = {
+  duelist: ['jett', 'raze', 'phoenix', 'reyna', 'yoru', 'neon', 'iso', 'waylay'],
   controller: ['omen', 'brimstone', 'astra', 'viper', 'harbor', 'clove'],
-  initiator: ['sova', 'breach', 'skye', 'kayo', 'fade', 'gekko'],
-  sentinel: ['killjoy', 'cypher', 'sage', 'chamber', 'deadlock', 'vyse'],
+  initiator: ['sova', 'breach', 'skye', 'kayo', 'fade', 'gekko', 'tejo'],
+  sentinel: ['killjoy', 'cypher', 'sage', 'chamber', 'deadlock', 'vyse', 'veto'],
   flex: ['jett', 'raze', 'omen', 'sova', 'skye', 'killjoy', 'chamber'],
 };
 
-function generateAgentPoolForRole(rng: RNG, role: Role): Record<string, number> {
+export function generateAgentPoolForRole(rng: RNG, role: Role): Record<string, number> {
   const agents = AGENT_POOLS[role] || AGENT_POOLS.duelist;
   const pool: Record<string, number> = {};
   
-  // Pick 2-4 agents with varying comfort levels
-  const numAgents = randomInt(rng, 2, Math.min(4, agents.length));
+  // Pick 2-3 agents with priority values
+  const numAgents = randomInt(rng, 2, Math.min(3, agents.length));
   const shuffled = [...agents].sort(() => rng() - 0.5);
   
   for (let i = 0; i < numAgents; i++) {
-    // First agent is main (high comfort), others are lower
+    // Priority system: 1 = 100, 2 = 50, 3 = 25
     if (i === 0) {
-      pool[shuffled[i]] = randomInt(rng, 80, 99);
+      pool[shuffled[i]] = 100; // Priority 1 (main)
     } else if (i === 1) {
-      pool[shuffled[i]] = randomInt(rng, 60, 85);
+      pool[shuffled[i]] = 50;  // Priority 2 (secondary)
     } else {
-      pool[shuffled[i]] = randomInt(rng, 50, 70);
+      pool[shuffled[i]] = 25;  // Priority 3 (pocket)
     }
   }
   

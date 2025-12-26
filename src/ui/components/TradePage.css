@@ -1,868 +1,883 @@
 /* src/ui/components/TradePage.css */
-/* Trading interface styles - Modern revamp */
+/* Trading interface - Clean esports design */
 
 .trade-page {
-  padding: 0;
-}
-
-.trade-page .content-header {
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.trade-page .content-header h1 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #4ade80, #22c55e);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.trade-page .header-subtitle {
-  color: var(--text-muted);
-  font-size: 14px;
+  width: 100%;
 }
 
 /* ==========================================
-   TRADE MESSAGE / TOAST
+   HEADER
    ========================================== */
-
-.trade-message {
-  padding: 16px 24px;
-  border-radius: 12px;
+.trade-header {
   margin-bottom: 24px;
-  font-weight: 500;
+}
+
+.trade-header h1 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px 0;
+}
+
+.trade-header p {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ==========================================
+   TOAST MESSAGE
+   ========================================== */
+.trade-toast {
   display: flex;
   align-items: center;
   gap: 12px;
-  animation: tradeMessageSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  animation: slideDown 0.3s ease;
 }
 
-.trade-message.success {
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.15), rgba(34, 197, 94, 0.1));
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  color: #4ade80;
+.trade-toast.success {
+  background: rgba(10, 200, 185, 0.12);
+  border: 1px solid rgba(10, 200, 185, 0.3);
 }
 
-.trade-message.error {
-  background: linear-gradient(135deg, rgba(248, 113, 113, 0.15), rgba(239, 68, 68, 0.1));
-  border: 1px solid rgba(248, 113, 113, 0.3);
-  color: #f87171;
+.trade-toast.error {
+  background: rgba(255, 70, 85, 0.12);
+  border: 1px solid rgba(255, 70, 85, 0.3);
 }
 
-@keyframes tradeMessageSlide {
-  from {
-    opacity: 0;
-    transform: translateY(-16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.toast-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.trade-toast.success .toast-icon {
+  background: var(--success);
+  color: var(--bg-darker);
+}
+
+.trade-toast.error .toast-icon {
+  background: var(--accent);
+  color: white;
+}
+
+.toast-text {
+  font-size: 14px;
+  color: var(--text);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ==========================================
-   TRADE INTERFACE LAYOUT
+   MAIN LAYOUT
    ========================================== */
-
-.trade-interface {
+.trade-layout {
   display: grid;
-  grid-template-columns: 1fr 320px 1fr;
-  gap: 24px;
-  min-height: 650px;
-}
-
-@media (max-width: 1400px) {
-  .trade-interface {
-    grid-template-columns: 1fr 280px 1fr;
-  }
+  grid-template-columns: 1fr 300px 1fr;
+  gap: 20px;
+  align-items: start;
 }
 
 @media (max-width: 1200px) {
-  .trade-interface {
+  .trade-layout {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
   }
   
-  .trade-center {
+  .trade-center-panel {
     order: -1;
   }
 }
 
 /* ==========================================
-   TRADE SIDE PANELS (User & Other Team)
+   TRADE PANELS (Left & Right)
    ========================================== */
-
-.trade-side {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, rgba(15, 23, 42, 0.8) 100%);
-  border-radius: 16px;
-  border: 1px solid var(--border);
+.trade-panel {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  max-height: 700px;
 }
 
-.trade-side-header {
+.panel-header-trade {
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.team-identity {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 24px;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1));
-  border-bottom: 1px solid var(--border);
-  position: relative;
-  overflow: hidden;
 }
 
-.trade-side-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0.5;
+.team-identity.empty {
+  opacity: 0.6;
 }
 
-.user-side .trade-side-header::before {
-  background: linear-gradient(90deg, transparent, #4ade80, transparent);
-}
-
-.trade-team-logo {
+.team-logo-lg {
   width: 56px;
   height: 56px;
   object-fit: contain;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
 }
 
-.trade-team-info {
+.empty-logo {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card-solid);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  font-size: 24px;
+  color: var(--text-muted);
+}
+
+.team-details {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
-.trade-team-info h2 {
-  margin: 0;
+.team-details h2 {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 20px;
   font-weight: 700;
-  letter-spacing: -0.3px;
+  color: var(--text);
+  margin: 0;
 }
 
-.trade-team-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  background: linear-gradient(135deg, #4ade80, #22c55e);
-  border-radius: 6px;
+.your-team-badge {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 10px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: var(--bg-darker);
+  background: linear-gradient(135deg, var(--success), #059669);
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
   width: fit-content;
-  box-shadow: 0 2px 8px rgba(74, 222, 128, 0.3);
 }
 
-.trade-team-region {
+.region-badge {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
   color: var(--text-muted);
+  background: var(--bg-card-solid);
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+  width: fit-content;
+  border: 1px solid var(--border);
+}
+
+.roster-info {
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+
+/* Panel Subheader */
+.panel-subheader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.selection-badge {
+  background: rgba(255, 70, 85, 0.2);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.selection-badge.incoming {
+  background: rgba(10, 200, 185, 0.2);
+  color: var(--success);
+}
+
+/* ==========================================
+   PLAYER GRID
+   ========================================== */
+.player-grid {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-trade-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.player-trade-card:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+.player-trade-card.selected {
+  background: rgba(10, 200, 185, 0.1);
+  border-color: var(--success);
+}
+
+.your-team .player-trade-card.selected {
+  background: rgba(255, 70, 85, 0.1);
+  border-color: var(--accent);
+}
+
+/* Checkbox */
+.card-select-indicator {
+  flex-shrink: 0;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: transparent;
+  transition: all 0.15s ease;
+}
+
+.player-trade-card.selected .checkbox {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--bg-darker);
+}
+
+.your-team .player-trade-card.selected .checkbox {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* Card Content */
+.card-main {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 0;
+}
+
+.card-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.role-icon-sm {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.player-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.player-info .player-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  transition: color 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-info .player-name:hover {
+  color: var(--accent);
+}
+
+.igl-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  background: linear-gradient(135deg, var(--warning), #f59e0b);
+  color: var(--bg-darker);
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.player-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.card-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.ovr-badge {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ovr-badge.rating-elite { color: var(--warning); }
+.ovr-badge.rating-high { color: var(--success); }
+.ovr-badge.rating-mid { color: var(--text); }
+.ovr-badge.rating-low { color: var(--text-muted); }
+
+.trade-value {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-sm);
+  min-width: 48px;
+}
+
+.value-num {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.value-label {
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--text-dark);
+  letter-spacing: 0.05em;
 }
 
 /* ==========================================
    TEAM SELECTOR
    ========================================== */
-
-.team-selector {
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
+.team-selector-section {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-subtle);
   background: rgba(0, 0, 0, 0.1);
 }
 
-.team-selector-filters {
-  margin-bottom: 12px;
-}
-
-.region-filter {
+.region-select {
   width: 100%;
-  padding: 10px 14px;
-  background: var(--bg-primary);
+  padding: 10px 12px;
+  background: var(--bg-card-solid);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 13px;
-  font-weight: 500;
+  margin-bottom: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.region-filter:hover {
-  border-color: var(--accent);
-}
-
-.region-filter:focus {
+.region-select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 70, 85, 0.1);
 }
 
-.team-selector-list {
+.team-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  max-height: 180px;
+  gap: 6px;
+  max-height: 120px;
   overflow-y: auto;
-  padding: 4px;
 }
 
-.team-selector-btn {
+.team-chip {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 100px;
+  transition: all 0.15s ease;
 }
 
-.team-selector-btn:hover {
+.team-chip:hover {
+  border-color: var(--border);
   background: var(--bg-hover);
-  border-color: var(--accent);
-  transform: translateY(-2px);
 }
 
-.team-selector-btn.selected {
-  background: linear-gradient(135deg, rgba(255, 70, 85, 0.2), rgba(255, 70, 85, 0.1));
+.team-chip.active {
   border-color: var(--accent);
-  box-shadow: 0 0 12px rgba(255, 70, 85, 0.2);
+  background: rgba(255, 70, 85, 0.1);
 }
 
-.team-selector-logo {
-  width: 32px;
-  height: 32px;
+.chip-logo {
+  width: 20px;
+  height: 20px;
   object-fit: contain;
 }
 
-.team-selector-abbr {
-  font-size: 14px;
+.chip-abbr {
+  font-size: 12px;
   font-weight: 600;
   color: var(--text);
 }
 
-/* ==========================================
-   PLAYER LIST
-   ========================================== */
-
-.trade-player-list {
+/* Empty State */
+.empty-roster-message {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
 }
 
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 20px;
-  font-size: 12px;
-  font-weight: 600;
+.empty-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.empty-roster-message p {
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.roster-count {
-  font-size: 11px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.selected-count {
-  color: #4ade80;
-  font-weight: 700;
-}
-
-.player-list-scroll {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  font-size: 14px;
+  margin: 0;
 }
 
 /* ==========================================
-   PLAYER CARD
+   CENTER PANEL - TRADE SUMMARY
    ========================================== */
-
-.trade-player-card {
-  background: linear-gradient(135deg, var(--bg-primary), rgba(15, 23, 42, 0.6));
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 16px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
+.trade-center-panel {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  position: sticky;
+  top: 20px;
 }
 
-.trade-player-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: transparent;
-  transition: background 0.2s ease;
-}
-
-.trade-player-card:hover {
-  background: linear-gradient(135deg, var(--bg-hover), rgba(30, 41, 59, 0.8));
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateX(4px);
-}
-
-.trade-player-card:hover::before {
-  background: var(--accent);
-}
-
-.trade-player-card.selected {
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.15), rgba(34, 197, 94, 0.08));
-  border-color: rgba(74, 222, 128, 0.4);
-  box-shadow: 0 0 20px rgba(74, 222, 128, 0.1);
-}
-
-.trade-player-card.selected::before {
-  background: #4ade80;
-}
-
-.player-card-main {
+.trade-flow {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.player-card-info {
+.flow-section {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  border-left: 3px solid transparent;
+}
+
+.flow-section.outgoing {
+  border-left-color: var(--accent);
+}
+
+.flow-section.incoming {
+  border-left-color: var(--success);
+}
+
+.flow-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.flow-icon {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.flow-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.flow-players {
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.player-name {
-  font-weight: 600;
-  font-size: 15px;
-  cursor: pointer;
-  transition: color 0.15s ease;
-}
-
-.player-name:hover {
-  color: var(--accent);
-}
-
-.igl-badge-small {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 8px;
-  padding: 2px 6px;
-  font-size: 9px;
-  font-weight: 700;
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(245, 158, 11, 0.15));
-  color: #fbbf24;
-  border-radius: 4px;
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  vertical-align: middle;
-  letter-spacing: 0.5px;
-}
-
-.player-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.role-pill-small {
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.role-pill-small.role-duelist { 
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(239, 68, 68, 0.1)); 
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-.role-pill-small.role-controller { 
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(168, 85, 247, 0.1)); 
-  color: #a855f7;
-  border: 1px solid rgba(168, 85, 247, 0.3);
-}
-.role-pill-small.role-initiator { 
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(34, 197, 94, 0.1)); 
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.3);
-}
-.role-pill-small.role-sentinel { 
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.1)); 
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-.role-pill-small.role-flex { 
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(251, 191, 36, 0.1)); 
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.3);
-}
-
-.player-age {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.player-card-stats {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.player-ovr {
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.player-ovr.rating-elite { 
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.player-ovr.rating-high { color: #4ade80; }
-.player-ovr.rating-mid { color: var(--text); }
-.player-ovr.rating-low { color: #f87171; }
-
-.player-value {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.value-label {
-  font-size: 9px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  letter-spacing: 0.5px;
-}
-
-.value-number {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--accent);
-}
-
-/* ==========================================
-   TRADE CENTER / SUMMARY
-   ========================================== */
-
-.trade-center {
-  display: flex;
-  flex-direction: column;
-}
-
-.trade-summary {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, rgba(15, 23, 42, 0.9) 100%);
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  padding: 24px;
-  position: sticky;
-  top: 24px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-.trade-summary h3 {
-  margin: 0 0 24px 0;
-  font-size: 14px;
-  text-align: center;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  font-weight: 600;
-}
-
-.trade-arrows {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.trade-arrow-section {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1));
-  border-radius: 12px;
-  padding: 16px;
-  position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.trade-arrow-section:first-child {
-  border-left: 3px solid #f87171;
-}
-
-.trade-arrow-section:last-child {
-  border-left: 3px solid #4ade80;
-}
-
-.arrow-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-  letter-spacing: 1px;
-  font-weight: 600;
-}
-
-.arrow-player-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 140px;
+  max-height: 120px;
   overflow-y: auto;
 }
 
-.arrow-player-item {
+.flow-player {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 8px 10px;
   background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
 }
 
-.arrow-player-name {
+.flow-role-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.flow-name {
+  flex: 1;
   font-size: 13px;
   font-weight: 600;
+  color: var(--text);
 }
 
-.arrow-player-ovr {
+.flow-ovr {
+  font-family: 'Rajdhani', sans-serif;
   font-size: 14px;
   font-weight: 700;
 }
 
-.arrow-player-ovr.rating-elite { color: #fbbf24; }
-.arrow-player-ovr.rating-high { color: #4ade80; }
-.arrow-player-ovr.rating-mid { color: var(--text); }
-.arrow-player-ovr.rating-low { color: #f87171; }
+.flow-ovr.rating-elite { color: var(--warning); }
+.flow-ovr.rating-high { color: var(--success); }
+.flow-ovr.rating-mid { color: var(--text); }
+.flow-ovr.rating-low { color: var(--text-muted); }
 
-.arrow-total {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 12px;
-  color: var(--text-muted);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.arrow-total strong {
-  font-size: 16px;
-  background: linear-gradient(135deg, var(--accent), #ff6b6b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.arrow-placeholder {
-  color: var(--text-muted);
-  font-style: italic;
-  font-size: 13px;
-  padding: 12px;
+.flow-empty {
+  padding: 16px;
   text-align: center;
-  opacity: 0.7;
+  color: var(--text-dark);
+  font-size: 12px;
+  font-style: italic;
 }
 
-.trade-arrow {
-  position: absolute;
-  right: 16px;
-  top: 16px;
-  font-size: 20px;
-  color: var(--text-muted);
-  opacity: 0.3;
-}
-
-/* ==========================================
-   ROSTER PREVIEW
-   ========================================== */
-
-.roster-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 14px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.roster-preview-item {
+.flow-total {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
   font-size: 12px;
-}
-
-.roster-preview-label {
   color: var(--text-muted);
 }
 
-.roster-preview-value {
+.total-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
   font-weight: 700;
-  font-family: 'Monaco', 'Menlo', monospace;
+  color: var(--accent);
 }
 
-.roster-preview-value.invalid {
-  color: #f87171;
-  animation: pulse 1s ease infinite;
+/* Trade Exchange Icon */
+.trade-exchange {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+.exchange-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 16px;
+  color: var(--text-muted);
 }
 
 /* ==========================================
-   VALUE COMPARISON
+   TRADE ANALYSIS
    ========================================== */
+.trade-analysis {
+  margin-bottom: 16px;
+}
 
-.value-comparison {
+.value-meter {
   text-align: center;
   padding: 16px;
-  border-radius: 12px;
-  margin-bottom: 16px;
-  transition: all 0.3s ease;
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
 }
 
-.value-comparison.value-great {
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.2), rgba(34, 197, 94, 0.1));
-  border: 1px solid rgba(74, 222, 128, 0.4);
-  box-shadow: 0 0 20px rgba(74, 222, 128, 0.15);
+.value-meter.value-great {
+  background: rgba(10, 200, 185, 0.15);
+  border: 1px solid rgba(10, 200, 185, 0.4);
 }
 
-.value-comparison.value-good {
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.15), rgba(34, 197, 94, 0.05));
-  border: 1px solid rgba(74, 222, 128, 0.25);
+.value-meter.value-good {
+  background: rgba(10, 200, 185, 0.08);
+  border: 1px solid rgba(10, 200, 185, 0.2);
 }
 
-.value-comparison.value-neutral {
+.value-meter.value-neutral {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
 }
 
-.value-comparison.value-poor {
-  background: linear-gradient(135deg, rgba(248, 113, 113, 0.1), rgba(239, 68, 68, 0.05));
-  border: 1px solid rgba(248, 113, 113, 0.2);
+.value-meter.value-poor {
+  background: rgba(255, 70, 85, 0.08);
+  border: 1px solid rgba(255, 70, 85, 0.2);
 }
 
-.value-comparison.value-bad {
-  background: linear-gradient(135deg, rgba(248, 113, 113, 0.2), rgba(239, 68, 68, 0.1));
-  border: 1px solid rgba(248, 113, 113, 0.4);
-  box-shadow: 0 0 20px rgba(248, 113, 113, 0.15);
+.value-meter.value-bad {
+  background: rgba(255, 70, 85, 0.15);
+  border: 1px solid rgba(255, 70, 85, 0.4);
 }
 
-.value-diff-label {
-  display: block;
+.meter-label {
   font-size: 10px;
   color: var(--text-muted);
-  margin-bottom: 6px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
 }
 
-.value-diff-number {
-  font-size: 20px;
+.meter-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 28px;
   font-weight: 700;
+  line-height: 1.2;
 }
 
-.value-great .value-diff-number,
-.value-good .value-diff-number {
-  color: #4ade80;
+.value-great .meter-value,
+.value-good .meter-value {
+  color: var(--success);
 }
 
-.value-poor .value-diff-number,
-.value-bad .value-diff-number {
-  color: #f87171;
+.value-poor .meter-value,
+.value-bad .meter-value {
+  color: var(--accent);
 }
 
-/* ==========================================
-   BUTTONS
-   ========================================== */
-
-.clear-selections-btn {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 12px;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.clear-selections-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
+.value-neutral .meter-value {
   color: var(--text);
 }
 
-.execute-trade-btn {
-  width: 100%;
-  padding: 18px 24px;
-  background: linear-gradient(135deg, #4ade80, #22c55e);
-  border: none;
-  border-radius: 12px;
-  color: white;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  position: relative;
-  overflow: hidden;
+.meter-status {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
 }
 
-.execute-trade-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s ease;
+.value-great .meter-status { color: var(--success); }
+.value-good .meter-status { color: var(--success); }
+.value-neutral .meter-status { color: var(--text-muted); }
+.value-poor .meter-status { color: var(--accent); }
+.value-bad .meter-status { color: var(--accent); }
+
+/* Roster Impact */
+.roster-impact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
 }
 
-.execute-trade-btn:hover:not(:disabled)::before {
-  left: 100%;
+.impact-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
 }
 
-.execute-trade-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(74, 222, 128, 0.4);
+.impact-team {
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
-.execute-trade-btn:active:not(:disabled) {
-  transform: translateY(0);
+.impact-change {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  color: var(--text);
 }
 
-.execute-trade-btn:disabled {
-  background: linear-gradient(135deg, var(--bg-primary), rgba(30, 41, 59, 0.8));
-  color: var(--text-muted);
-  cursor: not-allowed;
-  font-size: 11px;
-  text-transform: none;
-  letter-spacing: normal;
-  border: 1px solid var(--border);
+.impact-change.invalid {
+  color: var(--accent);
 }
 
 /* ==========================================
-   SCROLLBAR STYLING
+   ACTION BUTTONS
    ========================================== */
+.trade-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-.player-list-scroll::-webkit-scrollbar,
-.team-selector-list::-webkit-scrollbar,
-.arrow-player-list::-webkit-scrollbar {
+.btn-clear {
+  padding: 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-clear:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn-execute {
+  padding: 14px 20px;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: not-allowed;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-execute.ready {
+  background: linear-gradient(135deg, var(--success), #059669);
+  border-color: transparent;
+  color: white;
+  cursor: pointer;
+}
+
+.btn-execute.ready:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(10, 200, 185, 0.4);
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+.btn-disabled-text {
+  font-size: 11px;
+}
+
+/* ==========================================
+   SCROLLBARS
+   ========================================== */
+.player-grid::-webkit-scrollbar,
+.team-chips::-webkit-scrollbar,
+.flow-players::-webkit-scrollbar {
   width: 6px;
 }
 
-.player-list-scroll::-webkit-scrollbar-track,
-.team-selector-list::-webkit-scrollbar-track,
-.arrow-player-list::-webkit-scrollbar-track {
+.player-grid::-webkit-scrollbar-track,
+.team-chips::-webkit-scrollbar-track,
+.flow-players::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.2);
   border-radius: 3px;
 }
 
-.player-list-scroll::-webkit-scrollbar-thumb,
-.team-selector-list::-webkit-scrollbar-thumb,
-.arrow-player-list::-webkit-scrollbar-thumb {
+.player-grid::-webkit-scrollbar-thumb,
+.team-chips::-webkit-scrollbar-thumb,
+.flow-players::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 3px;
 }
 
-.player-list-scroll::-webkit-scrollbar-thumb:hover,
-.team-selector-list::-webkit-scrollbar-thumb:hover,
-.arrow-player-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+.player-grid::-webkit-scrollbar-thumb:hover,
+.team-chips::-webkit-scrollbar-thumb:hover,
+.flow-players::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* ==========================================
-   RESPONSIVE ADJUSTMENTS
+   RESPONSIVE
    ========================================== */
-
 @media (max-width: 1200px) {
-  .trade-summary {
+  .trade-center-panel {
     position: static;
   }
   
-  .trade-interface {
-    min-height: auto;
+  .trade-panel {
+    max-height: 500px;
   }
   
-  .trade-side {
-    max-height: 500px;
+  .trade-flow {
+    flex-direction: row;
+    gap: 16px;
+  }
+  
+  .flow-section {
+    flex: 1;
+  }
+  
+  .trade-exchange {
+    align-items: center;
+    padding: 0 8px;
   }
 }
 
 @media (max-width: 768px) {
-  .trade-page .content-header {
-    flex-direction: column;
-    gap: 8px;
+  .trade-header h1 {
+    font-size: 24px;
   }
   
-  .trade-side-header {
-    padding: 16px;
-  }
-  
-  .trade-team-logo {
+  .team-logo-lg {
     width: 40px;
     height: 40px;
   }
   
-  .trade-team-info h2 {
+  .team-details h2 {
     font-size: 16px;
   }
   
-  .player-ovr {
-    font-size: 22px;
+  .trade-flow {
+    flex-direction: column;
   }
   
-  .trade-summary {
-    padding: 16px;
+  .trade-exchange {
+    padding: 4px 0;
   }
 }

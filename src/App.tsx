@@ -9,7 +9,6 @@ import {
   skipToPlayoffs,
   type GameState,
   type DayResult,
-  type ScheduledMatch,
 } from "./sim/gameState";
 import {
   saveGame,
@@ -33,29 +32,35 @@ import {
   Sidebar,
   MatchDetailView,
   LeagueEditor,
+  SchedulePage,
+  StandingsPage,
+  PlayerDetailPage,
 } from "./ui/components";
 import {
   PlayoffBracket as PlayoffBracketView,
   InternationalBracket as InternationalBracketView,
 } from "./ui/components/PlayoffBracket";
-import { PlayerStatsTable } from "./ui/components/PlayerStatsTable";
 import { PlayersPage } from "./ui/components/PlayersPage";
 import { PowerRankingsPage } from "./ui/components/PowerRankingsPage";
 import { MatchToastContainer, type MatchToastData } from "./ui/components/MatchToast";
 import { RosterManagementPage } from "./ui/components/RosterManagementPage";
 import { FreeAgencyPage } from "./ui/FreeAgencyPage";
 import { TradePage } from "./ui/components/TradePage";
+import { ScrimsPage } from "./ui/components/ScrimsPage";
+import { PWAUpdatePrompt } from "./ui/components/PWAUpdatePrompt";
 import { signFreeAgent, releasePlayer, generateFreeAgentPool } from "./sim/freeAgency";
 import { executeTrade } from "./sim/trading";
+import { getAvailableScrimOpponents, runScrim, isScrimRisky, formatScrimResultLog } from "./sim/scrims";
+import { getFatigueLevel, getFatigueDisplay } from "./types/scrims";
+import type { ScrimResult } from "./types/scrims";
 import type { StartingSlot } from "./types/roster";
 import { getRolePenalty } from "./types/roster";
 import { calculateEffectiveOverallWithIGL } from "./sim/iglBonus";
+import { getCompositionPenalty } from "./sim/compositionBonus";
 import type { Team, Player, Role, AgentPool, Region } from "./types";
 import type { RNG } from "./utils/random";
 import { PlayerEditModal } from "./ui/components/PlayerEditModal";
-import { toLetterGrade, getGradeClass } from "./utils/letterGrade";
 import "./App.css";
-import { ALL_ARCHETYPES } from './data/archetypes';
 
 function generateAgentPoolForRole(rng: RNG, role: Role): AgentPool {
   const pool: AgentPool = {};
@@ -148,6 +153,8 @@ const REGION_LOGOS: Record<Region, string> = {
   china: '/logos/regions/China.png',
 };
 
+const CHAMPIONS_LOGO = '/logos/regions/Champions.png';
+
 type NavView =
   | "dashboard"
   | "standings"
@@ -167,7 +174,8 @@ type NavView =
   | "match-detail"
   | "players"
   | "roster-management"
-  | "free-agency";
+  | "free-agency"
+  | "scrims";
 type AppScreen = "welcome" | "setup" | "game" | "editor";
 
 export default function App() {
@@ -186,6 +194,9 @@ export default function App() {
   const [previousView, setPreviousView] = useState<NavView>("dashboard");
   const [showEditPlayerModal, setShowEditPlayerModal] = useState(false);
   const [devMode, setDevMode] = useState(false);
+  const [showScrimModal, setShowScrimModal] = useState(false);
+  const [scrimHistory, setScrimHistory] = useState<ScrimResult[]>([]);
+  const [selectedScrimMatch, setSelectedScrimMatch] = useState<ScrimResult | null>(null);
 
   const [setupSeed, setSetupSeed] = useState<string>("");
   const [setupTeams, setSetupTeams] = useState<Team[]>([]);
@@ -398,6 +409,83 @@ export default function App() {
         }
       }
     }
+  };
+
+  // Handle running a scrim
+  const handleScrim = (opponentId: string, opponentType: 'regional' | 'tier2', opponentName: string) => {
+    if (!gameState || !gameState.userTeamId) return;
+
+    // Can't scrim during playoffs
+    if (gameState.phase === 'regional_playoffs' || gameState.phase === 'international') {
+      setNotificationToast('❌ Cannot scrim during playoffs');
+      return;
+    }
+
+    // Can't scrim twice in same day
+    if (gameState.lastScrimDay === gameState.currentDay) {
+      setNotificationToast('❌ Already scrimmaged today');
+      return;
+    }
+
+    const userTeam = gameState.teams.find(t => t.id === gameState.userTeamId);
+    if (!userTeam) return;
+
+    // Create RNG for this scrim
+    const rng = createRNG(`${gameState.seed}-scrim-${gameState.currentDay}-${opponentId}`);
+
+    // Run the scrim
+    const result: ScrimResult = runScrim(
+      rng,
+      userTeam,
+      opponentName,
+      opponentType,
+      gameState.fatigueLevel,
+      gameState.currentDay,
+      gameState.currentYear,
+      gameState.teams
+    );
+
+    // Update game state - increase fatigue by 1
+    const updatedState = {
+      ...gameState,
+      fatigueLevel: gameState.fatigueLevel + 1,
+      lastScrimDay: gameState.currentDay,
+    };
+
+    // Recalculate team attributes after potential stat changes
+    const updatedTeams = updatedState.teams.map(t => {
+      if (t.id === gameState.userTeamId) {
+        return {
+          ...t,
+          attributes: calculateTeamAttributes(t.roster),
+        };
+      }
+      return t;
+    });
+    updatedState.teams = updatedTeams;
+
+    // Create game event for the log
+    const scrimLogs = formatScrimResultLog(result);
+    const scrimEvent = {
+      type: 'scrim_result' as const,
+      message: scrimLogs[0],
+      data: result,
+    };
+
+    // Add to recent results
+    const scrimDayResult: DayResult = {
+      day: gameState.currentDay,
+      matchesPlayed: [],
+      events: [scrimEvent],
+    };
+
+    setGameState(updatedState);
+    setRecentResults(prev => [...prev.slice(-20), scrimDayResult]);
+    setScrimHistory(prev => [...prev, result]);
+    setShowScrimModal(false);
+    setNotificationToast(result.statChanges.length > 0 
+      ? `🏋️ Scrim complete! ${result.statChanges.length} player(s) developed`
+      : `🏋️ Scrim complete. No significant changes.`);
   };
 
   // Simulate until user's team has their next match
@@ -698,6 +786,24 @@ export default function App() {
     } else {
       setNotificationToast(`❌ Trade failed: ${result.message}`);
     }
+  };
+
+  // Switch team handler (dev mode)
+  const handleSwitchTeam = (newTeamId: string) => {
+    if (!gameState || !devMode) return;
+    
+    const newTeam = gameState.teams.find(t => t.id === newTeamId);
+    if (!newTeam) return;
+    
+    setGameState({
+      ...gameState,
+      userTeamId: newTeamId,
+    });
+    
+    // Update selected region to match the new team's region
+    setSelectedRegion(newTeam.region);
+    
+    setNotificationToast(`🔄 Switched to ${newTeam.name}`);
   };
 
   const handleSavePlayer = (updatedPlayer: Player) => {
@@ -1035,11 +1141,13 @@ export default function App() {
     
     if (isStarter && lineupSlot) {
       const rolePenalty = getRolePenalty(player.role, lineupSlot.assignedRole);
+      const compositionPenalty = getCompositionPenalty(lineup);
       const iglResult = calculateEffectiveOverallWithIGL(
         player,
         team,
         lineup,
-        rolePenalty
+        rolePenalty,
+        compositionPenalty
       );
       
       return {
@@ -1047,6 +1155,7 @@ export default function App() {
         baseOvr: player.overall,
         rolePenalty,
         iglBonus: iglResult.iglBonus,
+        compositionPenalty,
         isStarter: true,
         assignedRole: lineupSlot.assignedRole,
       };
@@ -1057,6 +1166,7 @@ export default function App() {
       baseOvr: player.overall,
       rolePenalty: 0,
       iglBonus: 0,
+      compositionPenalty: 0,
       isStarter: false,
       assignedRole: player.role,
     };
@@ -1320,6 +1430,25 @@ export default function App() {
             ▶ Play Day
           </button>
           <button 
+            className={`btn btn-scrim ${gameState.lastScrimDay === gameState.currentDay ? 'disabled' : ''} ${(gameState.phase === 'regional_playoffs' || gameState.phase === 'international') ? 'disabled' : ''}`}
+            onClick={() => setShowScrimModal(true)}
+            disabled={gameState.lastScrimDay === gameState.currentDay || gameState.phase === 'regional_playoffs' || gameState.phase === 'international'}
+            title={
+              gameState.phase === 'regional_playoffs' || gameState.phase === 'international' 
+                ? 'Cannot scrim during playoffs' 
+                : gameState.lastScrimDay === gameState.currentDay 
+                  ? 'Already scrimmaged today' 
+                  : 'Practice match for player development'
+            }
+          >
+            🏋️ Scrim
+            {gameState.fatigueLevel > 0 && (
+              <span className={`scrim-count ${getFatigueLevel(gameState.fatigueLevel)}`}>
+                {gameState.fatigueLevel}
+              </span>
+            )}
+          </button>
+          <button 
             className="btn btn-sim-next" 
             onClick={handleSimToNextMatchup}
             title="Simulate until your team plays"
@@ -1353,6 +1482,30 @@ export default function App() {
                   </div>
                   <div className="toggle-switch"></div>
                 </button>
+                {devMode && gameState && gameState.userTeamId && (
+                  <div className="dev-team-switcher">
+                    <label className="switcher-label">🔄 Switch Team</label>
+                    <select 
+                      value={gameState.userTeamId}
+                      onChange={(e) => handleSwitchTeam(e.target.value)}
+                      className="team-switcher-select"
+                    >
+                      {(['americas', 'emea', 'pacific', 'china'] as Region[]).map(region => (
+                        <optgroup key={region} label={REGION_NAMES[region]}>
+                          {gameState.teams
+                            .filter(t => t.region === region)
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map(team => (
+                              <option key={team.id} value={team.id}>
+                                {team.name} ({team.abbreviation})
+                              </option>
+                            ))
+                          }
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1402,249 +1555,42 @@ export default function App() {
                 }}
                 recentResults={recentResults}
                 regionLogos={REGION_LOGOS}
+                championsLogo={CHAMPIONS_LOGO}
               />
             </>
           )}
 
           {view === "standings" && (
-            <>
-              <div className="content-header">
-                <img
-                  src={REGION_LOGOS[selectedRegion]}
-                  alt=""
-                  className="region-header-logo"
-                />
-                <h1>{REGION_NAMES[selectedRegion]} Standings</h1>
-              </div>
-              <div className="region-tabs">
-                {(["americas", "emea", "pacific", "china"] as Region[]).map(
-                  (region) => (
-                    <button
-                      key={region}
-                      className={`region-tab ${
-                        selectedRegion === region ? "active" : ""
-                      }`}
-                      onClick={() => setSelectedRegion(region)}
-                    >
-                      <img
-                        src={REGION_LOGOS[region]}
-                        alt=""
-                        className="region-tab-logo"
-                      />
-                      {REGION_NAMES[region]}
-                    </button>
-                  )
-                )}
-              </div>
-              <div className="panel">
-                <div className="panel-body" style={{ padding: 0 }}>
-                  <table className="standings-table">
-                    <thead>
-                      <tr>
-                        <th></th>
-                        <th>Team</th>
-                        <th>W</th>
-                        <th>L</th>
-                        <th>Map W</th>
-                        <th>Map L</th>
-                        <th>RD</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const regionStandings = [...gameState.standings]
-                          .filter(
-                            (s) =>
-                              gameState.teams.find((t) => t.id === s.teamId)
-                                ?.region === selectedRegion
-                          )
-                          .sort((a, b) =>
-                            b.wins !== a.wins
-                              ? b.wins - a.wins
-                              : b.mapWins -
-                                b.mapLosses -
-                                (a.mapWins - a.mapLosses)
-                          );
-                        
-                        // Check if regular season is complete (playoffs started or later)
-                        const playoffsStarted = gameState.phase === 'regional_playoffs' || 
-                          gameState.phase === 'international' || 
-                          gameState.regionalPlayoffs[selectedRegion] !== undefined;
-                        
-                        return regionStandings.map((entry, idx) => {
-                          const team = gameState.teams.find(
-                            (t) => t.id === entry.teamId
-                          );
-                          const isUser = entry.teamId === gameState.userTeamId;
-                          const madePlayoffs = idx < 6; // Top 6 make playoffs
-                          const eliminated = idx >= 6;
-                          
-                          // Determine clinch indicator
-                          let clinchIndicator = null;
-                          if (playoffsStarted) {
-                            if (madePlayoffs) {
-                              clinchIndicator = <span className="clinch-indicator clinched" title="Clinched playoffs">x</span>;
-                            } else if (eliminated) {
-                              clinchIndicator = <span className="clinch-indicator eliminated" title="Eliminated">z</span>;
-                            }
-                          }
-                          
-                          return (
-                            <tr key={entry.teamId} className={eliminated && playoffsStarted ? 'eliminated-row' : ''}>
-                              <td className="rank">{idx + 1}</td>
-                              <td>
-                                <span
-                                  className={`team-name-with-logo ${
-                                    isUser ? "user-team" : ""
-                                  }`}
-                                  onClick={() => handleViewTeam(entry.teamId)}
-                                >
-                                  {clinchIndicator}
-                                  <img 
-                                    src={team?.logo} 
-                                    alt="" 
-                                    className="standings-team-logo"
-                                  />
-                                  {team?.name}
-                                </span>
-                              </td>
-                              <td className="record">{entry.wins}</td>
-                              <td className="record">{entry.losses}</td>
-                              <td className="record">{entry.mapWins}</td>
-                              <td className="record">{entry.mapLosses}</td>
-                              <td className="record">
-                                {entry.roundDifferential >= 0 ? "+" : ""}
-                                {entry.roundDifferential}
-                              </td>
-                            </tr>
-                          );
-                        });
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </>
+            <StandingsPage
+              standings={gameState.standings}
+              teams={gameState.teams}
+              schedule={gameState.schedule}
+              userTeamId={gameState.userTeamId}
+              selectedRegion={selectedRegion}
+              onRegionChange={setSelectedRegion}
+              onViewTeam={handleViewTeam}
+              playoffsStarted={
+                gameState.phase === 'regional_playoffs' ||
+                gameState.phase === 'international' ||
+                gameState.regionalPlayoffs[selectedRegion] !== undefined
+              }
+            />
           )}
 
           {view === "schedule" && (
-            <>
-              <div className="content-header">
-                <img
-                  src={REGION_LOGOS[selectedRegion]}
-                  alt=""
-                  className="region-header-logo"
-                />
-                <h1>{REGION_NAMES[selectedRegion]} Schedule</h1>
-              </div>
-              <div className="region-tabs">
-                {(["americas", "emea", "pacific", "china"] as Region[]).map(
-                  (region) => (
-                    <button
-                      key={region}
-                      className={`region-tab ${
-                        selectedRegion === region ? "active" : ""
-                      }`}
-                      onClick={() => setSelectedRegion(region)}
-                    >
-                      <img
-                        src={REGION_LOGOS[region]}
-                        alt=""
-                        className="region-tab-logo"
-                      />
-                      {REGION_NAMES[region]}
-                    </button>
-                  )
-                )}
-              </div>
-              <div className="panel">
-                <div className="panel-body">
-                  <div className="schedule-list">
-                    {gameState.schedule
-                      .filter(
-                        (match: ScheduledMatch) =>
-                          match.region === selectedRegion
-                      )
-                      .map((match: ScheduledMatch) => {
-                        const home = gameState.teams.find(
-                          (t) => t.id === match.homeTeamId
-                        );
-                        const away = gameState.teams.find(
-                          (t) => t.id === match.awayTeamId
-                        );
-                        const isUserMatch =
-                          match.homeTeamId === gameState.userTeamId ||
-                          match.awayTeamId === gameState.userTeamId;
-                        const isClickable = match.played && match.result;
-                        return (
-                          <div
-                            key={match.id}
-                            className={`schedule-item ${
-                              isClickable ? "clickable" : ""
-                            }`}
-                            onClick={() => {
-                              if (isClickable) {
-                                setPreviousView("schedule");
-                                setSelectedMatchId(match.id);
-                                setView("match-detail");
-                              }
-                            }}
-                          >
-                            <span className="schedule-day">
-                              Day {match.day}
-                            </span>
-                            <span className="schedule-matchup">
-                              <span
-                                className={`schedule-team ${
-                                  match.homeTeamId === gameState.userTeamId
-                                    ? "user-team"
-                                    : ""
-                                }`}
-                              >
-                                <img src={home?.logo} alt="" className="schedule-team-logo" />
-                                {home?.abbreviation}
-                              </span>
-                              <span className="vs">vs</span>
-                              <span
-                                className={`schedule-team ${
-                                  match.awayTeamId === gameState.userTeamId
-                                    ? "user-team"
-                                    : ""
-                                }`}
-                              >
-                                <img src={away?.logo} alt="" className="schedule-team-logo" />
-                                {away?.abbreviation}
-                              </span>
-                            </span>
-                            {match.played && match.result ? (
-                              <span
-                                className={`schedule-result ${
-                                  isUserMatch
-                                    ? match.homeTeamId === gameState.userTeamId
-                                      ? match.result.homeScore >
-                                        match.result.awayScore
-                                        ? "win"
-                                        : "loss"
-                                      : match.result.awayScore >
-                                        match.result.homeScore
-                                      ? "win"
-                                      : "loss"
-                                    : ""
-                                }`}
-                              >
-                                {match.result.homeScore}-
-                                {match.result.awayScore}
-                              </span>
-                            ) : (
-                              <span className="schedule-result">-</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              </div>
-            </>
+            <SchedulePage
+              schedule={gameState.schedule}
+              teams={gameState.teams}
+              userTeamId={gameState.userTeamId}
+              currentDay={gameState.currentDay}
+              selectedRegion={selectedRegion}
+              onRegionChange={setSelectedRegion}
+              onViewMatch={(matchId) => {
+                setPreviousView("schedule");
+                setSelectedMatchId(matchId);
+                setView("match-detail");
+              }}
+            />
           )}
 
           {view === "playoffs" && (
@@ -1872,234 +1818,19 @@ export default function App() {
 
           {view === "player" && selectedPlayer && selectedPlayerTeam && (
             <>
-              <div className="content-header">
-                <button
-                  className="link-btn"
-                  onClick={() => handleViewTeam(selectedPlayerTeam.id)}
-                >
-                  « Back to {selectedPlayerTeam.name}
-                </button>
-                <h1>{selectedPlayer.name}</h1>
-              </div>
-              <div className="player-profile">
-                <div className="player-profile-header">
-                  <div className="player-profile-info">
-                    <img
-                      src={selectedPlayerTeam.logo}
-                      alt={selectedPlayerTeam.name}
-                      className="player-team-logo"
-                    />
-                    <div>
-                      <h2>{selectedPlayer.name}</h2>
-                      <div className="player-profile-meta">
-                        <span
-                          className={`role-badge role-${selectedPlayer.role}`}
-                        >
-                          {selectedPlayer.role.toUpperCase()}
-                        </span>
-                        <span>{selectedPlayerTeam.name}</span>
-                        <span>Age: {selectedPlayer.age}</span>
-                        {selectedPlayerTeam.iglId === selectedPlayer.id && (
-                          <span className="igl-badge">IGL</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="player-profile-ovr">
-                    {(() => {
-                      const ovrInfo = getPlayerEffectiveOVR(selectedPlayer, selectedPlayerTeam);
-                      const hasModifier = ovrInfo.rolePenalty !== 0 || ovrInfo.iglBonus !== 0;
-                      
-                      return (
-                        <>
-                          <div className="ovr-large">{ovrInfo.effectiveOvr}</div>
-                          <div className="ovr-label">
-                            {ovrInfo.isStarter ? 'EFF OVR' : 'OVR (Bench)'}
-                          </div>
-                          {ovrInfo.isStarter && hasModifier && (
-                            <div className="ovr-breakdown">
-                              <span className="base-ovr">Base: {ovrInfo.baseOvr}</span>
-                              {ovrInfo.rolePenalty !== 0 && (
-                                <span className={`modifier ${ovrInfo.rolePenalty > 0 ? 'positive' : 'negative'}`}>
-                                  Role: {ovrInfo.rolePenalty > 0 ? '+' : ''}{ovrInfo.rolePenalty}
-                                </span>
-                              )}
-                              {ovrInfo.iglBonus !== 0 && (
-                                <span className={`modifier ${ovrInfo.iglBonus > 0 ? 'positive' : 'negative'}`}>
-                                  IGL: {ovrInfo.iglBonus > 0 ? '+' : ''}{ovrInfo.iglBonus}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          {ovrInfo.isStarter && ovrInfo.assignedRole !== selectedPlayer.role && (
-                            <div className="assigned-role-info">
-                              Playing as: <span className={`role-badge role-${ovrInfo.assignedRole}`}>
-                                {ovrInfo.assignedRole.toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
-                    {(devMode || selectedPlayerTeam.id === gameState?.userTeamId) && (
-                      <button 
-                        className="edit-player-btn"
-                        onClick={() => setShowEditPlayerModal(true)}
-                      >
-                        ✏️ Edit
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="player-profile-grid">
-                  <div className="panel">
-                    <div className="panel-header">Ratings</div>
-                    <div className="panel-body">
-                      {[
-                        ["Aim", selectedPlayer.ratings.aim],
-                        ["Spray Control", selectedPlayer.ratings.sprayControl],
-                        ["Game Sense", selectedPlayer.ratings.gameSense],
-                        ["Utility Usage", selectedPlayer.ratings.utilityUsage],
-                        ["Communication", selectedPlayer.ratings.communication],
-                        ["Clutch Factor", selectedPlayer.ratings.clutchFactor],
-                      ].map(([label, value]) => (
-                        <div key={label as string} className="rating-bar-row">
-                          <span className="rating-label">{label}</span>
-                          <div className="rating-bar-bg">
-                            <div
-                              className="rating-bar-fill"
-                              style={{ width: `${value}%` }}
-                            />
-                          </div>
-                          <span className="rating-value">{value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="panel">
-                    <div className="panel-header">Info</div>
-                    <div className="panel-body">
-                      <div className="stat-row">
-                        <span className="label">Archetype</span>
-                        <span
-                          className="value"
-                          title={
-                            ALL_ARCHETYPES[selectedPlayer.archetype]
-                              ?.description
-                          }
-                        >
-                          {ALL_ARCHETYPES[selectedPlayer.archetype]?.name ||
-                            selectedPlayer.archetype.replace(/_/g, " ")}
-                        </span>
-                      </div>
-                      <div className="stat-row">
-                        <span className="label">Potential</span>
-                        <span className="value">
-                          {selectedPlayer.potential.floor} -{" "}
-                          {selectedPlayer.potential.ceiling}
-                        </span>
-                      </div>
-                      <div className="stat-row">
-                        <span className="label">Peak Age</span>
-                        <span className="value">
-                          {selectedPlayer.development.peakAge}
-                        </span>
-                      </div>
-                      <div className="stat-row">
-                        <span className="label">Background</span>
-                        <span className="value">
-                          {selectedPlayer.background.replace(/_/g, " ")}
-                        </span>
-                      </div>
-                      {selectedPlayer.contract ? (
-                        <>
-                          <div className="stat-row">
-                            <span className="label">Contract</span>
-                            <span className="value">
-                              ${selectedPlayer.contract.salary.toLocaleString()}
-                              /yr
-                            </span>
-                          </div>
-                          <div className="stat-row">
-                            <span className="label">Years Left</span>
-                            <span className="value">
-                              {selectedPlayer.contract.yearsRemaining}
-                            </span>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="stat-row">
-                          <span className="label">Contract</span>
-                          <span className="value">Free Agent</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="panel">
-                    <div className="panel-header">Agent Pool</div>
-                    <div className="panel-body">
-                      {Object.entries(selectedPlayer.agentPool)
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([agent]) => {
-                          const normalizedAgent = agent
-                            .toLowerCase()
-                            .replace(/\s+/g, "")
-                            .replace(/\//g, "");
-                          return (
-                            <div key={agent} className="agent-pool-row">
-                              <img
-                                src={`https://www.vlr.gg/img/vlr/game/agents/${normalizedAgent}.png`}
-                                alt={agent}
-                                className="agent-pool-icon"
-                                title={
-                                  agent.charAt(0).toUpperCase() + agent.slice(1)
-                                }
-                              />
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
-
-                  <div className="panel">
-                    <div className="panel-header">Personality</div>
-                    <div className="panel-body">
-                      {[
-                        ["Leadership", selectedPlayer.personality.leadership],
-                        ["Work Ethic", selectedPlayer.personality.workEthic],
-                        ["Mentality", selectedPlayer.personality.mentality],
-                        ["Team Player", selectedPlayer.personality.teamPlayer],
-                        [
-                          "Coachability",
-                          selectedPlayer.personality.coachability,
-                        ],
-                      ].map(([label, value]) => {
-                        const grade = toLetterGrade(value as number);
-                        const gradeClass = getGradeClass(grade);
-                        return (
-                          <div key={label as string} className="stat-row">
-                            <span className="label">{label}</span>
-                            <span className={`grade-badge ${gradeClass}`}>{grade}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Player Match History Stats */}
-                <PlayerStatsTable
-                  stats={selectedPlayer.careerStats}
-                  onMatchClick={(matchId) => {
-                    setPreviousView("player");
-                    setSelectedMatchId(matchId);
-                    setView("match-detail");
-                  }}
-                />
-              </div>
+              <PlayerDetailPage
+                player={selectedPlayer}
+                team={selectedPlayerTeam}
+                ovrInfo={getPlayerEffectiveOVR(selectedPlayer, selectedPlayerTeam)}
+                onBack={() => handleViewTeam(selectedPlayerTeam.id)}
+                onViewMatch={(matchId) => {
+                  setPreviousView("player");
+                  setSelectedMatchId(matchId);
+                  setView("match-detail");
+                }}
+                onEditPlayer={() => setShowEditPlayerModal(true)}
+                canEdit={devMode || selectedPlayerTeam.id === gameState?.userTeamId}
+              />
 
               {/* Edit Player Modal */}
               {showEditPlayerModal && selectedPlayer && selectedPlayerTeam && (
@@ -2137,6 +1868,23 @@ export default function App() {
                 setPreviousView(view);
                 setView("player");
               }}
+            />
+          )}
+          {view === "scrims" && gameState.userTeamId && (
+            <ScrimsPage
+              gameState={gameState}
+              onRunScrim={handleScrim}
+              onViewPlayer={(playerId: string) => {
+                setSelectedPlayerId(playerId);
+                setPreviousView(view);
+                setView("player");
+              }}
+              onViewMatch={(scrim: ScrimResult) => {
+                setSelectedScrimMatch(scrim);
+                setPreviousView(view);
+                setView("match-detail");
+              }}
+              scrimHistory={scrimHistory}
             />
           )}
           {view === "draft" && (
@@ -2228,7 +1976,48 @@ export default function App() {
           )}
 
           {view === "match-detail" &&
-            selectedMatchId &&
+            (selectedScrimMatch ? (
+              // Scrim match view
+              (() => {
+                const userTeamForScrim = gameState.teams.find(t => t.id === gameState.userTeamId);
+                if (!userTeamForScrim || !selectedScrimMatch.opponentTeam) {
+                  return (
+                    <div className="panel">
+                      <div className="panel-body">
+                        <p style={{ color: "var(--text-muted)" }}>
+                          Scrim data not found.{" "}
+                          <button
+                            className="link-btn"
+                            onClick={() => {
+                              setSelectedScrimMatch(null);
+                              setView(previousView);
+                            }}
+                          >
+                            Go back
+                          </button>
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <MatchDetailView
+                    match={selectedScrimMatch.matchResult}
+                    homeTeam={userTeamForScrim}
+                    awayTeam={selectedScrimMatch.opponentTeam}
+                    onBack={() => {
+                      setSelectedScrimMatch(null);
+                      setView(previousView);
+                    }}
+                    onViewPlayer={(playerId) => {
+                      setSelectedPlayerId(playerId);
+                      setPreviousView("match-detail");
+                      setView("player");
+                    }}
+                  />
+                );
+              })()
+            ) : selectedMatchId &&
             (() => {
               const matchData = findMatchResult(selectedMatchId);
               if (!matchData)
@@ -2336,7 +2125,7 @@ export default function App() {
                   }}
                 />
               );
-            })()}
+            })())}
 
           {view === "roster-management" && (() => {
             // In dev mode, manage the selected team; otherwise manage user's team
@@ -2392,10 +2181,135 @@ export default function App() {
                 setPreviousView("free-agency");
                 setView("player");
               }}
+              devMode={devMode}
+              onAddFreeAgent={(player) => {
+                setGameState(prev => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    freeAgents: [...(prev.freeAgents || []), player],
+                  };
+                });
+              }}
+              onDeleteFreeAgent={(playerId) => {
+                setGameState(prev => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    freeAgents: (prev.freeAgents || []).filter(p => p.id !== playerId),
+                  };
+                });
+              }}
+              onEditFreeAgent={(player) => {
+                setGameState(prev => {
+                  if (!prev) return prev;
+                  return {
+                    ...prev,
+                    freeAgents: (prev.freeAgents || []).map(p => 
+                      p.id === player.id ? player : p
+                    ),
+                  };
+                });
+              }}
             />
           )}
         </main>
       </div>
+
+      {/* Scrim Modal */}
+      {showScrimModal && gameState && gameState.userTeamId && (() => {
+        const userTeam = gameState.teams.find(t => t.id === gameState.userTeamId);
+        if (!userTeam) return null;
+        
+        const { regional, tier2 } = getAvailableScrimOpponents(userTeam, gameState.teams);
+        const fatigueLevel = getFatigueLevel(gameState.fatigueLevel);
+        const fatigueDisplay = getFatigueDisplay(fatigueLevel);
+        
+        // Get upcoming match days to check for risky scrims
+        const upcomingMatchDays = gameState.schedule
+          .filter(m => !m.played && (m.homeTeamId === gameState.userTeamId || m.awayTeamId === gameState.userTeamId))
+          .map(m => m.day);
+        const isRisky = isScrimRisky(gameState.currentDay, upcomingMatchDays);
+
+        return (
+          <div className="modal-overlay" onClick={() => setShowScrimModal(false)}>
+            <div className="modal scrim-modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>🏋️ Schedule Scrim</h2>
+                <button className="modal-close" onClick={() => setShowScrimModal(false)}>×</button>
+              </div>
+              <div className="modal-body">
+                {/* Fatigue Status */}
+                <div className="scrim-status">
+                  <div className="scrim-status-item">
+                    <span className="label">Team Status</span>
+                    <span className="value" style={{ color: fatigueDisplay.color }}>
+                      {fatigueDisplay.icon} {fatigueDisplay.label}
+                    </span>
+                  </div>
+                  <div className="scrim-status-item">
+                    <span className="label">Fatigue Level</span>
+                    <span className="value">{gameState.fatigueLevel}</span>
+                  </div>
+                </div>
+
+                {/* Warning if risky */}
+                {isRisky && (
+                  <div className="scrim-warning">
+                    ⚠️ Match within 2 days! Scrimming may fatigue players.
+                  </div>
+                )}
+
+                {/* Fatigue warning */}
+                {fatigueLevel === 'fatigued' && (
+                  <div className="scrim-warning danger">
+                    😓 Team is fatigued! Higher chance of negative outcomes.
+                  </div>
+                )}
+
+                {/* Regional Teams Section */}
+                <div className="scrim-section">
+                  <h3>Regional Teams</h3>
+                  <p className="scrim-section-desc">Practice against teams in your region</p>
+                  <div className="scrim-opponent-list">
+                    {regional.map(team => (
+                      <button
+                        key={team.id}
+                        className="scrim-opponent-btn"
+                        onClick={() => handleScrim(team.id, 'regional', team.name)}
+                      >
+                        <img src={team.logo} alt="" className="scrim-opponent-logo" />
+                        <span className="scrim-opponent-name">{team.name}</span>
+                        <span className="scrim-opponent-ovr">
+                          {Math.round(team.roster.slice(0, 5).reduce((sum, p) => sum + p.overall, 0) / 5)} OVR
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tier 2 / Academy Teams Section */}
+                <div className="scrim-section">
+                  <h3>Academy Teams</h3>
+                  <p className="scrim-section-desc">Easier sparring partners, always available</p>
+                  <div className="scrim-opponent-list">
+                    {tier2.map(team => (
+                      <button
+                        key={team.id}
+                        className="scrim-opponent-btn tier2"
+                        onClick={() => handleScrim(team.id, 'tier2', team.name)}
+                      >
+                        <span className="scrim-opponent-name">{team.name}</span>
+                        <span className="scrim-opponent-ovr">{team.averageOVR} OVR</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Match Result Toasts */}
       <MatchToastContainer
@@ -2410,6 +2324,9 @@ export default function App() {
           {notificationToast}
         </div>
       )}
+
+      {/* PWA Update Prompt */}
+      <PWAUpdatePrompt />
     </div>
   );
 }

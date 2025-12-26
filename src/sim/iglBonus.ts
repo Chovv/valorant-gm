@@ -137,35 +137,38 @@ export function getIGLBonusForPlayer(
 }
 
 /**
- * Calculate effective overall rating including IGL bonus
+ * Calculate effective overall rating including IGL bonus and composition penalty
  * This recalculates OVR based on modified ratings
  */
 export function calculateEffectiveOverallWithIGL(
   player: Player,
   team: Team,
   lineup: StartingSlot[],
-  rolePenalty: number = 0
+  rolePenalty: number = 0,
+  compositionPenalty: number = 0
 ): {
   effectiveOvr: number;
   baseOvr: number;
   rolePenalty: number;
   iglBonus: number;
+  compositionPenalty: number;
 } {
   const baseOvr = player.overall;
   const iglBonus = getIGLBonusForPlayer(player, team, lineup);
   
-  // Effective OVR = base + role penalty + IGL bonus
+  // Effective OVR = base + role penalty + IGL bonus + composition penalty
   // Note: IGL bonus is applied to 3 stats, but we simplify for OVR display
   // Average impact on OVR from 3 stats getting the bonus
   const iglOvrImpact = Math.round(iglBonus * 0.5); // ~50% of bonus translates to OVR
   
-  const effectiveOvr = clampRating(baseOvr + rolePenalty + iglOvrImpact);
+  const effectiveOvr = clampRating(baseOvr + rolePenalty + iglOvrImpact + compositionPenalty);
 
   return {
     effectiveOvr,
     baseOvr,
     rolePenalty,
     iglBonus: iglOvrImpact,
+    compositionPenalty,
   };
 }
 
