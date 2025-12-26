@@ -2261,7 +2261,7 @@ export default function App() {
                 )}
 
                 {/* Fatigue warning */}
-                {fatigueLevel === 'fatigued' && (
+                {getFatigueLevel(gameState.fatigueLevel) === 'exhausted' && (
                   <div className="scrim-warning danger">
                     😓 Team is fatigued! Higher chance of negative outcomes.
                   </div>
