@@ -1371,7 +1371,7 @@ export default function App() {
   return (
     <div className="app">
       <div className="top-bar">
-        <div className="top-bar-logo">🎮 ValorantGM</div>
+        <div className="top-bar-logo">🎮 ValorantGM <span className="app-version">v{APP_VERSION}</span></div>
         <div className="top-bar-info">
           <span className="top-bar-phase">
             {gameState.phase.replace("_", " ").toUpperCase()}
@@ -2261,7 +2261,7 @@ export default function App() {
                 )}
 
                 {/* Fatigue warning */}
-                {getFatigueLevel(gameState.fatigueLevel) === 'exhausted' && (
+                {fatigueLevel === 'fatigued' && (
                   <div className="scrim-warning danger">
                     😓 Team is fatigued! Higher chance of negative outcomes.
                   </div>
