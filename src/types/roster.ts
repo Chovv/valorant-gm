@@ -16,6 +16,7 @@ export interface StartingSlot {
  * Penalty applied when player's natural role differs from assigned role
  * 
  * Example: A duelist assigned to sentinel role gets -12 OVR penalty
+ * Note: Flex players get NO penalty when assigned to any role (that's their specialty)
  */
 export const ROLE_PENALTY: Record<Role, Record<Role, number>> = {
   duelist: {
@@ -47,10 +48,10 @@ export const ROLE_PENALTY: Record<Role, Record<Role, number>> = {
     flex: -3,
   },
   flex: {
-    duelist: -2,
-    initiator: -2,
-    controller: -2,
-    sentinel: -2,
+    duelist: 0,    // Flex players can play any role without penalty
+    initiator: 0,
+    controller: 0,
+    sentinel: 0,
     flex: 0,
   },
 };

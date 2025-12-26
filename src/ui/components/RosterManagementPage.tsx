@@ -14,6 +14,7 @@ import {
   calculateIGLBonus,
   getIGLBonusForPlayer,
 } from '../../sim/iglBonus';
+import { analyzeComposition, } from '../../sim/compositionBonus';
 import './RosterManagementPage.css';
 
 interface RosterManagementPageProps {
@@ -39,6 +40,7 @@ export const RosterManagementPage: React.FC<RosterManagementPageProps> = ({
 }) => {
   const [selectedBenchPlayer, setSelectedBenchPlayer] = useState<string | null>(null);
   const [swapMode, setSwapMode] = useState<'none' | 'selecting'>('none');
+  const [autoSwapRoles, setAutoSwapRoles] = useState(true);
 
   const roster = team.roster;
   const lineup: StartingSlot[] = team.startingLineup || roster.slice(0, 5).map(p => ({
@@ -48,17 +50,20 @@ export const RosterManagementPage: React.FC<RosterManagementPageProps> = ({
   const benchPlayers = getBenchPlayers(roster, lineup);
   const lineupSummary = getLineupSummary(roster, lineup);
 
+  // Analyze composition for penalties
+  const compositionResult = analyzeComposition(lineup);
+
   // Calculate IGL bonus first (needed for effective lineup strength)
   const iglBonusResult = calculateIGLBonus(team, lineup);
 
-  // Calculate effective lineup strength including IGL bonus
+  // Calculate effective lineup strength including IGL bonus and composition penalty
   const getPlayerById = (id: string) => roster.find(p => p.id === id);
   
   const effectiveLineupStrength = lineupSummary.reduce((total, summary) => {
     const player = getPlayerById(summary.playerId);
     const iglBonus = player ? getIGLBonusForPlayer(player, team, lineup) : 0;
     const iglOvrImpact = Math.round(iglBonus * 0.5);
-    return total + summary.effectiveOverall + iglOvrImpact;
+    return total + summary.effectiveOverall + iglOvrImpact + compositionResult.penalty;
   }, 0);
 
   // Calculate stats
@@ -70,21 +75,35 @@ export const RosterManagementPage: React.FC<RosterManagementPageProps> = ({
 
   const handleRoleChange = (playerId: string, newRole: Role) => {
     const currentSlot = lineup.find(s => s.playerId === playerId);
-    const targetSlot = lineup.find(s => s.assignedRole === newRole);
+    if (!currentSlot) return;
 
-    if (!currentSlot || !targetSlot || currentSlot === targetSlot) return;
+    if (autoSwapRoles) {
+      // Auto-swap mode: swap roles between players
+      const targetSlot = lineup.find(s => s.assignedRole === newRole);
+      if (!targetSlot || currentSlot === targetSlot) return;
 
-    const newLineup = lineup.map(slot => {
-      if (slot.playerId === playerId) {
-        return { ...slot, assignedRole: newRole };
-      }
-      if (slot.playerId === targetSlot.playerId) {
-        return { ...slot, assignedRole: currentSlot.assignedRole };
-      }
-      return slot;
-    });
+      const newLineup = lineup.map(slot => {
+        if (slot.playerId === playerId) {
+          return { ...slot, assignedRole: newRole };
+        }
+        if (slot.playerId === targetSlot.playerId) {
+          return { ...slot, assignedRole: currentSlot.assignedRole };
+        }
+        return slot;
+      });
 
-    onUpdateLineup(newLineup);
+      onUpdateLineup(newLineup);
+    } else {
+      // Free assignment mode: just change this player's role
+      const newLineup = lineup.map(slot => {
+        if (slot.playerId === playerId) {
+          return { ...slot, assignedRole: newRole };
+        }
+        return slot;
+      });
+
+      onUpdateLineup(newLineup);
+    }
   };
 
   const handleSwapWithBench = (starterPlayerId: string, benchPlayerId: string) => {
@@ -210,6 +229,15 @@ export const RosterManagementPage: React.FC<RosterManagementPageProps> = ({
             <span className="stat-label">IGL OVR</span>
           </div>
         </div>
+        <div className={`stat-card ${compositionResult.isValid ? '' : 'negative'}`}>
+          <div className="stat-icon">🧩</div>
+          <div className="stat-content">
+            <span className={`stat-value ${compositionResult.penalty < 0 ? 'negative' : ''}`}>
+              {compositionResult.penalty === 0 ? '✓' : compositionResult.penalty}
+            </span>
+            <span className="stat-label">Comp Bonus</span>
+          </div>
+        </div>
         <div className="stat-card">
           <div className="stat-content">
             <span className="stat-value">{roster.length}/10</span>
@@ -217,6 +245,18 @@ export const RosterManagementPage: React.FC<RosterManagementPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Composition Warning Banner */}
+      {!compositionResult.isValid && (
+        <div className="composition-warning-banner">
+          <span className="warning-icon">⚠️</span>
+          <div className="warning-content">
+            <strong>Unbalanced Composition</strong>
+            <span>Missing: {compositionResult.missingRoles.map(r => r.charAt(0).toUpperCase() + r.slice(1)).join(', ')}</span>
+            <span className="penalty-text">{compositionResult.penalty} OVR to all players</span>
+          </div>
+        </div>
+      )}
 
       {/* IGL Status Banner */}
       {(() => {
@@ -231,7 +271,7 @@ export const RosterManagementPage: React.FC<RosterManagementPageProps> = ({
             <div className={`igl-status-banner ${iglBonusResult.bonus >= 0 ? 'positive' : 'negative'}`}>
               <span className="igl-icon">🎯</span>
               <span className="igl-info">
-                <strong>{iglBonusResult.iglName}</strong> is calling 
+                <strong>{iglBonusResult.iglName}</strong> is shotcalling 
                 <span className="igl-stat">(IQ: {iglBonusResult.iglGameSense})</span>
                 {ovrImpact !== 0 && (
                   <span className={`igl-effect ${ovrImpact > 0 ? 'buff' : 'debuff'}`}>
@@ -284,7 +324,17 @@ export const RosterManagementPage: React.FC<RosterManagementPageProps> = ({
             <span className="section-icon">⭐</span>
             Starting Five
           </h2>
-          <span className="section-hint">Swap roles using dropdowns • Hover to set IGL • Click bench player then starter to swap</span>
+          <div className="section-controls">
+            <label className="toggle-label" title={autoSwapRoles ? "Roles will swap between players when changed" : "Roles can be freely assigned (may cause duplicates)"}>
+              <input
+                type="checkbox"
+                checked={autoSwapRoles}
+                onChange={(e) => setAutoSwapRoles(e.target.checked)}
+              />
+              <span className="toggle-text">Auto-swap roles</span>
+            </label>
+            <span className="section-hint">Click bench player then starter to swap</span>
+          </div>
         </div>
 
         <div className="lineup-grid">
@@ -297,7 +347,7 @@ export const RosterManagementPage: React.FC<RosterManagementPageProps> = ({
             // Calculate IGL bonus for this player (0 if they are the IGL)
             const iglBonus = player ? getIGLBonusForPlayer(player, team, lineup) : 0;
             const iglOvrImpact = Math.round(iglBonus * 0.5);
-            const finalEffectiveOvr = summary.effectiveOverall + iglOvrImpact;
+            const finalEffectiveOvr = summary.effectiveOverall + iglOvrImpact + compositionResult.penalty;
             
             return (
               <div 
@@ -332,6 +382,11 @@ export const RosterManagementPage: React.FC<RosterManagementPageProps> = ({
                       {iglOvrImpact !== 0 && (
                         <span className={`modifier igl-modifier ${iglOvrImpact > 0 ? 'buff' : 'debuff'}`}>
                           ({iglOvrImpact > 0 ? '+' : ''}{iglOvrImpact})
+                        </span>
+                      )}
+                      {compositionResult.penalty !== 0 && (
+                        <span className="modifier comp-modifier debuff" title={compositionResult.description}>
+                          ({compositionResult.penalty})
                         </span>
                       )}
                     </div>
@@ -589,6 +644,39 @@ export const RosterManagementPage: React.FC<RosterManagementPageProps> = ({
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="legend-section">
+          <h3>Team Composition</h3>
+          <p className="legend-description">
+            Teams need one of each core role. Missing a core role penalizes all players.
+          </p>
+          <div className="legend-items comp-legend">
+            <div className="legend-item">
+              <span className="legend-dot comp-balanced"></span>
+              <div className="legend-text">
+                <span className="legend-title">Balanced (all roles)</span>
+                <span className="legend-value">No penalty</span>
+              </div>
+            </div>
+            <div className="legend-item">
+              <span className="legend-dot comp-missing"></span>
+              <div className="legend-text">
+                <span className="legend-title">Missing 1 role</span>
+                <span className="legend-value">-1 OVR to all players</span>
+              </div>
+            </div>
+            <div className="legend-item">
+              <span className="legend-dot comp-severe"></span>
+              <div className="legend-text">
+                <span className="legend-title">Missing 2+ roles</span>
+                <span className="legend-value">-2+ OVR to all players</span>
+              </div>
+            </div>
+          </div>
+          <p className="legend-note">
+            Core roles: Duelist, Controller, Initiator, Sentinel. Flex can fill any role.
+          </p>
         </div>
       </div>
     </div>

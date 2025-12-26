@@ -1,0 +1,1132 @@
+/* src/ui/components/ScrimsPage.css */
+/* Styles for the Scrims dashboard page */
+
+.scrims-page {
+  padding: 0;
+}
+
+.scrims-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 1200px) {
+  .scrims-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.scrims-left,
+.scrims-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Status Card */
+.scrims-status-card .status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.status-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Alerts */
+.scrim-alert {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.scrim-alert.warning {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+}
+
+.scrim-alert.danger {
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: #f87171;
+}
+
+.scrim-alert.info {
+  background: rgba(96, 165, 250, 0.15);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  color: #60a5fa;
+}
+
+/* Large Scrim Button */
+.btn-scrim-large {
+  width: 100%;
+  padding: 16px 24px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 100%);
+  border: 2px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius);
+  color: #10b981;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.btn-scrim-large:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(16, 185, 129, 0.2) 100%);
+  border-color: rgba(16, 185, 129, 0.6);
+  transform: translateY(-1px);
+}
+
+.btn-scrim-large:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Season Development */
+.development-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.development-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.development-row:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.dev-player-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dev-player-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dev-player-role {
+  font-size: 11px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dev-player-role.role-duelist { color: var(--role-duelist); }
+.dev-player-role.role-controller { color: var(--role-controller); }
+.dev-player-role.role-initiator { color: var(--role-initiator); }
+.dev-player-role.role-sentinel { color: var(--role-sentinel); }
+.dev-player-role.role-flex { color: var(--role-flex, #a78bfa); }
+
+.dev-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.dev-ovr {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dev-diff {
+  font-size: 14px;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.dev-diff.positive {
+  color: #4ade80;
+}
+
+.dev-diff.negative {
+  color: #f87171;
+}
+
+.dev-start-ovr {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dev-rating-changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dev-rating-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.dev-rating-badge.positive {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.dev-rating-badge.negative {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.no-data-message {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Scrim History */
+.scrims-history-panel {
+  min-height: 400px;
+}
+
+.scrims-history-panel .panel-body {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.no-scrims-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.no-scrims-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.no-scrims-message p {
+  color: var(--text-muted);
+  margin: 4px 0;
+}
+
+.no-scrims-hint {
+  font-size: 13px;
+}
+
+.scrim-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scrim-history-item {
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.scrim-history-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.scrim-opponent {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.scrim-type {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.scrim-type.regional {
+  background: rgba(255, 70, 85, 0.15);
+  color: var(--accent);
+}
+
+.scrim-type.tier2 {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.scrim-day {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.scrim-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scrim-player-change {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.change-player-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.change-player-name:hover {
+  color: var(--accent);
+}
+
+.change-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.change-stat {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.change-stat.positive {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.change-stat.negative {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.scrim-no-changes {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Scrim Modal Status (in modal) */
+.scrim-modal-status {
+  display: flex;
+  gap: 24px;
+  padding: 16px;
+  background: var(--bg-darker);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+
+.scrim-modal-status .scrim-status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scrim-modal-status .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.scrim-modal-status .value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Scrim History Item Clickable */
+.scrim-history-item.clickable {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.scrim-history-item.clickable:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.scrim-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.scrim-changes-count {
+  font-size: 12px;
+  color: #4ade80;
+}
+
+.scrim-view-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+
+.scrim-history-item.clickable:hover .scrim-view-detail {
+  color: var(--accent);
+}
+
+.scrim-history-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.scrim-history-score .score {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+.scrim-history-score .score.win {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.scrim-history-score .score.loss {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.scrim-history-score .score-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Scrim Detail Modal */
+.scrim-detail-modal {
+  max-width: 550px;
+  width: 95vw;
+}
+
+.scrim-result-badge {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 4px;
+  margin-left: auto;
+}
+
+.scrim-result-badge.win {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.scrim-result-badge.loss {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.scrim-detail-info {
+  padding: 16px;
+  background: var(--bg-darker);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+
+.scrim-detail-opponent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.scrim-detail-opponent .label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.scrim-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.scrim-type-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.scrim-type-badge.regional {
+  background: rgba(255, 70, 85, 0.15);
+  color: var(--accent);
+}
+
+.scrim-type-badge.tier2 {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.scrim-detail-day {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.scrim-detail-results h3 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.scrim-detail-no-changes {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border-radius: var(--radius);
+}
+
+.scrim-detail-no-changes p {
+  margin: 4px 0;
+}
+
+.scrim-detail-no-changes .hint {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.scrim-detail-players {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scrim-detail-player {
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.scrim-detail-player-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.scrim-detail-player-header:hover .player-name {
+  color: var(--accent);
+}
+
+.scrim-detail-player-header .player-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  transition: color 0.15s ease;
+}
+
+.scrim-detail-player-header .player-role {
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.scrim-detail-player-header .ovr-change {
+  margin-left: auto;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.scrim-detail-player-header .ovr-change.positive {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.scrim-detail-player-header .ovr-change.negative {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.scrim-detail-stat-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-change-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.stat-change-row.positive {
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.stat-change-row.negative {
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.stat-change-row .stat-name {
+  flex: 1;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.stat-change-row .stat-values {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 16px;
+}
+
+.stat-change-row .old-value {
+  color: var(--text-muted);
+}
+
+.stat-change-row .arrow {
+  color: var(--text-dark);
+  font-size: 11px;
+}
+
+.stat-change-row .new-value {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.stat-change-row .stat-delta {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  min-width: 36px;
+  text-align: right;
+}
+
+.stat-change-row.positive .stat-delta {
+  color: #4ade80;
+}
+
+.stat-change-row.negative .stat-delta {
+  color: #f87171;
+}
+
+.scrim-detail-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.btn-secondary {
+  padding: 10px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-muted);
+}
+
+.btn-primary {
+  padding: 10px 20px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.scrim-detail-info {
+  padding: 16px;
+  background: var(--bg-darker);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+
+.scrim-detail-opponent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.scrim-detail-opponent .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.scrim-detail-opponent .value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.scrim-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.scrim-type-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.scrim-type-badge.regional {
+  background: rgba(255, 70, 85, 0.15);
+  color: var(--accent);
+}
+
+.scrim-type-badge.tier2 {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.scrim-detail-day,
+.scrim-detail-year {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.scrim-detail-results h3 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.scrim-detail-no-changes {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.scrim-detail-no-changes p {
+  margin: 4px 0;
+}
+
+.scrim-detail-no-changes .hint {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.scrim-detail-players {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scrim-detail-player {
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.scrim-detail-player-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.scrim-detail-player-header:hover .player-name {
+  color: var(--accent);
+}
+
+.scrim-detail-player-header .player-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  transition: color 0.15s ease;
+}
+
+.scrim-detail-player-header .player-role {
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.scrim-detail-player-header .ovr-change {
+  margin-left: auto;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.scrim-detail-player-header .ovr-change.positive {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.scrim-detail-player-header .ovr-change.negative {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.scrim-detail-stat-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-change-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.stat-change-row.positive {
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.stat-change-row.negative {
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.stat-change-row .stat-name {
+  flex: 1;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.stat-change-row .stat-values {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 16px;
+}
+
+.stat-change-row .old-value {
+  color: var(--text-muted);
+}
+
+.stat-change-row .arrow {
+  color: var(--text-dark);
+  font-size: 11px;
+}
+
+.stat-change-row .new-value {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.stat-change-row .stat-delta {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  min-width: 36px;
+  text-align: right;
+}
+
+.stat-change-row.positive .stat-delta {
+  color: #4ade80;
+}
+
+.stat-change-row.negative .stat-delta {
+  color: #f87171;
+}
+
+/* Scrim Detail Summary */
+.scrim-detail-summary {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Scrim Match Result */
+.scrim-match-result {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.scrim-match-result h3 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.scrim-match-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-darker);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+
+.scrim-match-team {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.scrim-match-team.away {
+  flex-direction: row-reverse;
+}
+
+.scrim-match-team .team-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.scrim-match-team .team-score {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.scrim-match-team .team-score.winner {
+  color: #4ade80;
+}
+
+.score-divider {
+  font-size: 24px;
+  color: var(--text-dark);
+}
+
+.scrim-map-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.scrim-map-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.scrim-map-row .map-name {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.scrim-map-row .map-score {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.scrim-map-row .map-score.win {
+  color: #4ade80;
+}
+
+.scrim-map-row .map-score.loss {
+  color: #f87171;
+}
+
+/* Player Stats Table */
+.scrim-player-stats {
+  margin-top: 16px;
+}
+
+.scrim-player-stats h4 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.stats-table th {
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--bg-darker);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stats-table th:not(:first-child) {
+  text-align: center;
+  width: 50px;
+}
+
+.stats-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text);
+}
+
+.stats-table td:not(:first-child) {
+  text-align: center;
+}
+
+.stats-table .player-name-cell {
+  font-weight: 500;
+}
+
+.stats-table .acs-cell {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.summary-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+  background: var(--bg-darker);
+  border-radius: var(--radius);
+}
+
+.summary-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.summary-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.summary-value.positive {
+  color: #4ade80;
+}
+
+.summary-value.negative {
+  color: #f87171;
+}

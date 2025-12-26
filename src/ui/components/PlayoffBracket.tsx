@@ -1,5 +1,6 @@
 // src/ui/components/PlayoffBracket.tsx
 import type { PlayoffBracket as PlayoffBracketType, PlayoffMatchup, Team } from '../../types';
+import { calculateWinProbability } from '../../sim/winProbability';
 
 interface PlayoffBracketProps {
   bracket: PlayoffBracketType;
@@ -29,6 +30,10 @@ export function PlayoffBracket({ bracket, teams, playoffSeeds, onMatchClick }: P
     const hasResult = result !== undefined;
     const isClickable = hasResult && team1 && team2;
     const isTbd = !team1 || !team2;
+
+    // Calculate win probability for upcoming matches (both teams known, no result yet)
+    const showWinProb = !hasResult && team1 && team2;
+    const team1WinProb = showWinProb ? calculateWinProbability(team1, team2, 'bo5') : null;
 
     let cardClass = 'playoff-matchup-card';
     if (isClickable) cardClass += ' clickable';
@@ -65,6 +70,11 @@ export function PlayoffBracket({ bracket, teams, playoffSeeds, onMatchClick }: P
                   {team1Score}
                 </span>
               )}
+              {team1WinProb !== null && (
+                <span className={`playoff-team-prob ${team1WinProb > 50 ? 'favorite' : team1WinProb < 50 ? 'underdog' : ''}`}>
+                  {team1WinProb}%
+                </span>
+              )}
               {team1Won && isFinalsMatch && (
                 <span className="champion-badge">👑</span>
               )}
@@ -86,6 +96,11 @@ export function PlayoffBracket({ bracket, teams, playoffSeeds, onMatchClick }: P
               {hasResult && (
                 <span className={`playoff-team-score ${team2Won ? 'winner-score' : ''}`}>
                   {team2Score}
+                </span>
+              )}
+              {team1WinProb !== null && (
+                <span className={`playoff-team-prob ${(100 - team1WinProb) > 50 ? 'favorite' : (100 - team1WinProb) < 50 ? 'underdog' : ''}`}>
+                  {100 - team1WinProb}%
                 </span>
               )}
               {team2Won && isFinalsMatch && (
@@ -160,6 +175,14 @@ export function PlayoffBracket({ bracket, teams, playoffSeeds, onMatchClick }: P
 // International Bracket with Region Tags
 // ============================================
 
+// Region abbreviations and colors for international brackets
+const REGION_TAGS: Record<string, { abbr: string; color: string }> = {
+  americas: { abbr: 'NA', color: '#ff4655' },    // Red
+  emea: { abbr: 'EU', color: '#b8f500' },        // Lime/Yellow-green
+  pacific: { abbr: 'APAC', color: '#00d4aa' },   // Cyan/Teal
+  china: { abbr: 'CN', color: '#ff6b9d' },       // Pink
+};
+
 interface InternationalBracketProps {
   bracket: PlayoffBracketType;
   teams: Team[];
@@ -167,14 +190,6 @@ interface InternationalBracketProps {
   champion?: string | null;
   onMatchClick?: (matchupId: string) => void;
 }
-
-// Region display config with colors
-const REGION_CONFIG: Record<string, { abbr: string; color: string; textColor: string }> = {
-  americas: { abbr: 'NA', color: '#ff6b35', textColor: '#fff' },    // Orange
-  emea: { abbr: 'EU', color: '#00d4ff', textColor: '#000' },        // Cyan
-  pacific: { abbr: 'APAC', color: '#00c9a7', textColor: '#000' },    // Teal
-  china: { abbr: 'CN', color: '#ff4757', textColor: '#fff' },       // Red
-};
 
 export function InternationalBracket({ bracket, teams, qualifiedTeams, onMatchClick }: InternationalBracketProps) {
   const getTeam = (teamId: string | null) => {
@@ -187,21 +202,22 @@ export function InternationalBracket({ bracket, teams, qualifiedTeams, onMatchCl
     return qualifiedTeams.find(t => t.teamId === teamId) ?? null;
   };
 
-  const renderRegionSeed = (teamId: string | null) => {
+  const renderRegionTag = (teamId: string | null) => {
     const info = getQualifiedInfo(teamId);
     if (!info) return null;
     
-    const regionConfig = REGION_CONFIG[info.region] || { abbr: '??', color: '#888', textColor: '#fff' };
+    const regionData = REGION_TAGS[info.region] || { abbr: '??', color: '#888' };
     
     return (
       <span 
         className="region-seed-tag"
         style={{ 
-          background: regionConfig.color,
-          color: regionConfig.textColor
+          backgroundColor: `${regionData.color}22`,
+          borderColor: `${regionData.color}66`,
+          color: regionData.color 
         }}
       >
-        {regionConfig.abbr}{info.seed}
+        {regionData.abbr}{info.seed}
       </span>
     );
   };
@@ -237,7 +253,7 @@ export function InternationalBracket({ bracket, teams, qualifiedTeams, onMatchCl
         <div className={`playoff-team-row ${team1Won ? 'winner' : ''} ${team2Won && hasResult ? 'loser' : ''}`}>
           {team1 ? (
             <>
-              {renderRegionSeed(matchup.team1Id)}
+              {renderRegionTag(matchup.team1Id)}
               <img src={team1.logo} alt={team1.name} className="playoff-team-logo" />
               <span className={`playoff-team-name ${team1Won ? 'winner-text' : ''}`}>
                 {team1.name}
@@ -257,7 +273,7 @@ export function InternationalBracket({ bracket, teams, qualifiedTeams, onMatchCl
         <div className={`playoff-team-row ${team2Won ? 'winner' : ''} ${team1Won && hasResult ? 'loser' : ''}`}>
           {team2 ? (
             <>
-              {renderRegionSeed(matchup.team2Id)}
+              {renderRegionTag(matchup.team2Id)}
               <img src={team2.logo} alt={team2.name} className="playoff-team-logo" />
               <span className={`playoff-team-name ${team2Won ? 'winner-text' : ''}`}>
                 {team2.name}

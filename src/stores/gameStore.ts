@@ -4,6 +4,7 @@
 import { create } from 'zustand';
 import type { Team, Player, Region } from '../types';
 import type { StartingSlot } from '../types/roster';
+import type { ScrimResult } from '../types/scrims';
 import {
   createGameState,
   advanceDay,
@@ -20,6 +21,7 @@ import {
 } from '../db/gameDatabase';
 import { signFreeAgent, releasePlayer, generateFreeAgentPool } from '../sim/freeAgency';
 import { executeTrade } from '../sim/trading';
+import { runScrim as executeScrim, formatScrimResultLog } from '../sim/scrims';
 import { calculateTeamAttributes } from '../sim/teamRatings';
 import { createRNG, randomInt, shuffle } from '../utils/random';
 import { generatePlayer } from '../sim/playerGenerator';
@@ -164,6 +166,9 @@ interface GameStore {
   // Actions - Trading
   executeTrade: (team1Id: string, team2Id: string, player1Ids: string[], player2Ids: string[]) => void;
 
+  // Actions - Scrims
+  runScrim: (opponentId: string, opponentType: 'regional' | 'tier2', opponentName: string) => void;
+
   // Actions - League editor
   startFromEditor: (teams: Team[]) => void;
 
@@ -229,7 +234,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setSetupSelectedTeamId: (id) => set({ setupSelectedTeamId: id }),
 
-  setSetupRegion: (_region) => {
+  setSetupRegion: () => {
     set({ setupSelectedTeamId: null });
   },
 
@@ -456,9 +461,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const save = await loadGame(id);
     if (save) {
       const newSeed = `load-${crypto.randomUUID()}`;
+      
+      // Add default values for new scrim fields (backwards compatibility)
+      // Convert old scrimsThisWeek to new fatigueLevel if needed
+      // Use type assertion for old save format that may have scrimsThisWeek
+      interface LegacyGameState extends GameState {
+        scrimsThisWeek?: number;
+      }
+      const oldState = save.gameState as LegacyGameState;
       const updatedGameState = {
         ...save.gameState,
         seed: newSeed,
+        fatigueLevel: save.gameState.fatigueLevel ?? oldState.scrimsThisWeek ?? 0,
+        lastScrimDay: save.gameState.lastScrimDay ?? null,
+        seasonStartStats: save.gameState.seasonStartStats ?? {},
       };
 
       set({
@@ -488,7 +504,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
           const json = JSON.parse(e.target?.result as string);
 
           if (json.teams && Array.isArray(json.teams) && json.teams[0]?.roster) {
-            const importedTeams: Team[] = json.teams.map((teamData: any) => ({
+            // Type for imported team data (may have partial/missing fields)
+            interface ImportedTeamData {
+              id: string;
+              name: string;
+              abbreviation: string;
+              logo: string;
+              region: Region;
+              founded?: number;
+              championships?: number;
+              playoffAppearances?: number;
+              iglId?: string | null;
+              startingLineup?: StartingSlot[];
+              staff?: Team['staff'];
+              finances?: Team['finances'];
+              attributes?: Team['attributes'];
+              roster: Player[];
+            }
+            
+            const importedTeams: Team[] = json.teams.map((teamData: ImportedTeamData) => ({
               id: teamData.id,
               name: teamData.name,
               abbreviation: teamData.abbreviation,
@@ -501,11 +535,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
               startingLineup: teamData.startingLineup || undefined,
               staff: teamData.staff || { headCoach: null, assistantCoach: null, analyst: null },
               finances: teamData.finances || { budget: 1000000, salaryCommitted: 500000, scoutingBudget: 50 },
-              attributes: teamData.attributes || calculateTeamAttributes(teamData.roster as Player[]),
-              roster: teamData.roster.map((p: any) => ({
+              attributes: teamData.attributes || calculateTeamAttributes(teamData.roster),
+              roster: teamData.roster.map((p: Player) => ({
                 ...p,
                 careerStats: p.careerStats || null,
-              })) as Player[],
+              })),
             }));
 
             const userTeamId = json.gameInfo?.userTeamId || importedTeams[0]?.id || '';
@@ -781,6 +815,84 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else {
       set({ notificationToast: `❌ Trade failed: ${result.message}` });
     }
+  },
+
+  // Run a scrim for the user's team
+  runScrim: (opponentId: string, opponentType: 'regional' | 'tier2', opponentName: string) => {
+    const { gameState, recentResults } = get();
+    if (!gameState || !gameState.userTeamId) return;
+
+    // Can't scrim during playoffs
+    if (gameState.phase === 'regional_playoffs' || gameState.phase === 'international') {
+      set({ notificationToast: '❌ Cannot scrim during playoffs' });
+      return;
+    }
+
+    // Can't scrim twice in same day
+    if (gameState.lastScrimDay === gameState.currentDay) {
+      set({ notificationToast: '❌ Already scrimmaged today' });
+      return;
+    }
+
+    const userTeam = gameState.teams.find(t => t.id === gameState.userTeamId);
+    if (!userTeam) return;
+
+    // Create RNG for this scrim
+    const rng = createRNG(`${gameState.seed}-scrim-${gameState.currentDay}-${opponentId}`);
+
+    // Run the scrim
+    const result: ScrimResult = executeScrim(
+      rng,
+      userTeam,
+      opponentName,
+      opponentType,
+      gameState.fatigueLevel,
+      gameState.currentDay,
+      gameState.currentYear,
+      gameState.teams
+    );
+
+    // Update scrim tracking - increase fatigue by 1
+    const updatedState = {
+      ...gameState,
+      fatigueLevel: gameState.fatigueLevel + 1,
+      lastScrimDay: gameState.currentDay,
+    };
+
+    // Recalculate team attributes after potential stat changes
+    const updatedTeams = updatedState.teams.map(t => {
+      if (t.id === gameState.userTeamId) {
+        return {
+          ...t,
+          attributes: calculateTeamAttributes(t.roster),
+        };
+      }
+      return t;
+    });
+    updatedState.teams = updatedTeams;
+
+    // Create game event for the log
+    const scrimLogs = formatScrimResultLog(result);
+    const scrimEvent = {
+      type: 'scrim_result' as const,
+      message: scrimLogs[0],
+      data: result,
+    };
+
+    // Add to recent results as a synthetic day result
+    const scrimDayResult: DayResult = {
+      day: gameState.currentDay,
+      matchesPlayed: [],
+      events: [scrimEvent],
+    };
+
+    set({
+      gameState: updatedState,
+      recentResults: [...recentResults.slice(-20), scrimDayResult],
+      notificationToast: result.statChanges.length > 0 
+        ? `🏋️ Scrim complete! ${result.statChanges.length} player(s) developed`
+        : `🏋️ Scrim complete. No significant changes.`,
+    });
   },
 
   // Start from league editor
