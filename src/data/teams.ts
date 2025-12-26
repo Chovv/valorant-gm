@@ -124,7 +124,7 @@ export const AMERICAS_TEAMS: TeamConfig[] = [
     name: "Sentinels",
     abbreviation: "SEN",
     region: "americas",
-    logo: "https://owcdn.net/img/62875027c8e06.png",
+    logo: "/logos/teams/sen.png",
     igl: "johnQT",
     players: [
       p("johnQT", "flex", 85, 27, 84, 85, 80, 85, { kayo: 95, sage: 80, raze: 65 }, { leadership: 85, workEthic: 80, mentality: 78, teamPlayer: 82, coachability: 75 }),
@@ -138,7 +138,7 @@ export const AMERICAS_TEAMS: TeamConfig[] = [
     name: "G2 Esports",
     abbreviation: "G2",
     region: "americas",
-    logo: "https://owcdn.net/img/633822848a741.png",
+    logo: "/logos/teams/g2.png",
     igl: "valyn",
     players: [
       p("leaf", "flex", 80, 22, 80, 78, 40, 77, { sage: 95, veto: 80, raze: 65 }),
@@ -152,7 +152,7 @@ export const AMERICAS_TEAMS: TeamConfig[] = [
     name: "NRG Esports",
     abbreviation: "NRG",
     region: "americas",
-    logo: "https://owcdn.net/img/6610f02d2d7b0.png",
+    logo: "/logos/teams/nrg.png",
     igl: "Ethan",
     players: [
       p("Ethan", "flex", 84, 22, 90, 78, 40, 85, { kayo: 95, breach: 80, sage: 65 }, { leadership: 82, workEthic: 85, mentality: 82, teamPlayer: 80, coachability: 78 }),
@@ -166,7 +166,7 @@ export const AMERICAS_TEAMS: TeamConfig[] = [
     name: "100 Thieves",
     abbreviation: "100T",
     region: "americas",
-    logo: "https://owcdn.net/img/603c00dbb7d39.png",
+    logo: "/logos/teams/100t.png",
     igl: "vora",
     players: [
       p("Cryocells", "flex", 85, 22, 88, 80, 80, 86, { chamber: 95, jett: 80 }),
@@ -180,7 +180,7 @@ export const AMERICAS_TEAMS: TeamConfig[] = [
     name: "Cloud9",
     abbreviation: "C9",
     region: "americas",
-    logo: "https://owcdn.net/img/628addcbd509e.png",
+    logo: "/logos/teams/c9.png",
     igl: "Zellsis",
     players: [
       p("Zellsis", "flex", 81, 27, 86, 74, 71, 82, undefined, { leadership: 85, workEthic: 80, mentality: 88, teamPlayer: 75, coachability: 70 }),
@@ -194,7 +194,7 @@ export const AMERICAS_TEAMS: TeamConfig[] = [
     name: "Evil Geniuses",
     abbreviation: "EG",
     region: "americas",
-    logo: "https://owcdn.net/img/667462e9b308d.png",
+    logo: "/logos/teams/eg.png",
     igl: "C0M",
     players: [
       p("okeanos", "flex", 79, 22, 78, 86, 70, 82),
@@ -208,7 +208,7 @@ export const AMERICAS_TEAMS: TeamConfig[] = [
     name: "FURIA Esports",
     abbreviation: "FUR",
     region: "americas",
-    logo: "https://owcdn.net/img/632be843b7d51.png",
+    logo: "/logos/teams/fur.png",
     igl: "nerve",
     players: [
       p("koalanoob", "flex", 81, 22, 88, 78, 70, 85),
@@ -222,7 +222,7 @@ export const AMERICAS_TEAMS: TeamConfig[] = [
     name: "KRÜ Esports",
     abbreviation: "KRU",
     region: "americas",
-    logo: "https://owcdn.net/img/63976677069e1.png",
+    logo: "/logos/teams/kru.png",
     igl: "Saadhak",
     players: [
       p("silentzz", "flex", 80, 21, 84, 74, 78, 82),
@@ -236,7 +236,7 @@ export const AMERICAS_TEAMS: TeamConfig[] = [
     name: "Leviatán",
     abbreviation: "LEV",
     region: "americas",
-    logo: "https://owcdn.net/img/61b8888cc3860.png",
+    logo: "/logos/teams/lev.png",
     igl: "kiNgg",
     players: [
       p("Neon", "flex", 82, 17, 90, 78, 72, 83),
@@ -250,7 +250,7 @@ export const AMERICAS_TEAMS: TeamConfig[] = [
     name: "LOUD",
     abbreviation: "LOUD",
     region: "americas",
-    logo: "https://owcdn.net/img/62bbec8dc1b9f.png",
+    logo: "/logos/teams/loud.png",
     igl: "pANcada",
     players: [
       p("cauanzin", "flex", 81, 20, 88, 76, 73, 86),
@@ -264,7 +264,7 @@ export const AMERICAS_TEAMS: TeamConfig[] = [
     name: "MIBR",
     abbreviation: "MIBR",
     region: "americas",
-    logo: "https://owcdn.net/img/632be767b57aa.png",
+    logo: "/logos/teams/mibr.png",
     igl: "Verno",
     players: [
       p("zekken", "flex", 88, 20, 82, 74, 83, 95, undefined, { leadership: 55, workEthic: 78, mentality: 92, teamPlayer: 60, coachability: 75 }),
@@ -278,7 +278,7 @@ export const AMERICAS_TEAMS: TeamConfig[] = [
     name: 'ENVY',
     abbreviation: 'NV',
     region: 'americas',
-    logo: 'https://owcdn.net/img/5f3ca82b04d29.png',
+    logo: "/logos/teams/nv.png",
     igl: 'P0PPIN',
     players: [
       p('Eggsterr', 'flex', 81, 23, 82, 72, 70, 83, { yoru: 99 }),
@@ -298,7 +298,7 @@ export const CHINA_TEAMS: TeamConfig[] = [
     name: 'EDward Gaming',
     abbreviation: 'EDG',
     region: 'china',
-    logo: 'https://owcdn.net/img/62c8204fbb29d.png',
+    logo: "/logos/teams/edg.png",
     igl: 'Smoggy',
     players: [
       p('Jieni7', 'flex', 83, 20, 90, 80, 73, 82),
@@ -312,7 +312,7 @@ export const CHINA_TEAMS: TeamConfig[] = [
     name: 'FunPlus Phoenix',
     abbreviation: 'FPX',
     region: 'china',
-    logo: 'https://owcdn.net/img/65a17b313b131.png',
+    logo: "/logos/teams/fpx.png",
     igl: 'AAAAY',
     players: [
       p('YuChEn', 'flex', 84, 20, 88, 78, 82, 86),
@@ -326,7 +326,7 @@ export const CHINA_TEAMS: TeamConfig[] = [
     name: 'JD Gaming',
     abbreviation: 'JDG',
     region: 'china',
-    logo: 'https://owcdn.net/img/64f9825408326.png',
+    logo: "/logos/teams/jdg.png",
     igl: 'Muggle',
     players: [
       p('KnifeCat', 'flex', 83, 20, 86, 78, 80, 84),
@@ -340,7 +340,7 @@ export const CHINA_TEAMS: TeamConfig[] = [
     name: 'Nova Esports',
     abbreviation: 'NOVA',
     region: 'china',
-    logo: 'https://owcdn.net/img/6404c031b6c67.png',
+    logo: "/logos/teams/nova.png",
     igl: 'Lzq',
     players: [
       p('monster', 'flex', 84, 20, 88, 78, 80, 85),
@@ -354,7 +354,7 @@ export const CHINA_TEAMS: TeamConfig[] = [
     name: 'Titan Esports Club',
     abbreviation: 'TEC',
     region: 'china',
-    logo: 'https://owcdn.net/img/6548741adc65f.png',
+    logo: "/logos/teams/tec.png",
     igl: 'Summer',
     players: [
       p('Eagle', 'flex', 82, 20, 86, 76, 78, 84),
@@ -368,7 +368,7 @@ export const CHINA_TEAMS: TeamConfig[] = [
     name: 'Trace Esports',
     abbreviation: 'TE',
     region: 'china',
-    logo: 'https://owcdn.net/img/6433a2d3b58c9.png',
+    logo: "/logos/teams/te.png",
     igl: 'kai',
     players: [
       p('flex', 'flex', 83, 19, 86, 78, 80, 84),
@@ -382,7 +382,7 @@ export const CHINA_TEAMS: TeamConfig[] = [
     name: 'TYLOO',
     abbreviation: 'TYL',
     region: 'china',
-    logo: 'https://owcdn.net/img/63eb60fb08390.png',
+    logo: "/logos/teams/tyl.png",
     igl: 'EXPRO',
     players: [
       p('AFFLICTO', 'flex', 81, 21, 84, 76, 78, 82),
@@ -396,7 +396,7 @@ export const CHINA_TEAMS: TeamConfig[] = [
     name: 'Wolves Esports',
     abbreviation: 'WOL',
     region: 'china',
-    logo: 'https://owcdn.net/img/651d33f8e6a1f.png',
+    logo: "/logos/teams/wol.png",
     igl: 'yy',
     players: [
       p('XinQ', 'flex', 82, 20, 86, 76, 78, 84),
@@ -410,7 +410,7 @@ export const CHINA_TEAMS: TeamConfig[] = [
     name: 'Dragon Ranger Gaming',
     abbreviation: 'DRG',
     region: 'china',
-    logo: 'https://owcdn.net/img/642233fc01f26.png',
+    logo: "/logos/teams/drg.png",
     igl: 'Tian',
     players: [
       p('Sam', 'flex', 81, 20, 84, 76, 78, 82),
@@ -424,7 +424,7 @@ export const CHINA_TEAMS: TeamConfig[] = [
     name: 'Bilibili Gaming',
     abbreviation: 'BLG',
     region: 'china',
-    logo: 'https://owcdn.net/img/63f25d72216c1.png',
+    logo: "/logos/teams/blg.png",
     igl: 'Yuhan',
     players: [
       p('knight9', 'flex', 84, 20, 88, 78, 82, 86),
@@ -438,7 +438,7 @@ export const CHINA_TEAMS: TeamConfig[] = [
     name: 'All Gamers',
     abbreviation: 'AG',
     region: 'china',
-    logo: 'https://owcdn.net/img/6549c2b905061.png',
+    logo: "/logos/teams/ag.png",
     igl: 'yue',
     players: [
       p('Abo', 'flex', 79, 20, 82, 74, 78, 80),
@@ -452,7 +452,7 @@ export const CHINA_TEAMS: TeamConfig[] = [
     name: 'Xi Lai Gaming',
     abbreviation: 'XLG',
     region: 'china',
-    logo: 'https://owcdn.net/img/671742f863b9b.png',
+    logo: "/logos/teams/xlg.png",
     igl: 'rin',
     players: [
       p('z4kr', 'flex', 78, 20, 82, 72, 76, 80),
@@ -472,7 +472,7 @@ export const EMEA_TEAMS: TeamConfig[] = [
     name: 'Fnatic',
     abbreviation: 'FNC',
     region: 'emea',
-    logo: 'https://owcdn.net/img/62a40cc2b5e29.png',
+    logo: "/logos/teams/fnc.png",
     igl: 'Boaster',
     players: [
       p('Veqaj', 'flex', 80, 22, 94, 82, 78, 82),
@@ -486,7 +486,7 @@ export const EMEA_TEAMS: TeamConfig[] = [
     name: 'Natus Vincere',
     abbreviation: 'NAVI',
     region: 'emea',
-    logo: 'https://owcdn.net/img/62a410a4e7b4f.png',
+    logo: "/logos/teams/navi.png",
     igl: 'Shao',
     players: [
       p('Shao', 'flex', 83, 25, 92, 80, 73, 83, undefined, { leadership: 88, workEthic: 85, mentality: 82, teamPlayer: 85, coachability: 70 }),
@@ -500,7 +500,7 @@ export const EMEA_TEAMS: TeamConfig[] = [
     name: 'Team Liquid',
     abbreviation: 'TL',
     region: 'emea',
-    logo: 'https://owcdn.net/img/640c38262824c.png',
+    logo: "/logos/teams/tl.png",
     igl: 'nAts',
     players: [
       p('kamo', 'flex', 83, 20, 90, 80, 74, 85),
@@ -514,7 +514,7 @@ export const EMEA_TEAMS: TeamConfig[] = [
     name: 'Karmine Corp',
     abbreviation: 'KC',
     region: 'emea',
-    logo: 'https://owcdn.net/img/627403aa2c53d.png',
+    logo: "/logos/teams/kc.png",
     igl: 'Shin',
     players: [
       p('xms', 'flex', 82, 26, 86, 76, 80, 84),
@@ -528,7 +528,7 @@ export const EMEA_TEAMS: TeamConfig[] = [
     name: 'Team Heretics',
     abbreviation: 'TH',
     region: 'emea',
-    logo: 'https://owcdn.net/img/637b7557a9225.png',
+    logo: "/logos/teams/th.png",
     igl: 'Boo',
     players: [
       p('ComeBack', 'flex', 81, 18, 78, 90, 78, 82),
@@ -542,7 +542,7 @@ export const EMEA_TEAMS: TeamConfig[] = [
     name: 'Team Vitality',
     abbreviation: 'VIT',
     region: 'emea',
-    logo: 'https://owcdn.net/img/6466d7936fd86.png',
+    logo: "/logos/teams/vit.png",
     igl: 'Jamppi',
     players: [
       p('Sayonara', 'flex', 82, 17, 90, 80, 84, 88),
@@ -556,7 +556,7 @@ export const EMEA_TEAMS: TeamConfig[] = [
     name: 'GIANTX',
     abbreviation: 'GX',
     region: 'emea',
-    logo: 'https://owcdn.net/img/657b2f49210a3.png',
+    logo: "/logos/teams/gx.png",
     igl: 'ara',
     players: [
       p('Flickless', 'duelist', 80, 23, 88, 78, 82, 86),
@@ -570,7 +570,7 @@ export const EMEA_TEAMS: TeamConfig[] = [
     name: 'BBL Esports',
     abbreviation: 'BBL',
     region: 'emea',
-    logo: 'https://owcdn.net/img/65b8ccef5e273.png',
+    logo: "/logos/teams/bbl.png",
     igl: 'pAura',
     players: [
       p('QutionerX', 'duelist', 85, 21, 88, 78, 84, 86),
@@ -584,7 +584,7 @@ export const EMEA_TEAMS: TeamConfig[] = [
     name: 'FUT Esports',
     abbreviation: 'FUT',
     region: 'emea',
-    logo: 'https://owcdn.net/img/632be99c96c64.png',
+    logo: "/logos/teams/fut.png",
     igl: 'MrFaliN',
     players: [
       p('MrFaliN', 'controller', 84, 24, 78, 88, 86, 80, undefined, { leadership: 85, workEthic: 85, mentality: 82, teamPlayer: 85, coachability: 75 }),
@@ -598,7 +598,7 @@ export const EMEA_TEAMS: TeamConfig[] = [
     name: 'Gentle Mates',
     abbreviation: 'M8',
     region: 'emea',
-    logo: 'https://owcdn.net/img/66701546055dd.png',
+    logo: "/logos/teams/m8.png",
     igl: 'wailers',
     players: [
       p('logaN', 'duelist', 83, 24, 86, 78, 80, 84),
@@ -612,7 +612,7 @@ export const EMEA_TEAMS: TeamConfig[] = [
     name: 'PCIFIC Esports',
     abbreviation: 'PCF',
     region: 'emea',
-    logo: 'https://owcdn.net/img/656e2ae2b8a48.png',
+    logo: "/logos/teams/pcf.png",
     igl: 'pAura',
     players: [
       p('Turko', 'flex', 80, 21, 84, 74, 78, 82),
@@ -626,7 +626,7 @@ export const EMEA_TEAMS: TeamConfig[] = [
     name: 'ULF Esports',
     abbreviation: 'ULF',
     region: 'emea',
-    logo: 'https://owcdn.net/img/67d59c02cdba4.png',
+    logo: "/logos/teams/ulf.png",
     igl: 'Cloud',
     players: [
       p('Fit1nho', 'flex', 79, 20, 82, 74, 78, 80),
@@ -646,7 +646,7 @@ export const PACIFIC_TEAMS: TeamConfig[] = [
     name: 'Paper Rex',
     abbreviation: 'PRX',
     region: 'pacific',
-    logo: 'https://owcdn.net/img/62bbebb185a7e.png',
+    logo: "/logos/teams/prx.png",
     igl: 'f0rsakeN',
     players: [
       p('something', 'flex', 87, 23, 96, 84, 88, 94, undefined, { leadership: 60, workEthic: 82, mentality: 95, teamPlayer: 75, coachability: 72 }),
@@ -660,7 +660,7 @@ export const PACIFIC_TEAMS: TeamConfig[] = [
     name: 'T1',
     abbreviation: 'T1',
     region: 'pacific',
-    logo: 'https://owcdn.net/img/62fe0b8f6b084.png',
+    logo: "/logos/teams/t1.png",
     igl: 'stax',
     players: [
       p('BuZz', 'flex', 81, 22, 92, 80, 84, 88),
@@ -674,7 +674,7 @@ export const PACIFIC_TEAMS: TeamConfig[] = [
     name: 'DRX',
     abbreviation: 'DRX',
     region: 'pacific',
-    logo: 'https://owcdn.net/img/63b17ac3a7d00.png',
+    logo: "/logos/teams/drx.png",
     igl: 'MaKo',
     players: [
       p('free1ng', 'flex', 78, 24, 94, 82, 81, 84),
@@ -688,7 +688,7 @@ export const PACIFIC_TEAMS: TeamConfig[] = [
     name: 'Gen.G',
     abbreviation: 'GEN',
     region: 'pacific',
-    logo: 'https://owcdn.net/img/662f72041aff8.png',
+    logo: "/logos/teams/gen.png",
     igl: 'Lakia',
     players: [
       p('ZynX', 'flex', 79, 20, 88, 78, 72, 82),
@@ -702,7 +702,7 @@ export const PACIFIC_TEAMS: TeamConfig[] = [
     name: 'DetonatioN FocusMe',
     abbreviation: 'DFM',
     region: 'pacific',
-    logo: 'https://owcdn.net/img/63972e75f18ed.png',
+    logo: "/logos/teams/dfm.png",
     igl: 'Anthem',
     players: [
       p('Xdll', 'flex', 85, 22, 88, 80, 84, 86),
@@ -716,7 +716,7 @@ export const PACIFIC_TEAMS: TeamConfig[] = [
     name: 'Global Esports',
     abbreviation: 'GE',
     region: 'pacific',
-    logo: 'https://owcdn.net/img/629f316ddd4dd.png',
+    logo: "/logos/teams/ge.png",
     igl: 'Benkai',
     players: [
       p('Benkai', 'flex', 83, 27, 86, 78, 80, 84, undefined, { leadership: 92, workEthic: 88, mentality: 85, teamPlayer: 90, coachability: 68 }),
@@ -730,7 +730,7 @@ export const PACIFIC_TEAMS: TeamConfig[] = [
     name: 'Team Secret',
     abbreviation: 'TS',
     region: 'pacific',
-    logo: 'https://owcdn.net/img/629f130e0501d.png',
+    logo: "/logos/teams/ts.png",
     igl: 'JessieVash',
     players: [
       p('Jremy', 'flex', 84, 20, 88, 78, 82, 86),
@@ -744,7 +744,7 @@ export const PACIFIC_TEAMS: TeamConfig[] = [
     name: 'ZETA DIVISION',
     abbreviation: 'ZETA',
     region: 'pacific',
-    logo: 'https://owcdn.net/img/62a4117e1c021.png',
+    logo: "/logos/teams/zeta.png",
     igl: 'crow',
     players: [
       p('Lazygal', 'flex', 85, 21, 88, 80, 84, 86),
@@ -758,7 +758,7 @@ export const PACIFIC_TEAMS: TeamConfig[] = [
     name: 'Nongshim Redforce',
     abbreviation: 'NS',
     region: 'pacific',
-    logo: 'https://owcdn.net/img/6399bb707aacb.png',
+    logo: "/logos/teams/ns.png",
     igl: 'Crws',
     players: [
       p('garnetS', 'flex', 85, 20, 88, 78, 82, 86),
@@ -772,7 +772,7 @@ export const PACIFIC_TEAMS: TeamConfig[] = [
     name: 'Rex Regum Qeon',
     abbreviation: 'RRQ',
     region: 'pacific',
-    logo: 'https://owcdn.net/img/629f17f51e7a3.png',
+    logo: "/logos/teams/rrq.png",
     igl: 'Eeyore',
     players: [
       p('Lmemore', 'flex', 80, 21, 84, 74, 78, 82),
@@ -786,7 +786,7 @@ export const PACIFIC_TEAMS: TeamConfig[] = [
     name: 'VARREL',
     abbreviation: 'VL',
     region: 'pacific',
-    logo: 'https://owcdn.net/img/63a746333bc0a.png',
+    logo: "/logos/teams/vl.png",
     igl: 'sScary',
     players: [
       p('crazyguy', 'flex', 81, 21, 84, 76, 78, 82),
@@ -800,7 +800,7 @@ export const PACIFIC_TEAMS: TeamConfig[] = [
     name: 'FULL SENSE',
     abbreviation: 'FS',
     region: 'pacific',
-    logo: 'https://owcdn.net/img/6537a7954d915.png',
+    logo: "/logos/teams/fs.png",
     igl: 'sSc1ary',
     players: [
       p('crazyguy1', 'flex', 81, 21, 84, 76, 78, 82),
