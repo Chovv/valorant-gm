@@ -1,9 +1,27 @@
 // src/ui/components/PlayersPage.tsx
 import { useState, useMemo } from 'react';
-import type { Team, Player, Role } from '../../types';
+import type { Team, Player, Role, Region } from '../../types';
 import type { StartingSlot } from '../../types/roster';
-import { getEffectiveOverall } from '../../sim/rosterManagement';
+import { getRolePenalty } from '../../types/roster';
 import { getIGLBonusForPlayer } from '../../sim/iglBonus';
+import { analyzeComposition } from '../../sim/compositionBonus';
+
+// Role icons
+const ROLE_ICONS: Record<Role, string> = {
+  duelist: '/logos/regions/duelistIcon.png',
+  controller: '/logos/regions/controllerIcon.png',
+  initiator: '/logos/regions/initiatorIcon.png',
+  sentinel: '/logos/regions/sentinelIcon.png',
+  flex: '/logos/regions/filler.png',
+};
+
+// Region logos
+const REGION_LOGOS: Record<Region, string> = {
+  americas: '/logos/regions/Americas.png',
+  emea: '/logos/regions/EMEA.png',
+  pacific: '/logos/regions/Pacific.png',
+  china: '/logos/regions/China.png',
+};
 
 interface PlayersPageProps {
   teams: Team[];
@@ -11,7 +29,7 @@ interface PlayersPageProps {
   onViewTeam: (teamId: string) => void;
 }
 
-type SortKey = 'name' | 'team' | 'role' | 'overall' | 'effectiveOvr' | 'potCeiling' | 'potFloor' | 'age' | 
+type SortKey = 'name' | 'team' | 'region' | 'role' | 'overall' | 'effectiveOvr' | 'potCeiling' | 'potFloor' | 'age' | 
                'aim' | 'gameSense' | 'utilityUsage' | 'clutchFactor' | 'communication' |
                'kills' | 'deaths' | 'assists' | 'kd' | 'acs' | 'mapsPlayed';
 
@@ -47,12 +65,12 @@ function SortHeader({
 }
 
 /**
- * Calculate effective OVR for a player including role penalty and IGL bonus
+ * Calculate effective OVR for a player including role penalty, IGL bonus, and composition penalty
  */
 function calculatePlayerEffectiveOvr(
   player: Player, 
   team: Team
-): { effectiveOvr: number; assignedRole: Role | null; isStarter: boolean } {
+): { effectiveOvr: number; assignedRole: Role | null; isStarter: boolean; rolePenalty: number; iglBonus: number; compPenalty: number } {
   // Get lineup, defaulting to first 5 players in natural roles if not set
   const lineup: StartingSlot[] = team.startingLineup || team.roster.slice(0, 5).map(p => ({
     playerId: p.id,
@@ -64,20 +82,28 @@ function calculatePlayerEffectiveOvr(
   
   if (!slot) {
     // Not a starter - just show base OVR
-    return { effectiveOvr: player.overall, assignedRole: null, isStarter: false };
+    return { effectiveOvr: player.overall, assignedRole: null, isStarter: false, rolePenalty: 0, iglBonus: 0, compPenalty: 0 };
   }
   
   // Get role penalty
-  const baseEffective = getEffectiveOverall(player, slot.assignedRole);
+  const rolePenalty = getRolePenalty(player.role, slot.assignedRole);
+  const baseEffective = player.overall + rolePenalty;
   
   // Get IGL bonus (if applicable)
   const iglBonus = getIGLBonusForPlayer(player, team, lineup);
   const iglOvrImpact = Math.round(iglBonus * 0.5);
   
+  // Get composition penalty
+  const compResult = analyzeComposition(lineup);
+  const compPenalty = compResult.penalty;
+  
   return { 
-    effectiveOvr: baseEffective + iglOvrImpact, 
+    effectiveOvr: baseEffective + iglOvrImpact + compPenalty, 
     assignedRole: slot.assignedRole,
-    isStarter: true 
+    isStarter: true,
+    rolePenalty,
+    iglBonus: iglOvrImpact,
+    compPenalty
   };
 }
 
@@ -95,10 +121,13 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
       effectiveOvr: number; 
       assignedRole: Role | null;
       isStarter: boolean;
+      rolePenalty: number;
+      iglBonus: number;
+      compPenalty: number;
     }> = [];
     for (const team of teams) {
       for (const player of team.roster) {
-        const { effectiveOvr, assignedRole, isStarter } = calculatePlayerEffectiveOvr(
+        const { effectiveOvr, assignedRole, isStarter, rolePenalty, iglBonus, compPenalty } = calculatePlayerEffectiveOvr(
           player, 
           team
         );
@@ -107,7 +136,10 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
           team, 
           effectiveOvr,
           assignedRole,
-          isStarter
+          isStarter,
+          rolePenalty,
+          iglBonus,
+          compPenalty
         });
       }
     }
@@ -147,6 +179,10 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
         case 'team':
           aVal = a.team.name.toLowerCase();
           bVal = b.team.name.toLowerCase();
+          break;
+        case 'region':
+          aVal = a.team.region;
+          bVal = b.team.region;
           break;
         case 'role':
           aVal = a.role;
@@ -244,7 +280,7 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
     }
   };
 
-  const getRoleClass = (role: string) => `role-${role.toLowerCase()}`;
+  // const getRoleClass = (role: string) => `role-${role.toLowerCase()}`;
 
   const getRatingClass = (rating: number) => {
     if (rating >= 80) return 'rating-elite';
@@ -313,6 +349,7 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
                 <th className="rank-col">#</th>
                 <SortHeader label="Player" sortKeyName="name" currentSortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} className="player-col" />
                 <SortHeader label="Team" sortKeyName="team" currentSortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} className="team-col" />
+                <SortHeader label="Region" sortKeyName="region" currentSortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} className="region-col" />
                 <SortHeader label="Role" sortKeyName="role" currentSortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} className="role-col" />
                 <SortHeader label="OVR" sortKeyName="effectiveOvr" currentSortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} className="stat-col" />
                 <SortHeader label="Base" sortKeyName="overall" currentSortKey={sortKey} sortDirection={sortDirection} onSort={handleSort} className="stat-col" />
@@ -333,7 +370,6 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
             </thead>
             <tbody>
               {sortedPlayers.map((player, index) => {
-                const ovrDiff = player.effectiveOvr - player.overall;
                 return (
                   <tr key={player.id} className={`player-row ${player.isStarter ? 'is-starter' : ''}`}>
                     <td className="rank-col">{index + 1}</td>
@@ -354,21 +390,44 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
                         <span className="team-abbr-link">{player.team.abbreviation}</span>
                       </div>
                     </td>
+                    <td className="region-col">
+                      <img 
+                        src={REGION_LOGOS[player.team.region]} 
+                        alt={player.team.region} 
+                        className="region-icon"
+                        title={player.team.region.charAt(0).toUpperCase() + player.team.region.slice(1)}
+                      />
+                    </td>
                     <td className="role-col">
-                      <span className={`role-pill ${getRoleClass(player.role)}`}>
-                        {player.role.slice(0, 3).toUpperCase()}
-                      </span>
+                      <div className="role-cell-with-icon">
+                        <img 
+                          src={ROLE_ICONS[player.role]} 
+                          alt={player.role} 
+                          className="role-icon" 
+                          title={player.role.charAt(0).toUpperCase() + player.role.slice(1)}
+                        />
+                      </div>
                       {player.assignedRole && player.assignedRole !== player.role && (
                         <span className="off-role-indicator" title={`Playing ${player.assignedRole}`}>
-                          →{player.assignedRole.slice(0, 3)}
+                          →<img src={ROLE_ICONS[player.assignedRole]} alt="" className="role-icon-small" />
                         </span>
                       )}
                     </td>
                     <td className={`stat-col ${getRatingClass(player.effectiveOvr)}`}>
                       <strong>{player.effectiveOvr}</strong>
-                      {ovrDiff !== 0 && (
-                        <span className={`ovr-diff ${ovrDiff > 0 ? 'positive' : 'negative'}`}>
-                          {ovrDiff > 0 ? '+' : ''}{ovrDiff}
+                      {player.rolePenalty !== 0 && (
+                        <span className="modifier-badge role-debuff" title="Off-Role Penalty">
+                          ({player.rolePenalty})
+                        </span>
+                      )}
+                      {player.iglBonus !== 0 && (
+                        <span className={`modifier-badge ${player.iglBonus > 0 ? 'buff' : 'debuff'}`} title="IGL Bonus">
+                          ({player.iglBonus > 0 ? '+' : ''}{player.iglBonus})
+                        </span>
+                      )}
+                      {player.compPenalty !== 0 && (
+                        <span className="modifier-badge comp-debuff" title="Unbalanced Composition">
+                          ({player.compPenalty})
                         </span>
                       )}
                     </td>

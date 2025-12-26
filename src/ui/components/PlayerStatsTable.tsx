@@ -273,7 +273,7 @@ function MatchRow({ match, isExpanded, onToggle, onMatchClick }: MatchRowProps) 
             <div className="map-info">
               {mapStat.agent && (
                 <img 
-                  src={`https://www.vlr.gg/img/vlr/game/agents/${mapStat.agent.toLowerCase()}.png`}
+                  src={`/logos/agents/${mapStat.agent.toLowerCase()}.png`}
                   alt={mapStat.agent}
                   className="agent-icon-small"
                   onError={(e) => { e.currentTarget.style.display = 'none'; }}
