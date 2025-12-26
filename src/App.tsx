@@ -60,6 +60,7 @@ import { getCompositionPenalty } from "./sim/compositionBonus";
 import type { Team, Player, Role, AgentPool, Region } from "./types";
 import type { RNG } from "./utils/random";
 import { PlayerEditModal } from "./ui/components/PlayerEditModal";
+import { APP_VERSION } from './version';
 import "./App.css";
 
 function generateAgentPoolForRole(rng: RNG, role: Role): AgentPool {
@@ -2261,7 +2262,7 @@ export default function App() {
                 )}
 
                 {/* Fatigue warning */}
-                {fatigueLevel === 'fatigued' && (
+                {getFatigueLevel(gameState.fatigueLevel) === 'exhausted' && (
                   <div className="scrim-warning danger">
                     😓 Team is fatigued! Higher chance of negative outcomes.
                   </div>
