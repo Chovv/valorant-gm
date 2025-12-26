@@ -27,13 +27,14 @@ function generateAgentPoolForRole(rng: RNG, role: Role): AgentPool {
 function generateRoster(rng: RNG): Player[] {
   const roles: Role[] = ['duelist', 'duelist', 'controller', 'initiator', 'sentinel'];
   return roles.map(role => {
-    const player = generatePlayer(rng, { meanOverall: 68, stdDevOverall: 12, minAge: 18, maxAge: 28 });
+    const player = generatePlayer(rng, { meanOverall: 68, minAge: 18, maxAge: 28 });
     return { ...player, role, agentPool: generateAgentPoolForRole(rng, role) };
   });
 }
 
 function generateTeam(rng: RNG, name: string, abbr: string, logo: string): Team {
   const roster = generateRoster(rng);
+  const iglPlayer = roster.find(p => p.role === 'initiator') || roster[0];
   return {
     id: `team_${abbr.toLowerCase()}`,
     name,
@@ -41,6 +42,7 @@ function generateTeam(rng: RNG, name: string, abbr: string, logo: string): Team 
     logo,
     region: 'americas',
     roster,
+    iglId: iglPlayer?.id || null,
     staff: { headCoach: null, assistantCoach: null, analyst: null },
     finances: { budget: 1000000, salaryCommitted: 500000, scoutingBudget: 50 },
     attributes: calculateTeamAttributes(roster),

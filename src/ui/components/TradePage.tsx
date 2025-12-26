@@ -1,10 +1,19 @@
 // src/ui/components/TradePage.tsx
-// Trading interface for ValorantGM - supports multi-player trades
+// Trading interface for ValorantGM - Modern esports design
 
 import { useState, useMemo } from 'react';
-import type { Team, Region } from '../../types';
+import type { Team, Region, Role } from '../../types';
 import { getTradeValue, canTrade } from '../../sim/trading';
 import './TradePage.css';
+
+// Role icons
+const ROLE_ICONS: Record<Role, string> = {
+  duelist: '/logos/regions/duelistIcon.png',
+  controller: '/logos/regions/controllerIcon.png',
+  initiator: '/logos/regions/initiatorIcon.png',
+  sentinel: '/logos/regions/sentinelIcon.png',
+  flex: '/logos/regions/filler.png',
+};
 
 interface TradePageProps {
   teams: Team[];
@@ -71,7 +80,6 @@ export function TradePage({ teams, userTeamId, onExecuteTrade, onViewPlayer }: T
       Array.from(selectedOtherPlayers)
     );
     
-    // Show success message
     const userNames = userPlayers.map(p => p?.name).join(', ');
     const otherNames = otherPlayersSelected.map(p => p?.name).join(', ');
     setTradeMessage({
@@ -79,22 +87,16 @@ export function TradePage({ teams, userTeamId, onExecuteTrade, onViewPlayer }: T
       text: `Trade complete! ${userNames} → ${selectedTeam.abbreviation}, ${otherNames} → ${userTeam?.abbreviation}`
     });
 
-    // Reset selections
     setSelectedUserPlayers(new Set());
     setSelectedOtherPlayers(new Set());
-
-    // Clear message after 5 seconds
     setTimeout(() => setTradeMessage(null), 5000);
   };
 
   const toggleUserPlayer = (playerId: string) => {
     setSelectedUserPlayers(prev => {
       const next = new Set(prev);
-      if (next.has(playerId)) {
-        next.delete(playerId);
-      } else {
-        next.add(playerId);
-      }
+      if (next.has(playerId)) next.delete(playerId);
+      else next.add(playerId);
       return next;
     });
   };
@@ -102,11 +104,8 @@ export function TradePage({ teams, userTeamId, onExecuteTrade, onViewPlayer }: T
   const toggleOtherPlayer = (playerId: string) => {
     setSelectedOtherPlayers(prev => {
       const next = new Set(prev);
-      if (next.has(playerId)) {
-        next.delete(playerId);
-      } else {
-        next.add(playerId);
-      }
+      if (next.has(playerId)) next.delete(playerId);
+      else next.add(playerId);
       return next;
     });
   };
@@ -116,281 +115,304 @@ export function TradePage({ teams, userTeamId, onExecuteTrade, onViewPlayer }: T
     setSelectedOtherPlayers(new Set());
   };
 
-  const getRoleClass = (role: string) => `role-${role.toLowerCase()}`;
-  
   const getRatingClass = (rating: number) => {
-    if (rating >= 80) return 'rating-elite';
-    if (rating >= 70) return 'rating-high';
-    if (rating >= 55) return 'rating-mid';
+    if (rating >= 85) return 'rating-elite';
+    if (rating >= 75) return 'rating-high';
+    if (rating >= 65) return 'rating-mid';
     return 'rating-low';
   };
 
-  const getValueDiffClass = (diff: number) => {
-    if (diff > 100) return 'value-great';
+  const getValueClass = (diff: number) => {
+    if (diff > 50) return 'value-great';
     if (diff > 0) return 'value-good';
-    if (diff < -100) return 'value-bad';
+    if (diff < -50) return 'value-bad';
     if (diff < 0) return 'value-poor';
     return 'value-neutral';
   };
 
-  // Calculate roster sizes after trade
   const userNewRosterSize = userTeam ? userTeam.roster.length - selectedUserPlayers.size + selectedOtherPlayers.size : 0;
   const otherNewRosterSize = selectedTeam ? selectedTeam.roster.length - selectedOtherPlayers.size + selectedUserPlayers.size : 0;
 
   return (
     <div className="trade-page">
-      <div className="content-header">
-        <h1>Trade Center</h1>
-        <span className="header-subtitle">Select multiple players for trades (1-for-2, 2-for-1, etc.)</span>
+      {/* Header */}
+      <div className="trade-header">
+        <div className="trade-header-content">
+          <h1>Trade Center</h1>
+          <p>Build your championship roster through strategic trades</p>
+        </div>
       </div>
 
-      {/* Trade Message */}
+      {/* Trade Message Toast */}
       {tradeMessage && (
-        <div className={`trade-message ${tradeMessage.type}`}>
-          {tradeMessage.type === 'success' ? '✅' : '❌'} {tradeMessage.text}
+        <div className={`trade-toast ${tradeMessage.type}`}>
+          <span className="toast-icon">{tradeMessage.type === 'success' ? '✓' : '✕'}</span>
+          <span className="toast-text">{tradeMessage.text}</span>
         </div>
       )}
 
-      {/* Trade Interface */}
-      <div className="trade-interface">
-        {/* Your Team */}
-        <div className="trade-side user-side">
-          <div className="trade-side-header">
-            <img src={userTeam?.logo} alt={userTeam?.name} className="trade-team-logo" />
-            <div className="trade-team-info">
-              <h2>{userTeam?.name}</h2>
-              <span className="trade-team-badge">Your Team</span>
+      {/* Main Trade Interface */}
+      <div className="trade-layout">
+        {/* Left Side - Your Team */}
+        <div className="trade-panel your-team">
+          <div className="panel-header-trade">
+            <div className="team-identity">
+              <img src={userTeam?.logo} alt="" className="team-logo-lg" />
+              <div className="team-details">
+                <span className="your-team-badge">YOUR TEAM</span>
+                <h2>{userTeam?.name}</h2>
+                <span className="roster-info">{userTeam?.roster.length} Players</span>
+              </div>
             </div>
           </div>
 
-          <div className="trade-player-list">
-            <div className="list-header">
-              <span>Select players to trade away</span>
-              <span className="roster-count">
-                {selectedUserPlayers.size > 0 && (
-                  <span className="selected-count">{selectedUserPlayers.size} selected • </span>
-                )}
-                {userTeam?.roster.length} players
-              </span>
-            </div>
-            <div className="player-list-scroll">
-              {userTeam?.roster.map(player => {
-                const isSelected = selectedUserPlayers.has(player.id);
-                const tradeValue = getTradeValue(player);
-                const isIGL = userTeam.iglId === player.id;
-                
-                return (
-                  <div 
-                    key={player.id}
-                    className={`trade-player-card ${isSelected ? 'selected' : ''}`}
-                    onClick={() => toggleUserPlayer(player.id)}
-                  >
-                    <div className="player-card-main">
-                      <div className="player-card-info">
+          <div className="panel-subheader">
+            <span>Select players to trade away</span>
+            {selectedUserPlayers.size > 0 && (
+              <span className="selection-badge">{selectedUserPlayers.size} selected</span>
+            )}
+          </div>
+
+          <div className="player-grid">
+            {userTeam?.roster.map(player => {
+              const isSelected = selectedUserPlayers.has(player.id);
+              const tradeValue = getTradeValue(player);
+              const isIGL = userTeam.iglId === player.id;
+              
+              return (
+                <div 
+                  key={player.id}
+                  className={`player-trade-card ${isSelected ? 'selected' : ''}`}
+                  onClick={() => toggleUserPlayer(player.id)}
+                >
+                  <div className="card-select-indicator">
+                    <div className="checkbox">{isSelected && '✓'}</div>
+                  </div>
+                  
+                  <div className="card-main">
+                    <div className="card-left">
+                      <img src={ROLE_ICONS[player.role]} alt="" className="role-icon-sm" />
+                      <div className="player-info">
                         <span 
                           className="player-name"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onViewPlayer(player.id);
-                          }}
+                          onClick={(e) => { e.stopPropagation(); onViewPlayer(player.id); }}
                         >
                           {player.name}
+                          {isIGL && <span className="igl-tag">IGL</span>}
                         </span>
-                        {isIGL && <span className="igl-badge-small">IGL</span>}
-                        <div className="player-meta">
-                          <span className={`role-pill-small ${getRoleClass(player.role)}`}>
-                            {player.role.slice(0, 3).toUpperCase()}
-                          </span>
-                          <span className="player-age">{player.age} yrs</span>
-                        </div>
+                        <span className="player-meta">{player.age} yrs • POT {player.potential.ceiling}</span>
                       </div>
-                      <div className="player-card-stats">
-                        <div className={`player-ovr ${getRatingClass(player.overall)}`}>
-                          {player.overall}
-                        </div>
-                        <div className="player-value">
-                          <span className="value-label">Value</span>
-                          <span className="value-number">{tradeValue}</span>
-                        </div>
+                    </div>
+                    
+                    <div className="card-right">
+                      <div className={`ovr-badge ${getRatingClass(player.overall)}`}>
+                        {player.overall}
+                      </div>
+                      <div className="trade-value">
+                        <span className="value-num">{tradeValue}</span>
+                        <span className="value-label">VAL</span>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Trade Summary (Center) */}
-        <div className="trade-center">
-          <div className="trade-summary">
-            <h3>Trade Summary</h3>
-            
-            <div className="trade-arrows">
-              <div className="trade-arrow-section">
-                <div className="arrow-label">You send ({selectedUserPlayers.size})</div>
-                <div className="arrow-player-list">
-                  {userPlayers.length > 0 ? (
-                    userPlayers.map(player => player && (
-                      <div key={player.id} className="arrow-player-item">
-                        <span className="arrow-player-name">{player.name}</span>
-                        <span className={`arrow-player-ovr ${getRatingClass(player.overall)}`}>
-                          {player.overall}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <span className="arrow-placeholder">Select players</span>
-                  )}
-                </div>
-                {userPlayers.length > 0 && (
-                  <div className="arrow-total">
-                    Total Value: <strong>{userTotalValue}</strong>
-                  </div>
-                )}
-                <div className="trade-arrow">→</div>
+        {/* Center - Trade Summary */}
+        <div className="trade-center-panel">
+          <div className="trade-flow">
+            {/* Outgoing */}
+            <div className="flow-section outgoing">
+              <div className="flow-header">
+                <span className="flow-icon">↑</span>
+                <span className="flow-label">SENDING</span>
               </div>
-
-              <div className="trade-arrow-section">
-                <div className="arrow-label">You receive ({selectedOtherPlayers.size})</div>
-                <div className="arrow-player-list">
-                  {otherPlayersSelected.length > 0 ? (
-                    otherPlayersSelected.map(player => player && (
-                      <div key={player.id} className="arrow-player-item">
-                        <span className="arrow-player-name">{player.name}</span>
-                        <span className={`arrow-player-ovr ${getRatingClass(player.overall)}`}>
-                          {player.overall}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <span className="arrow-placeholder">Select players</span>
-                  )}
-                </div>
-                {otherPlayersSelected.length > 0 && (
-                  <div className="arrow-total">
-                    Total Value: <strong>{otherTotalValue}</strong>
-                  </div>
+              <div className="flow-players">
+                {userPlayers.length > 0 ? (
+                  userPlayers.map(player => player && (
+                    <div key={player.id} className="flow-player">
+                      <img src={ROLE_ICONS[player.role]} alt="" className="flow-role-icon" />
+                      <span className="flow-name">{player.name}</span>
+                      <span className={`flow-ovr ${getRatingClass(player.overall)}`}>{player.overall}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flow-empty">Select players above</div>
                 )}
-                <div className="trade-arrow">←</div>
               </div>
+              {userPlayers.length > 0 && (
+                <div className="flow-total">
+                  <span>Total Value</span>
+                  <span className="total-value">{userTotalValue}</span>
+                </div>
+              )}
             </div>
 
-            {/* Roster Size Preview */}
-            {(selectedUserPlayers.size > 0 || selectedOtherPlayers.size > 0) && (
-              <div className="roster-preview">
-                <div className="roster-preview-item">
-                  <span className="roster-preview-label">{userTeam?.abbreviation} roster:</span>
-                  <span className={`roster-preview-value ${userNewRosterSize < 5 ? 'invalid' : ''}`}>
+            {/* Trade Arrow */}
+            <div className="trade-exchange">
+              <div className="exchange-icon">⇄</div>
+            </div>
+
+            {/* Incoming */}
+            <div className="flow-section incoming">
+              <div className="flow-header">
+                <span className="flow-icon">↓</span>
+                <span className="flow-label">RECEIVING</span>
+              </div>
+              <div className="flow-players">
+                {otherPlayersSelected.length > 0 ? (
+                  otherPlayersSelected.map(player => player && (
+                    <div key={player.id} className="flow-player">
+                      <img src={ROLE_ICONS[player.role]} alt="" className="flow-role-icon" />
+                      <span className="flow-name">{player.name}</span>
+                      <span className={`flow-ovr ${getRatingClass(player.overall)}`}>{player.overall}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flow-empty">Select players below</div>
+                )}
+              </div>
+              {otherPlayersSelected.length > 0 && (
+                <div className="flow-total">
+                  <span>Total Value</span>
+                  <span className="total-value">{otherTotalValue}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Value Analysis */}
+          {(userPlayers.length > 0 || otherPlayersSelected.length > 0) && (
+            <div className="trade-analysis">
+              {userPlayers.length > 0 && otherPlayersSelected.length > 0 && (
+                <div className={`value-meter ${getValueClass(valueDiff)}`}>
+                  <div className="meter-label">Trade Value</div>
+                  <div className="meter-value">
+                    {valueDiff > 0 ? '+' : ''}{valueDiff}
+                  </div>
+                  <div className="meter-status">
+                    {valueDiff > 50 ? 'Great Deal!' : 
+                     valueDiff > 0 ? 'Good Trade' : 
+                     valueDiff === 0 ? 'Even Trade' :
+                     valueDiff > -50 ? 'Slight Loss' : 'Bad Deal'}
+                  </div>
+                </div>
+              )}
+
+              <div className="roster-impact">
+                <div className="impact-row">
+                  <span className="impact-team">{userTeam?.abbreviation}</span>
+                  <span className={`impact-change ${userNewRosterSize < 5 ? 'invalid' : ''}`}>
                     {userTeam?.roster.length} → {userNewRosterSize}
                   </span>
                 </div>
                 {selectedTeam && (
-                  <div className="roster-preview-item">
-                    <span className="roster-preview-label">{selectedTeam.abbreviation} roster:</span>
-                    <span className={`roster-preview-value ${otherNewRosterSize < 5 ? 'invalid' : ''}`}>
+                  <div className="impact-row">
+                    <span className="impact-team">{selectedTeam.abbreviation}</span>
+                    <span className={`impact-change ${otherNewRosterSize < 5 ? 'invalid' : ''}`}>
                       {selectedTeam.roster.length} → {otherNewRosterSize}
                     </span>
                   </div>
                 )}
               </div>
-            )}
+            </div>
+          )}
 
-            {userPlayers.length > 0 && otherPlayersSelected.length > 0 && (
-              <div className={`value-comparison ${getValueDiffClass(valueDiff)}`}>
-                <span className="value-diff-label">Value difference:</span>
-                <span className="value-diff-number">
-                  {valueDiff > 0 ? '+' : ''}{valueDiff}
-                  {valueDiff > 0 ? ' (You win)' : valueDiff < 0 ? ' (They win)' : ' (Even)'}
-                </span>
-              </div>
-            )}
-
+          {/* Action Buttons */}
+          <div className="trade-actions">
             {(selectedUserPlayers.size > 0 || selectedOtherPlayers.size > 0) && (
-              <button className="clear-selections-btn" onClick={clearSelections}>
-                Clear Selections
+              <button className="btn-clear" onClick={clearSelections}>
+                Clear All
               </button>
             )}
-
             <button 
-              className="execute-trade-btn"
+              className={`btn-execute ${tradeValidation.valid ? 'ready' : ''}`}
               disabled={!tradeValidation.valid}
               onClick={handleExecuteTrade}
             >
-              {tradeValidation.valid ? '🤝 Execute Trade' : tradeValidation.reason}
+              {tradeValidation.valid ? (
+                <>
+                  <span className="btn-icon">🤝</span>
+                  Execute Trade
+                </>
+              ) : (
+                <span className="btn-disabled-text">{tradeValidation.reason}</span>
+              )}
             </button>
           </div>
         </div>
 
-        {/* Other Team */}
-        <div className="trade-side other-side">
-          <div className="trade-side-header">
+        {/* Right Side - Other Team */}
+        <div className="trade-panel other-team">
+          <div className="panel-header-trade">
             {selectedTeam ? (
-              <>
-                <img src={selectedTeam.logo} alt={selectedTeam.name} className="trade-team-logo" />
-                <div className="trade-team-info">
+              <div className="team-identity">
+                <img src={selectedTeam.logo} alt="" className="team-logo-lg" />
+                <div className="team-details">
+                  <span className="region-badge">{selectedTeam.region.toUpperCase()}</span>
                   <h2>{selectedTeam.name}</h2>
-                  <span className="trade-team-region">{selectedTeam.region.toUpperCase()}</span>
+                  <span className="roster-info">{selectedTeam.roster.length} Players</span>
                 </div>
-              </>
+              </div>
             ) : (
-              <div className="trade-team-info">
-                <h2>Select a Team</h2>
-                <span className="trade-team-region">Choose a trade partner</span>
+              <div className="team-identity empty">
+                <div className="empty-logo">?</div>
+                <div className="team-details">
+                  <h2>Select Trade Partner</h2>
+                  <span className="roster-info">Choose a team below</span>
+                </div>
               </div>
             )}
           </div>
 
           {/* Team Selector */}
-          <div className="team-selector">
-            <div className="team-selector-filters">
-              <select 
-                value={regionFilter}
-                onChange={(e) => {
-                  setRegionFilter(e.target.value as Region | 'all');
-                  setSelectedTeamId(null);
-                  setSelectedOtherPlayers(new Set());
-                }}
-                className="region-filter"
-              >
-                <option value="all">All Regions</option>
-                <option value="americas">Americas</option>
-                <option value="emea">EMEA</option>
-                <option value="pacific">Pacific</option>
-                <option value="china">China</option>
-              </select>
-            </div>
+          <div className="team-selector-section">
+            <select 
+              value={regionFilter}
+              onChange={(e) => {
+                setRegionFilter(e.target.value as Region | 'all');
+                setSelectedTeamId(null);
+                setSelectedOtherPlayers(new Set());
+              }}
+              className="region-select"
+            >
+              <option value="all">All Regions</option>
+              <option value="americas">Americas</option>
+              <option value="emea">EMEA</option>
+              <option value="pacific">Pacific</option>
+              <option value="china">China</option>
+            </select>
             
-            <div className="team-selector-list">
+            <div className="team-chips">
               {otherTeams.map(team => (
                 <button
                   key={team.id}
-                  className={`team-selector-btn ${selectedTeamId === team.id ? 'selected' : ''}`}
+                  className={`team-chip ${selectedTeamId === team.id ? 'active' : ''}`}
                   onClick={() => {
                     setSelectedTeamId(team.id);
                     setSelectedOtherPlayers(new Set());
                   }}
                 >
-                  <img src={team.logo} alt={team.abbreviation} className="team-selector-logo" />
-                  <span className="team-selector-abbr">{team.abbreviation}</span>
+                  <img src={team.logo} alt="" className="chip-logo" />
+                  <span className="chip-abbr">{team.abbreviation}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Selected Team's Roster */}
-          {selectedTeam && (
-            <div className="trade-player-list">
-              <div className="list-header">
+          {/* Other Team's Roster */}
+          {selectedTeam ? (
+            <>
+              <div className="panel-subheader">
                 <span>Select players to receive</span>
-                <span className="roster-count">
-                  {selectedOtherPlayers.size > 0 && (
-                    <span className="selected-count">{selectedOtherPlayers.size} selected • </span>
-                  )}
-                  {selectedTeam.roster.length} players
-                </span>
+                {selectedOtherPlayers.size > 0 && (
+                  <span className="selection-badge incoming">{selectedOtherPlayers.size} selected</span>
+                )}
               </div>
-              <div className="player-list-scroll">
+
+              <div className="player-grid">
                 {selectedTeam.roster.map(player => {
                   const isSelected = selectedOtherPlayers.has(player.id);
                   const tradeValue = getTradeValue(player);
@@ -399,35 +421,35 @@ export function TradePage({ teams, userTeamId, onExecuteTrade, onViewPlayer }: T
                   return (
                     <div 
                       key={player.id}
-                      className={`trade-player-card ${isSelected ? 'selected' : ''}`}
+                      className={`player-trade-card ${isSelected ? 'selected' : ''}`}
                       onClick={() => toggleOtherPlayer(player.id)}
                     >
-                      <div className="player-card-main">
-                        <div className="player-card-info">
-                          <span 
-                            className="player-name"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onViewPlayer(player.id);
-                            }}
-                          >
-                            {player.name}
-                          </span>
-                          {isIGL && <span className="igl-badge-small">IGL</span>}
-                          <div className="player-meta">
-                            <span className={`role-pill-small ${getRoleClass(player.role)}`}>
-                              {player.role.slice(0, 3).toUpperCase()}
+                      <div className="card-select-indicator">
+                        <div className="checkbox">{isSelected && '✓'}</div>
+                      </div>
+                      
+                      <div className="card-main">
+                        <div className="card-left">
+                          <img src={ROLE_ICONS[player.role]} alt="" className="role-icon-sm" />
+                          <div className="player-info">
+                            <span 
+                              className="player-name"
+                              onClick={(e) => { e.stopPropagation(); onViewPlayer(player.id); }}
+                            >
+                              {player.name}
+                              {isIGL && <span className="igl-tag">IGL</span>}
                             </span>
-                            <span className="player-age">{player.age} yrs</span>
+                            <span className="player-meta">{player.age} yrs • POT {player.potential.ceiling}</span>
                           </div>
                         </div>
-                        <div className="player-card-stats">
-                          <div className={`player-ovr ${getRatingClass(player.overall)}`}>
+                        
+                        <div className="card-right">
+                          <div className={`ovr-badge ${getRatingClass(player.overall)}`}>
                             {player.overall}
                           </div>
-                          <div className="player-value">
-                            <span className="value-label">Value</span>
-                            <span className="value-number">{tradeValue}</span>
+                          <div className="trade-value">
+                            <span className="value-num">{tradeValue}</span>
+                            <span className="value-label">VAL</span>
                           </div>
                         </div>
                       </div>
@@ -435,6 +457,11 @@ export function TradePage({ teams, userTeamId, onExecuteTrade, onViewPlayer }: T
                   );
                 })}
               </div>
+            </>
+          ) : (
+            <div className="empty-roster-message">
+              <div className="empty-icon">👆</div>
+              <p>Select a team above to view their roster</p>
             </div>
           )}
         </div>

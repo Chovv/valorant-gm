@@ -1,9 +1,19 @@
 // src/ui/components/TeamView.tsx
-import type { Team, StandingsEntry } from '../../types';
+import type { Team, StandingsEntry, Role } from '../../types';
 import type { ScheduledMatch } from '../../sim/gameState';
 import type { StartingSlot } from '../../types/roster';
 import { getBenchPlayers, getLineupSummary } from '../../sim/rosterManagement';
 import { getIGLBonusForPlayer, calculateEffectiveOverallWithIGL } from '../../sim/iglBonus';
+import { analyzeComposition } from '../../sim/compositionBonus';
+
+// Role icons
+const ROLE_ICONS: Record<Role, string> = {
+  duelist: '/logos/regions/duelistIcon.png',
+  controller: '/logos/regions/controllerIcon.png',
+  initiator: '/logos/regions/initiatorIcon.png',
+  sentinel: '/logos/regions/sentinelIcon.png',
+  flex: '/logos/regions/filler.png',
+};
 
 interface TeamViewProps {
   team: Team;
@@ -48,12 +58,15 @@ export function TeamView({
   const benchPlayers = getBenchPlayers(team.roster, lineup);
   const lineupSummary = getLineupSummary(team.roster, lineup);
   
-  // Calculate effective lineup strength including IGL bonus
+  // Analyze composition for penalties
+  const compositionResult = analyzeComposition(lineup);
+  
+  // Calculate effective lineup strength including IGL bonus and composition penalty
   const effectiveLineupStrength = lineupSummary.reduce((total, summary) => {
     const player = team.roster.find(p => p.id === summary.playerId);
     const iglBonus = player ? getIGLBonusForPlayer(player, team, lineup) : 0;
     const iglOvrImpact = Math.round(iglBonus * 0.5);
-    return total + summary.effectiveOverall + iglOvrImpact;
+    return total + summary.effectiveOverall + iglOvrImpact + compositionResult.penalty;
   }, 0);
   
   // Calculate avg starter OVR (effective, including IGL bonus) - same as RosterManagementPage
@@ -266,6 +279,14 @@ export function TeamView({
           {/* Starting Lineup */}
           <div className="roster-section-header">Starting Lineup</div>
           <table className="roster-table-aligned">
+            <colgroup>
+              <col className="col-name" />
+              <col className="col-role" />
+              <col className="col-stat" />
+              <col className="col-stat" />
+              <col className="col-stat" />
+              {showIglColumn && <col className="col-igl" />}
+            </colgroup>
             <thead>
               <tr>
                 <th className="th-name">Name</th>
@@ -281,12 +302,13 @@ export function TeamView({
                 if (!player) return null;
                 const isIGL = team.iglId === player.id;
                 
-                // Calculate IGL bonus for this player
+                // Calculate IGL bonus for this player (including composition penalty)
                 const iglResult = calculateEffectiveOverallWithIGL(
                   player,
                   team,
                   lineup,
-                  summary.penalty
+                  summary.penalty,
+                  compositionResult.penalty
                 );
                 
                 return (
@@ -299,21 +321,29 @@ export function TeamView({
                       {isIGL && <span className="igl-badge">IGL</span>}
                     </td>
                     <td className="td-role">
-                      <span className={`role-badge role-${summary.assignedRole}`}>
-                        {summary.assignedRole.toUpperCase()}
-                      </span>
+                      <img 
+                        src={ROLE_ICONS[summary.assignedRole]} 
+                        alt={summary.assignedRole} 
+                        className="role-icon"
+                        title={summary.assignedRole.charAt(0).toUpperCase() + summary.assignedRole.slice(1)}
+                      />
                     </td>
                     <td className="td-stat">{player.age}</td>
-                    <td className={`td-stat ${getRatingClass(iglResult.effectiveOvr)}`}>
-                      {iglResult.effectiveOvr}
+                    <td className={`td-stat ovr-cell ${getRatingClass(iglResult.effectiveOvr)}`}>
+                      <span className="ovr-main">{iglResult.effectiveOvr}</span>
                       {summary.penalty !== 0 && (
-                        <span className={`penalty-indicator ${getPenaltyClass(summary.penalty)}`}>
+                        <span className={`ovr-modifier ${getPenaltyClass(summary.penalty)}`}>
                           ({summary.penalty > 0 ? '+' : ''}{summary.penalty})
                         </span>
                       )}
                       {iglResult.iglBonus !== 0 && (
-                        <span className={`penalty-indicator ${iglResult.iglBonus > 0 ? 'bonus' : 'penalty'}`}>
+                        <span className={`ovr-modifier ${iglResult.iglBonus > 0 ? 'bonus' : 'penalty'}`}>
                           ({iglResult.iglBonus > 0 ? '+' : ''}{iglResult.iglBonus})
+                        </span>
+                      )}
+                      {compositionResult.penalty !== 0 && (
+                        <span className="ovr-modifier comp-penalty" title={compositionResult.description}>
+                          ({compositionResult.penalty})
                         </span>
                       )}
                     </td>
@@ -343,6 +373,14 @@ export function TeamView({
             <>
               <div className="roster-section-header bench-header">Bench ({benchPlayers.length})</div>
               <table className="roster-table-aligned">
+                <colgroup>
+                  <col className="col-name" />
+                  <col className="col-role" />
+                  <col className="col-stat" />
+                  <col className="col-stat" />
+                  <col className="col-stat" />
+                  {showIglColumn && <col className="col-igl" />}
+                </colgroup>
                 <tbody>
                   {benchPlayers.map(player => {
                     const isIGL = team.iglId === player.id;
@@ -357,9 +395,12 @@ export function TeamView({
                           {isIGL && <span className="igl-badge">IGL</span>}
                         </td>
                         <td className="td-role">
-                          <span className={`role-badge role-${player.role}`}>
-                            {player.role.toUpperCase()}
-                          </span>
+                          <img 
+                            src={ROLE_ICONS[player.role]} 
+                            alt={player.role} 
+                            className="role-icon"
+                            title={player.role.charAt(0).toUpperCase() + player.role.slice(1)}
+                          />
                         </td>
                         <td className="td-stat">{player.age}</td>
                         <td className={`td-stat ${getRatingClass(player.overall)}`}>
@@ -421,9 +462,15 @@ export function TeamView({
                       </div>
                       <div className="match-history-info">
                         <div className="match-history-teams">
-                          <span className="match-history-team">{team.abbreviation}</span>
+                          <span className="match-history-team">
+                            <img src={team.logo} alt={team.abbreviation} className="match-history-team-logo" />
+                            {team.abbreviation}
+                          </span>
                           <span className="match-history-score">{teamScore} - {oppScore}</span>
-                          <span className="match-history-opponent">{opponent?.abbreviation}</span>
+                          <span className="match-history-opponent">
+                            {opponent && <img src={opponent.logo} alt={opponent.abbreviation} className="match-history-team-logo" />}
+                            {opponent?.abbreviation}
+                          </span>
                         </div>
                         <div className="match-history-meta">
                           Day {match.day} • {match.result!.mapScores.length} maps

@@ -1,6 +1,22 @@
 // src/ui/components/PowerRankingsPage.tsx
+import React, { useState, useMemo } from 'react';
 import type { Team, Region, StandingsEntry, MatchResult, Player, Role } from '../../types';
 import type { ScheduledMatch } from '../../sim/gameState';
+import type { StartingSlot } from '../../types/roster';
+import { getLineupSummary } from '../../sim/rosterManagement';
+import { getIGLBonusForPlayer } from '../../sim/iglBonus';
+import { getCompositionPenalty } from '../../sim/compositionBonus';
+
+// Role icons
+const ROLE_ICONS: Record<Role, string> = {
+  duelist: '/logos/regions/duelistIcon.png',
+  controller: '/logos/regions/controllerIcon.png',
+  initiator: '/logos/regions/initiatorIcon.png',
+  sentinel: '/logos/regions/sentinelIcon.png',
+  flex: '/logos/regions/filler.png',
+};
+
+type RankingMode = 'power' | 'lineup';
 
 interface PowerRankingsPageProps {
   teams: Team[];
@@ -17,6 +33,7 @@ interface PowerRanking {
   rank: number;
   previousRank: number;
   powerScore: number;
+  lineupStrength: number;
   recentForm: ('W' | 'L')[];
   strengthOfSchedule: number;
   teamRating: number;
@@ -27,6 +44,27 @@ interface PowerRanking {
 function getTeamOverall(team: Team): number {
   const attrs = team.attributes;
   return Math.round((attrs.firepower + attrs.utilityDepth + attrs.macroPlay + attrs.mentalStrength) / 4);
+}
+
+// Calculate effective lineup strength including IGL bonus and composition penalty
+function getTeamLineupStrength(team: Team): number {
+  const lineup: StartingSlot[] = team.startingLineup || team.roster.slice(0, 5).map(p => ({
+    playerId: p.id,
+    assignedRole: p.role,
+  }));
+  
+  const lineupSummary = getLineupSummary(team.roster, lineup);
+  const compositionPenalty = getCompositionPenalty(lineup);
+  
+  const effectiveLineupStrength = lineupSummary.reduce((total, summary) => {
+    const player = team.roster.find(p => p.id === summary.playerId);
+    const iglBonus = player ? getIGLBonusForPlayer(player, team, lineup) : 0;
+    const iglOvrImpact = Math.round(iglBonus * 0.5);
+    // Add composition penalty per player (penalty is per-player, e.g., -2 each)
+    return total + summary.effectiveOverall + iglOvrImpact + compositionPenalty;
+  }, 0);
+  
+  return effectiveLineupStrength;
 }
 
 // Get winner ID from a match result
@@ -122,6 +160,23 @@ interface RankedPlayer {
 }
 
 export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onViewTeam, onViewPlayer }: PowerRankingsPageProps) {
+  // Check if any games have been played
+  const gamesPlayed = useMemo(() => {
+    return schedule.some(m => m.played);
+  }, [schedule]);
+  
+  // Default to STR when no games played, PWR otherwise
+  const [rankingMode, setRankingMode] = useState<RankingMode>(() => 
+    schedule.some(m => m.played) ? 'power' : 'lineup'
+  );
+  
+  // Auto-switch default when games start (only on first game)
+  React.useEffect(() => {
+    if (gamesPlayed && rankingMode === 'lineup') {
+      // Don't auto-switch if user manually selected lineup mode
+      // This effect only runs when gamesPlayed changes from false to true
+    }
+  }, [gamesPlayed, rankingMode]);
   
   // Get all players with their team info and calculate performance ratings
   const allPlayers: RankedPlayer[] = teams.flatMap(team => 
@@ -159,9 +214,9 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
     flex: topPlayers.filter(p => p.player.role === 'flex').slice(0, 5),
   };
   
-  // Calculate power rankings for all teams
-  const calculatePowerRankings = (): PowerRanking[] => {
-    const rankings: PowerRanking[] = [];
+  // Calculate rankings and sort based on mode
+  const rankings = useMemo(() => {
+    const rankingsList: PowerRanking[] = [];
     
     for (const team of teams) {
       const standing = standings.find(s => s.teamId === team.id);
@@ -210,12 +265,15 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
         ((strengthOfSchedule - 70) / 30 * 50) +
         Math.max(-50, Math.min(50, momentum));
       
-      rankings.push({
+      const lineupStrength = getTeamLineupStrength(team);
+      
+      rankingsList.push({
         team,
         standing,
         rank: 0,
         previousRank: 0,
         powerScore,
+        lineupStrength,
         recentForm,
         strengthOfSchedule,
         teamRating,
@@ -223,16 +281,21 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
       });
     }
     
-    rankings.sort((a, b) => b.powerScore - a.powerScore);
-    rankings.forEach((r, idx) => {
+    // Sort based on mode
+    if (rankingMode === 'lineup') {
+      rankingsList.sort((a, b) => b.lineupStrength - a.lineupStrength);
+    } else {
+      rankingsList.sort((a, b) => b.powerScore - a.powerScore);
+    }
+    
+    // Assign ranks
+    rankingsList.forEach((r, idx) => {
       r.rank = idx + 1;
       r.previousRank = idx + 1;
     });
     
-    return rankings;
-  };
-  
-  const rankings = calculatePowerRankings();
+    return rankingsList;
+  }, [teams, standings, schedule, rankingMode]);
   
   const regions: Region[] = ['americas', 'emea', 'pacific', 'china'];
   const regionNames: Record<Region, string> = {
@@ -264,12 +327,37 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
   return (
     <div className="power-rankings-page">
       <div className="content-header">
-        <h1>🏆 Power Rankings</h1>
-        <span className="player-count">{teams.length} teams • {allPlayers.length} players</span>
+        <div className="content-header-left">
+          <h1>🏆 Power Rankings</h1>
+          <span className="player-count">{teams.length} teams • {allPlayers.length} players</span>
+        </div>
+        <div className="ranking-mode-toggle">
+          <button 
+            className={`mode-btn ${rankingMode === 'power' ? 'active' : ''}`}
+            onClick={() => setRankingMode('power')}
+            title="Power Rating - Based on actual match results and performance"
+          >
+            PWR{gamesPlayed && ' ✓'}
+          </button>
+          <button 
+            className={`mode-btn ${rankingMode === 'lineup' ? 'active' : ''}`}
+            onClick={() => setRankingMode('lineup')}
+            title="Lineup Strength - Sum of effective starter OVRs"
+          >
+            STR{!gamesPlayed && ' ✓'}
+          </button>
+        </div>
       </div>
       
       <div className="power-rankings-info">
-        <p>Rankings based on win rate, map differential, team strength, schedule difficulty, and recent form.</p>
+        <p>
+          {rankingMode === 'power' 
+            ? gamesPlayed 
+              ? 'Rankings based on win rate, map differential, team strength, schedule difficulty, and recent form.'
+              : 'No games played yet. PWR rankings will reflect actual performance once matches begin.'
+            : 'Rankings based on total lineup strength (sum of effective starter OVRs including IGL bonuses and role penalties).'}
+          {!gamesPlayed && rankingMode === 'lineup' && ' Best for early-season comparison before results exist.'}
+        </p>
       </div>
       
       {/* Team Rankings Section */}
@@ -277,7 +365,7 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
         {/* Global Top 10 Teams */}
         <div className="panel power-rankings-top">
           <div className="panel-header">
-            🌍 Global Top 10 Teams
+            <span>🌍 Global Top 10 Teams</span>
           </div>
           <div className="panel-body" style={{ padding: 0 }}>
             <table className="power-rankings-table">
@@ -289,7 +377,7 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
                   <th className="region-col">Region</th>
                   <th className="record-col">Record</th>
                   <th className="form-col">Form</th>
-                  <th className="score-col">PWR</th>
+                  <th className="score-col">{rankingMode === 'power' ? 'PWR' : 'STR'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -321,7 +409,7 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
                         </div>
                       </td>
                       <td className="score-col">
-                        <span className="power-score">{Math.round(r.powerScore)}</span>
+                        <span className="power-score">{rankingMode === 'power' ? Math.round(r.powerScore) : r.lineupStrength}</span>
                       </td>
                     </tr>
                   );
@@ -348,7 +436,7 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
                         <th className="rank-col">#</th>
                         <th>Team</th>
                         <th className="record-col">W-L</th>
-                        <th className="score-col">PWR</th>
+                        <th className="score-col">{rankingMode === 'power' ? 'PWR' : 'STR'}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -371,7 +459,7 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
                             </td>
                             <td className="record-col">{r.standing.wins}-{r.standing.losses}</td>
                             <td className="score-col">
-                              <span className="power-score">{Math.round(r.powerScore)}</span>
+                              <span className="power-score">{rankingMode === 'power' ? Math.round(r.powerScore) : r.lineupStrength}</span>
                             </td>
                           </tr>
                         );
@@ -458,6 +546,41 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
       {/* ========== PLAYER SPOTLIGHT SECTION ========== */}
       <div className="section-divider">
         <span className="divider-text">⭐ Player Rankings</span>
+      </div>
+
+      {/* Stats Legend */}
+      <div className="stats-legend">
+        <div className="legend-title">Stats Legend</div>
+        <div className="legend-items">
+          <div className="legend-item">
+            <span className="legend-abbr">ACS</span>
+            <span className="legend-desc">Average Combat Score (damage, kills, assists per round)</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-abbr">K/D</span>
+            <span className="legend-desc">Kill/Death Ratio</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-abbr">FK/Map</span>
+            <span className="legend-desc">First Kills per Map (opening duels won)</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-abbr">WIN%</span>
+            <span className="legend-desc">Match Win Rate</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-abbr">RTG</span>
+            <span className="legend-desc">Performance Rating (weighted combination of all stats)</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-abbr">PWR</span>
+            <span className="legend-desc">Power Score (team ranking metric)</span>
+          </div>
+          <div className="legend-item">
+            <span className="legend-abbr">SoS</span>
+            <span className="legend-desc">Strength of Schedule (average opponent rating)</span>
+          </div>
+        </div>
       </div>
 
       {/* MVP Spotlight + Top 10 */}
@@ -572,12 +695,12 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
                           >
                             {p.player.name}
                           </span>
-                          <span 
-                            className="player-role-indicator"
-                            style={{ background: roleColors[p.player.role] }}
-                          >
-                            {p.player.role.charAt(0).toUpperCase()}
-                          </span>
+                          <img 
+                            src={ROLE_ICONS[p.player.role]}
+                            alt={p.player.role}
+                            className="player-role-icon"
+                            title={p.player.role.charAt(0).toUpperCase() + p.player.role.slice(1)}
+                          />
                         </div>
                       </td>
                       <td className="team-col">
