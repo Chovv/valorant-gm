@@ -20,10 +20,9 @@ interface MatchDetailViewProps {
   onViewPlayer?: (playerId: string) => void;
 }
 
-// Helper to get agent icon URL from VLR.gg
+// Helper to get agent icon URL from local assets
 function getAgentIconUrl(agent: string): string {
-  const normalizedAgent = agent.toLowerCase().replace(/\s+/g, '').replace(/\//g, '');
-  return `https://www.vlr.gg/img/vlr/game/agents/${normalizedAgent}.png`;
+  return `/logos/agents/${agent.toLowerCase()}.png`;
 }
 
 // Helper to capitalize agent name for display
@@ -69,88 +68,57 @@ export function MatchDetailView({ match, homeTeam, awayTeam, homeStanding, awayS
   const homeTotals = calculateSeriesTotals(homeTeam.roster, true);
   const awayTotals = calculateSeriesTotals(awayTeam.roster, false);
 
-  const renderPlayerCell = (playerId: string, name: string, agent: string, teamAbbr: string, isIGL: boolean = false) => (
-    <div className="player-name-cell">
-      {agent && (
-        <img src={getAgentIconUrl(agent)} alt={agent} className="agent-icon" title={formatAgentName(agent)} />
-      )}
-      <span className="team-abbr-prefix">{teamAbbr}</span>
-      <span 
-        className={onViewPlayer ? 'clickable' : ''} 
-        onClick={() => onViewPlayer?.(playerId)}
-        style={onViewPlayer ? { cursor: 'pointer' } : undefined}
-      >
-        {name}
-      </span>
-      {isIGL && <span className="igl-badge">IGL</span>}
-    </div>
-  );
-
-  const renderPlayerCellMultiAgent = (playerId: string, name: string, agents: string[], teamAbbr: string, isIGL: boolean = false) => (
-    <div className="player-name-cell">
-      <div className="agent-icons-group">
-        {agents.map((agent, idx) => (
-          <img 
-            key={idx}
-            src={getAgentIconUrl(agent)} 
-            alt={agent} 
-            className="agent-icon agent-icon-stacked" 
-            title={`Map ${idx + 1}: ${formatAgentName(agent)}`}
-            style={{ marginLeft: idx > 0 ? '-4px' : '0', zIndex: agents.length - idx }}
-          />
-        ))}
-      </div>
-      <span className="team-abbr-prefix">{teamAbbr}</span>
-      <span 
-        className={onViewPlayer ? 'clickable' : ''} 
-        onClick={() => onViewPlayer?.(playerId)}
-        style={onViewPlayer ? { cursor: 'pointer' } : undefined}
-      >
-        {name}
-      </span>
-      {isIGL && <span className="igl-badge">IGL</span>}
-    </div>
-  );
-
   return (
-    <div className="match-detail">
-      <button className="link-btn" onClick={onBack} style={{ marginBottom: '16px' }}>
-        « Back to Schedule
+    <div className="match-detail-view">
+      {/* Back Button */}
+      <button className="back-link" onClick={onBack}>
+        <span className="back-arrow">←</span>
+        Back to Schedule
       </button>
 
-      {/* Match Header */}
-      <div className="match-header">
-        <div className={`match-team ${homeWon ? 'winner' : ''}`}>
-          <img src={homeTeam.logo} alt={homeTeam.name} className="match-team-logo" />
-          <span className="match-team-name">{homeTeam.name}</span>
-          {homeStanding && (
-            <span className="match-team-record">{homeStanding.wins}-{homeStanding.losses}</span>
-          )}
-        </div>
-        <div className="match-score">
-          <span className={`score ${homeWon ? 'winner' : ''}`}>{match.homeScore}</span>
-          <span className="score-divider">-</span>
-          <span className={`score ${!homeWon ? 'winner' : ''}`}>{match.awayScore}</span>
-        </div>
-        <div className={`match-team ${!homeWon ? 'winner' : ''}`}>
-          <img src={awayTeam.logo} alt={awayTeam.name} className="match-team-logo" />
-          <span className="match-team-name">{awayTeam.name}</span>
-          {awayStanding && (
-            <span className="match-team-record">{awayStanding.wins}-{awayStanding.losses}</span>
-          )}
+      {/* Hero Header */}
+      <div className="match-hero">
+        <div className="match-hero-accent"></div>
+        
+        <div className="match-hero-content">
+          <div className={`match-hero-team left ${homeWon ? 'winner' : 'loser'}`}>
+            <img src={homeTeam.logo} alt={homeTeam.name} className="match-hero-logo" />
+            <div className="match-hero-team-info">
+              <span className="match-hero-team-name">{homeTeam.name}</span>
+              {homeStanding && (
+                <span className="match-hero-record">{homeStanding.wins}-{homeStanding.losses}</span>
+              )}
+            </div>
+          </div>
+
+          <div className="match-hero-score">
+            <span className={`hero-score ${homeWon ? 'winner' : ''}`}>{match.homeScore}</span>
+            <span className="hero-score-divider">:</span>
+            <span className={`hero-score ${!homeWon ? 'winner' : ''}`}>{match.awayScore}</span>
+          </div>
+
+          <div className={`match-hero-team right ${!homeWon ? 'winner' : 'loser'}`}>
+            <div className="match-hero-team-info right">
+              <span className="match-hero-team-name">{awayTeam.name}</span>
+              {awayStanding && (
+                <span className="match-hero-record">{awayStanding.wins}-{awayStanding.losses}</span>
+              )}
+            </div>
+            <img src={awayTeam.logo} alt={awayTeam.name} className="match-hero-logo" />
+          </div>
         </div>
       </div>
 
-      {/* Map Scores */}
-      <div className="map-scores-row">
+      {/* Map Score Cards */}
+      <div className="map-score-cards">
         {match.mapScores.map((mapScore, idx) => {
           const homeMapWin = mapScore.homeRounds > mapScore.awayRounds;
           return (
             <div key={idx} className={`map-score-card ${homeMapWin ? 'home-win' : 'away-win'}`}>
-              <div className="map-name">{mapScore.map}</div>
-              <div className="map-round-score">
+              <span className="map-card-name">{mapScore.map}</span>
+              <div className="map-card-score">
                 <span className={homeMapWin ? 'winner' : ''}>{mapScore.homeRounds}</span>
-                <span className="divider">-</span>
+                <span className="map-card-divider">-</span>
                 <span className={!homeMapWin ? 'winner' : ''}>{mapScore.awayRounds}</span>
               </div>
             </div>
@@ -158,134 +126,272 @@ export function MatchDetailView({ match, homeTeam, awayTeam, homeStanding, awayS
         })}
       </div>
 
-      {/* Individual Map Stats */}
+      {/* Scoreboard for each map */}
       {match.mapScores.map((mapScore, mapIdx) => {
         const homeMapWin = mapScore.homeRounds > mapScore.awayRounds;
         const sortedHomeStats = [...(mapScore.homePlayerStats || [])].sort((a, b) => b.acs - a.acs);
         const sortedAwayStats = [...(mapScore.awayPlayerStats || [])].sort((a, b) => b.acs - a.acs);
 
         return (
-          <div key={mapIdx} className="map-detail">
-            <div className="map-detail-header">
-              <span className="map-detail-name">{mapScore.map}</span>
-              <div className="map-detail-score">
-                <div className={`team-score ${homeMapWin ? 'winner' : 'loser'}`}>
-                  <span className="team-abbr">{homeTeam.abbreviation}</span>
-                  <span className="rounds">{mapScore.homeRounds}</span>
-                </div>
-                <span className="score-separator">-</span>
-                <div className={`team-score ${!homeMapWin ? 'winner' : 'loser'}`}>
-                  <span className="rounds">{mapScore.awayRounds}</span>
-                  <span className="team-abbr">{awayTeam.abbreviation}</span>
-                </div>
+          <div key={mapIdx} className="scoreboard-section">
+            {/* Map Header */}
+            <div className="scoreboard-map-header">
+              <div className={`scoreboard-team-side left ${homeMapWin ? 'winner' : ''}`}>
+                <img src={homeTeam.logo} alt="" className="scoreboard-team-logo" />
+                <span className="scoreboard-team-name">{homeTeam.abbreviation}</span>
+                <span className="scoreboard-rounds">{mapScore.homeRounds}</span>
+              </div>
+              <div className="scoreboard-map-name">{mapScore.map}</div>
+              <div className={`scoreboard-team-side right ${!homeMapWin ? 'winner' : ''}`}>
+                <span className="scoreboard-rounds">{mapScore.awayRounds}</span>
+                <span className="scoreboard-team-name">{awayTeam.abbreviation}</span>
+                <img src={awayTeam.logo} alt="" className="scoreboard-team-logo" />
               </div>
             </div>
 
-            <div className="map-stats-grid">
-              <div className="panel">
-                <div className="panel-header">{homeTeam.abbreviation}</div>
-                <div className="panel-body" style={{ padding: 0 }}>
-                  <table className="stats-table compact">
-                    <thead><tr><th>Player</th><th>ACS</th><th>K/D/A</th><th>K/D</th><th>FK</th><th>FD</th></tr></thead>
-                    <tbody>
-                      {sortedHomeStats.map(stats => {
-                        const player = homeTeam.roster.find(p => p.id === stats.playerId);
-                        const kd = stats.deaths > 0 ? (stats.kills / stats.deaths).toFixed(2) : stats.kills.toFixed(2);
-                        return (
-                          <tr key={stats.playerId}>
-                            <td className="player-name">{renderPlayerCell(stats.playerId, player?.name || '', stats.agent || '', homeTeam.abbreviation, stats.playerId === homeTeam.iglId)}</td>
-                            <td className="acs">{stats.acs}</td>
-                            <td>{stats.kills}/{stats.deaths}/{stats.assists}</td>
-                            <td className={parseFloat(kd) >= 1 ? 'positive' : 'negative'}>{kd}</td>
-                            <td>{stats.firstKills}</td>
-                            <td>{stats.firstDeaths}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+            {/* Side by Side Scoreboards */}
+            <div className="scoreboard-grid">
+              {/* Home Team Scoreboard */}
+              <div className="scoreboard-table-wrapper home">
+                <table className="scoreboard-table">
+                  <thead>
+                    <tr>
+                      <th className="col-player">PLAYER</th>
+                      <th className="col-acs">ACS</th>
+                      <th className="col-kda">K/D/A</th>
+                      <th className="col-kd">K/D</th>
+                      <th className="col-fk">FK</th>
+                      <th className="col-fd">FD</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedHomeStats.map((stats, idx) => {
+                      const player = homeTeam.roster.find(p => p.id === stats.playerId);
+                      const kd = stats.deaths > 0 ? (stats.kills / stats.deaths).toFixed(2) : stats.kills.toFixed(2);
+                      const isIGL = stats.playerId === homeTeam.iglId;
+                      const isTopFrag = idx === 0;
+                      return (
+                        <tr key={stats.playerId} className={isTopFrag ? 'top-frag' : ''}>
+                          <td className="col-player">
+                            <div className="player-cell">
+                              {stats.agent && (
+                                <img 
+                                  src={getAgentIconUrl(stats.agent)} 
+                                  alt={stats.agent} 
+                                  className="agent-icon" 
+                                  title={formatAgentName(stats.agent)} 
+                                />
+                              )}
+                              <span className="team-abbr">{homeTeam.abbreviation}</span>
+                              <span 
+                                className={`player-name ${onViewPlayer ? 'clickable' : ''}`}
+                                onClick={() => onViewPlayer?.(stats.playerId)}
+                              >
+                                {player?.name || 'Unknown'}
+                              </span>
+                              {isIGL && <span className="igl-tag">IGL</span>}
+                            </div>
+                          </td>
+                          <td className="col-acs">{stats.acs}</td>
+                          <td className="col-kda">{stats.kills}/{stats.deaths}/{stats.assists}</td>
+                          <td className={`col-kd ${parseFloat(kd) >= 1 ? 'positive' : 'negative'}`}>{kd}</td>
+                          <td className="col-fk">{stats.firstKills}</td>
+                          <td className="col-fd">{stats.firstDeaths}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
 
-              <div className="panel">
-                <div className="panel-header">{awayTeam.abbreviation}</div>
-                <div className="panel-body" style={{ padding: 0 }}>
-                  <table className="stats-table compact">
-                    <thead><tr><th>Player</th><th>ACS</th><th>K/D/A</th><th>K/D</th><th>FK</th><th>FD</th></tr></thead>
-                    <tbody>
-                      {sortedAwayStats.map(stats => {
-                        const player = awayTeam.roster.find(p => p.id === stats.playerId);
-                        const kd = stats.deaths > 0 ? (stats.kills / stats.deaths).toFixed(2) : stats.kills.toFixed(2);
-                        return (
-                          <tr key={stats.playerId}>
-                            <td className="player-name">{renderPlayerCell(stats.playerId, player?.name || '', stats.agent || '', awayTeam.abbreviation, stats.playerId === awayTeam.iglId)}</td>
-                            <td className="acs">{stats.acs}</td>
-                            <td>{stats.kills}/{stats.deaths}/{stats.assists}</td>
-                            <td className={parseFloat(kd) >= 1 ? 'positive' : 'negative'}>{kd}</td>
-                            <td>{stats.firstKills}</td>
-                            <td>{stats.firstDeaths}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+              {/* Away Team Scoreboard */}
+              <div className="scoreboard-table-wrapper away">
+                <table className="scoreboard-table">
+                  <thead>
+                    <tr>
+                      <th className="col-player">PLAYER</th>
+                      <th className="col-acs">ACS</th>
+                      <th className="col-kda">K/D/A</th>
+                      <th className="col-kd">K/D</th>
+                      <th className="col-fk">FK</th>
+                      <th className="col-fd">FD</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedAwayStats.map((stats, idx) => {
+                      const player = awayTeam.roster.find(p => p.id === stats.playerId);
+                      const kd = stats.deaths > 0 ? (stats.kills / stats.deaths).toFixed(2) : stats.kills.toFixed(2);
+                      const isIGL = stats.playerId === awayTeam.iglId;
+                      const isTopFrag = idx === 0;
+                      return (
+                        <tr key={stats.playerId} className={isTopFrag ? 'top-frag' : ''}>
+                          <td className="col-player">
+                            <div className="player-cell">
+                              {stats.agent && (
+                                <img 
+                                  src={getAgentIconUrl(stats.agent)} 
+                                  alt={stats.agent} 
+                                  className="agent-icon" 
+                                  title={formatAgentName(stats.agent)} 
+                                />
+                              )}
+                              <span className="team-abbr">{awayTeam.abbreviation}</span>
+                              <span 
+                                className={`player-name ${onViewPlayer ? 'clickable' : ''}`}
+                                onClick={() => onViewPlayer?.(stats.playerId)}
+                              >
+                                {player?.name || 'Unknown'}
+                              </span>
+                              {isIGL && <span className="igl-tag">IGL</span>}
+                            </div>
+                          </td>
+                          <td className="col-acs">{stats.acs}</td>
+                          <td className="col-kda">{stats.kills}/{stats.deaths}/{stats.assists}</td>
+                          <td className={`col-kd ${parseFloat(kd) >= 1 ? 'positive' : 'negative'}`}>{kd}</td>
+                          <td className="col-fk">{stats.firstKills}</td>
+                          <td className="col-fd">{stats.firstDeaths}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
         );
       })}
 
-      {/* Series Stats - At Bottom with Unique Styling */}
-      <div className="series-stats-section">
-        <div className="series-stats-header">
-          <span className="series-stats-title">Series Totals</span>
-          <span className="series-stats-subtitle">Combined stats across all maps</span>
+      {/* Series Totals */}
+      <div className="series-totals-section">
+        <div className="series-totals-header">
+          <span className="series-totals-title">SERIES TOTALS</span>
         </div>
-        
-        <div className="series-stats">
-          <div className="panel series-panel">
-            <div className="panel-header series-panel-header">{homeTeam.abbreviation} - Series Stats</div>
-            <div className="panel-body" style={{ padding: 0 }}>
-              <table className="stats-table series-table">
-                <thead>
-                  <tr><th>Player</th><th>ACS</th><th>K</th><th>D</th><th>A</th><th>K/D</th><th>FK</th><th>FD</th></tr>
-                </thead>
-                <tbody>
-                  {homeTotals.map(({ player, kills, deaths, assists, acs, kd, firstKills, firstDeaths, agentsPlayed }) => (
-                    <tr key={player.id}>
-                      <td className="player-name">{renderPlayerCellMultiAgent(player.id, player.name, agentsPlayed, homeTeam.abbreviation, player.id === homeTeam.iglId)}</td>
-                      <td className="acs">{acs}</td>
-                      <td>{kills}</td><td>{deaths}</td><td>{assists}</td>
-                      <td className={parseFloat(kd) >= 1 ? 'positive' : 'negative'}>{kd}</td>
-                      <td>{firstKills}</td><td>{firstDeaths}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+        <div className="scoreboard-grid series">
+          {/* Home Team Series */}
+          <div className="scoreboard-table-wrapper series home">
+            <div className="series-team-banner home">
+              <img src={homeTeam.logo} alt="" className="series-team-logo" />
+              <span className="series-team-name">{homeTeam.name}</span>
             </div>
+            <table className="scoreboard-table series">
+              <thead>
+                <tr>
+                  <th className="col-player">PLAYER</th>
+                  <th className="col-acs">ACS</th>
+                  <th className="col-k">K</th>
+                  <th className="col-d">D</th>
+                  <th className="col-a">A</th>
+                  <th className="col-kd">K/D</th>
+                  <th className="col-fk">FK</th>
+                  <th className="col-fd">FD</th>
+                </tr>
+              </thead>
+              <tbody>
+                {homeTotals.map(({ player, kills, deaths, assists, acs, kd, firstKills, firstDeaths, agentsPlayed }, idx) => {
+                  const isIGL = player.id === homeTeam.iglId;
+                  const isTopFrag = idx === 0;
+                  return (
+                    <tr key={player.id} className={isTopFrag ? 'top-frag' : ''}>
+                      <td className="col-player">
+                        <div className="player-cell">
+                          <div className="agent-stack">
+                            {agentsPlayed.map((agent, i) => (
+                              <img 
+                                key={i}
+                                src={getAgentIconUrl(agent)} 
+                                alt={agent} 
+                                className="agent-icon stacked" 
+                                title={`Map ${i + 1}: ${formatAgentName(agent)}`}
+                                style={{ zIndex: agentsPlayed.length - i }}
+                              />
+                            ))}
+                          </div>
+                          <span className="team-abbr">{homeTeam.abbreviation}</span>
+                          <span 
+                            className={`player-name ${onViewPlayer ? 'clickable' : ''}`}
+                            onClick={() => onViewPlayer?.(player.id)}
+                          >
+                            {player.name}
+                          </span>
+                          {isIGL && <span className="igl-tag">IGL</span>}
+                        </div>
+                      </td>
+                      <td className="col-acs">{acs}</td>
+                      <td className="col-k">{kills}</td>
+                      <td className="col-d">{deaths}</td>
+                      <td className="col-a">{assists}</td>
+                      <td className={`col-kd ${parseFloat(kd) >= 1 ? 'positive' : 'negative'}`}>{kd}</td>
+                      <td className="col-fk">{firstKills}</td>
+                      <td className="col-fd">{firstDeaths}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
-          <div className="panel series-panel">
-            <div className="panel-header series-panel-header">{awayTeam.abbreviation} - Series Stats</div>
-            <div className="panel-body" style={{ padding: 0 }}>
-              <table className="stats-table series-table">
-                <thead>
-                  <tr><th>Player</th><th>ACS</th><th>K</th><th>D</th><th>A</th><th>K/D</th><th>FK</th><th>FD</th></tr>
-                </thead>
-                <tbody>
-                  {awayTotals.map(({ player, kills, deaths, assists, acs, kd, firstKills, firstDeaths, agentsPlayed }) => (
-                    <tr key={player.id}>
-                      <td className="player-name">{renderPlayerCellMultiAgent(player.id, player.name, agentsPlayed, awayTeam.abbreviation, player.id === awayTeam.iglId)}</td>
-                      <td className="acs">{acs}</td>
-                      <td>{kills}</td><td>{deaths}</td><td>{assists}</td>
-                      <td className={parseFloat(kd) >= 1 ? 'positive' : 'negative'}>{kd}</td>
-                      <td>{firstKills}</td><td>{firstDeaths}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* Away Team Series */}
+          <div className="scoreboard-table-wrapper series away">
+            <div className="series-team-banner away">
+              <img src={awayTeam.logo} alt="" className="series-team-logo" />
+              <span className="series-team-name">{awayTeam.name}</span>
             </div>
+            <table className="scoreboard-table series">
+              <thead>
+                <tr>
+                  <th className="col-player">PLAYER</th>
+                  <th className="col-acs">ACS</th>
+                  <th className="col-k">K</th>
+                  <th className="col-d">D</th>
+                  <th className="col-a">A</th>
+                  <th className="col-kd">K/D</th>
+                  <th className="col-fk">FK</th>
+                  <th className="col-fd">FD</th>
+                </tr>
+              </thead>
+              <tbody>
+                {awayTotals.map(({ player, kills, deaths, assists, acs, kd, firstKills, firstDeaths, agentsPlayed }, idx) => {
+                  const isIGL = player.id === awayTeam.iglId;
+                  const isTopFrag = idx === 0;
+                  return (
+                    <tr key={player.id} className={isTopFrag ? 'top-frag' : ''}>
+                      <td className="col-player">
+                        <div className="player-cell">
+                          <div className="agent-stack">
+                            {agentsPlayed.map((agent, i) => (
+                              <img 
+                                key={i}
+                                src={getAgentIconUrl(agent)} 
+                                alt={agent} 
+                                className="agent-icon stacked" 
+                                title={`Map ${i + 1}: ${formatAgentName(agent)}`}
+                                style={{ zIndex: agentsPlayed.length - i }}
+                              />
+                            ))}
+                          </div>
+                          <span className="team-abbr">{awayTeam.abbreviation}</span>
+                          <span 
+                            className={`player-name ${onViewPlayer ? 'clickable' : ''}`}
+                            onClick={() => onViewPlayer?.(player.id)}
+                          >
+                            {player.name}
+                          </span>
+                          {isIGL && <span className="igl-tag">IGL</span>}
+                        </div>
+                      </td>
+                      <td className="col-acs">{acs}</td>
+                      <td className="col-k">{kills}</td>
+                      <td className="col-d">{deaths}</td>
+                      <td className="col-a">{assists}</td>
+                      <td className={`col-kd ${parseFloat(kd) >= 1 ? 'positive' : 'negative'}`}>{kd}</td>
+                      <td className="col-fk">{firstKills}</td>
+                      <td className="col-fd">{firstDeaths}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

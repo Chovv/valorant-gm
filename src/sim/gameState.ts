@@ -83,6 +83,11 @@ export interface GameState {
   // Free agency
   freeAgents?: Player[];
 
+  // Scrims & Development
+  fatigueLevel: number; // 0=fresh, 1-2=trained, 3-4=tired, 5+=exhausted
+  lastScrimDay: number | null;
+  seasonStartStats: Record<string, { overall: number; ratings: Record<string, number>; potential: { ceiling: number; floor: number } }>;
+
   // RNG
   seed: string;
 }
@@ -101,7 +106,7 @@ export interface DayResult {
  * Game events
  */
 export interface GameEvent {
-  type: 'match_result' | 'phase_change' | 'playoff_advance' | 'champion_crowned' | 'international_qualifier';
+  type: 'match_result' | 'phase_change' | 'playoff_advance' | 'champion_crowned' | 'international_qualifier' | 'scrim_result';
   message: string;
   data?: unknown;
 }
@@ -722,6 +727,18 @@ export function createGameState(
 ): GameState {
   const schedule = generateSchedule(seed, teams, config.gamesPerTeam);
 
+  // Initialize season start stats for all players
+  const seasonStartStats: Record<string, { overall: number; ratings: Record<string, number>; potential: { ceiling: number; floor: number } }> = {};
+  for (const team of teams) {
+    for (const player of team.roster) {
+      seasonStartStats[player.id] = {
+        overall: player.overall,
+        ratings: { ...player.ratings },
+        potential: { ...player.potential },
+      };
+    }
+  }
+
   return {
     currentDay: 0,
     currentYear: config.year,
@@ -747,6 +764,9 @@ export function createGameState(
     internationalTournament: null,
     internationalPlayoffSeries: null,
     champions: [],
+    fatigueLevel: 0,
+    lastScrimDay: null,
+    seasonStartStats,
     seed,
   };
 }
@@ -824,6 +844,12 @@ export function advanceDay(state: GameState, config: SeasonConfig = DEFAULT_SEAS
   const events: GameEvent[] = [];
   const matchesPlayed: MatchResult[] = [];
   const rng = getDayRNG(state);
+
+  // Decay fatigue daily (minimum 0)
+  // Fatigue decreases by 1 each day, scrims increase it
+  if (state.fatigueLevel > 0) {
+    state.fatigueLevel = Math.max(0, state.fatigueLevel - 1);
+  }
 
   if (state.phase === 'preseason') {
     state.phase = 'regular_season';

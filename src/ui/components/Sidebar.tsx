@@ -2,7 +2,7 @@
 import type { GameState } from '../../sim/gameState';
 import type { Region } from '../../types';
 
-type NavView = 'dashboard' | 'standings' | 'schedule' | 'playoffs' | 'team' | 'roster' | 'free-agents' | 'trade' | 'draft' | 'history' | 'finances' | 'player' | 'league-standings' | 'international' | 'match-detail' | 'players' | 'power-rankings'| "roster-management" | "free-agency";
+type NavView = 'dashboard' | 'standings' | 'schedule' | 'playoffs' | 'team' | 'roster' | 'free-agents' | 'trade' | 'draft' | 'history' | 'finances' | 'player' | 'league-standings' | 'international' | 'match-detail' | 'players' | 'power-rankings'| "roster-management" | "free-agency" | "scrims";
 
 const REGION_NAMES: Record<Region, string> = {
   americas: 'Americas',
@@ -103,6 +103,12 @@ export function Sidebar({ gameState, currentView, onNavigate, selectedRegion, on
           onClick={() => onNavigate("roster-management")}
         >
           Lineup
+        </button>
+        <button
+          className={`nav-item ${currentView === "scrims" ? "active" : ""}`}
+          onClick={() => onNavigate("scrims")}
+        >
+          Scrims
         </button>
         <button
           className={`nav-item ${currentView === "finances" ? "active" : ""}`}

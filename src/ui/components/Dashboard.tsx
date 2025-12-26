@@ -1,6 +1,8 @@
 // src/ui/components/Dashboard.tsx
 import type { GameState, DayResult, ScheduledMatch } from '../../sim/gameState';
 import type { Region, } from '../../types';
+import { toLetterGrade, getGradeClass } from '../../utils/letterGrade';
+import { calculateWinProbability } from '../../sim/winProbability';
 
 interface DashboardProps {
   gameState: GameState;
@@ -8,9 +10,10 @@ interface DashboardProps {
   onViewMatch: (matchId: string) => void;
   recentResults: DayResult[];
   regionLogos: Record<Region, string>;
+  championsLogo?: string;
 }
 
-export function Dashboard({ gameState, onViewTeam, onViewMatch, recentResults, regionLogos }: DashboardProps) {
+export function Dashboard({ gameState, onViewTeam, onViewMatch, recentResults, regionLogos, championsLogo }: DashboardProps) {
   const userTeam = gameState.teams.find(t => t.id === gameState.userTeamId);
   const userStanding = gameState.standings.find(s => s.teamId === gameState.userTeamId);
   
@@ -164,19 +167,27 @@ export function Dashboard({ gameState, onViewTeam, onViewMatch, recentResults, r
                   <h4>Team Ratings</h4>
                   <div className="stat-row">
                     <span className="label">Firepower</span>
-                    <span className="value">{userTeam?.attributes.firepower}</span>
+                    <span className="value">
+                      {userTeam?.attributes.firepower} <span className={`grade ${getGradeClass(toLetterGrade(userTeam?.attributes.firepower ?? 0))}`}>{toLetterGrade(userTeam?.attributes.firepower ?? 0)}</span>
+                    </span>
                   </div>
                   <div className="stat-row">
                     <span className="label">Utility</span>
-                    <span className="value">{userTeam?.attributes.utilityDepth}</span>
+                    <span className="value">
+                      {userTeam?.attributes.utilityDepth} <span className={`grade ${getGradeClass(toLetterGrade(userTeam?.attributes.utilityDepth ?? 0))}`}>{toLetterGrade(userTeam?.attributes.utilityDepth ?? 0)}</span>
+                    </span>
                   </div>
                   <div className="stat-row">
                     <span className="label">Macro</span>
-                    <span className="value">{userTeam?.attributes.macroPlay}</span>
+                    <span className="value">
+                      {userTeam?.attributes.macroPlay} <span className={`grade ${getGradeClass(toLetterGrade(userTeam?.attributes.macroPlay ?? 0))}`}>{toLetterGrade(userTeam?.attributes.macroPlay ?? 0)}</span>
+                    </span>
                   </div>
                   <div className="stat-row">
                     <span className="label">Mental</span>
-                    <span className="value">{userTeam?.attributes.mentalStrength}</span>
+                    <span className="value">
+                      {userTeam?.attributes.mentalStrength} <span className={`grade ${getGradeClass(toLetterGrade(userTeam?.attributes.mentalStrength ?? 0))}`}>{toLetterGrade(userTeam?.attributes.mentalStrength ?? 0)}</span>
+                    </span>
                   </div>
                 </div>
                 <div className="stat-group">
@@ -246,6 +257,11 @@ export function Dashboard({ gameState, onViewTeam, onViewMatch, recentResults, r
                 const isHome = match.homeTeamId === gameState.userTeamId;
                 const opponent = gameState.teams.find(t => t.id === (isHome ? match.awayTeamId : match.homeTeamId));
                 
+                // Calculate win probability
+                const winProb = userTeam && opponent 
+                  ? calculateWinProbability(userTeam, opponent, 'bo3')
+                  : 50;
+                
                 return (
                   <div key={match.id} className="schedule-item">
                     <span className="schedule-day">Day {match.day}</span>
@@ -260,7 +276,9 @@ export function Dashboard({ gameState, onViewTeam, onViewMatch, recentResults, r
                         {opponent?.abbreviation}
                       </span>
                     </span>
-                    <span className="schedule-result">-</span>
+                    <span className={`schedule-odds ${winProb > 50 ? 'favorite' : winProb < 50 ? 'underdog' : 'even'}`}>
+                      {winProb}%
+                    </span>
                   </div>
                 );
               })}
@@ -286,6 +304,7 @@ export function Dashboard({ gameState, onViewTeam, onViewMatch, recentResults, r
                 const isPhaseChange = event.type === 'phase_change';
                 const isPlayoffAdvance = event.type === 'playoff_advance';
                 const isMatchResult = event.type === 'match_result';
+                const isScrimResult = event.type === 'scrim_result';
                 
                 // Determine if user won or lost (message format: "WINNER def. LOSER X-Y")
                 let isUserWin = false;
@@ -310,11 +329,21 @@ export function Dashboard({ gameState, onViewTeam, onViewMatch, recentResults, r
                 const matchId = findMatchIdFromResult(resultId);
                 const isClickable = isMatchResult && matchId;
                 
+                // Check if this is a Champions/international event
+                const isChampionsEvent = event.message.includes('Champions') || 
+                                        event.message.includes('Play-Ins') ||
+                                        event.message.includes('Quarterfinals:') ||
+                                        event.message.includes('Semifinals:') ||
+                                        event.message.includes('Grand Finals');
+                
                 // Extract region from message [AMERICAS], [EMEA], etc.
                 const regionMatch = event.message.match(/^\[([A-Z]+)\]/);
                 const regionKey = regionMatch ? regionMatch[1].toLowerCase() as Region : null;
                 const regionLogo = regionKey && regionLogos[regionKey] ? regionLogos[regionKey] : null;
                 const displayMessage = regionMatch ? event.message.replace(/^\[[A-Z]+\]\s*/, '') : event.message;
+                
+                // Determine which logo to show
+                const eventLogo = isChampionsEvent && championsLogo ? championsLogo : regionLogo;
                 
                 let className = 'game-log-item';
                 if (isUserWin) className += ' user-win';
@@ -323,6 +352,8 @@ export function Dashboard({ gameState, onViewTeam, onViewMatch, recentResults, r
                 if (isChampion) className += ' champion';
                 if (isPhaseChange) className += ' phase-change';
                 if (isPlayoffAdvance) className += ' playoff-advance';
+                if (isChampionsEvent) className += ' champions-event';
+                if (isScrimResult) className += ' scrim-result';
                 if (isClickable) className += ' clickable';
                 
                 return (
@@ -338,7 +369,7 @@ export function Dashboard({ gameState, onViewTeam, onViewMatch, recentResults, r
                     title={isClickable ? 'Click to view match details' : undefined}
                   >
                     <span className="game-log-day">Day {event.day}</span>
-                    {regionLogo && <img src={regionLogo} alt="" className="game-log-region-logo" />}
+                    {eventLogo && <img src={eventLogo} alt="" className="game-log-region-logo" />}
                     <span className="game-log-message">{displayMessage}</span>
                   </div>
                 );
