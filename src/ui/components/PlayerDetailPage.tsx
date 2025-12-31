@@ -6,6 +6,7 @@ import type { Player, Team, Role } from '../../types';
 import { toLetterGrade, getGradeClass } from '../../utils/letterGrade';
 import { ALL_ARCHETYPES } from '../../data/archetypes';
 import { PlayerStatsTable } from './PlayerStatsTable';
+import { PlayerAvatar } from './PlayerAvatar';
 import './PlayerDetailPage.css';
 
 const ROLE_ICONS: Record<Role, string> = {
@@ -138,9 +139,14 @@ export function PlayerDetailPage({
       {/* Hero Section */}
       <div className="player-hero">
         <div className="hero-left">
-          <div className="player-identity">
-            <img src={team.logo} alt={team.name} className="team-logo-large" />
-            <div className="player-info">
+          <PlayerAvatar
+            playerId={player.id}
+            playerName={player.name}
+            imageUrl={player.imageUrl}
+            size="xl"
+            className="player-avatar-hero rectangular"
+          />
+          <div className="player-info">
               <h1 className="player-name">{player.name}</h1>
               <div className="player-meta">
                 <div className={`role-tag role-${player.role}`}>
@@ -155,7 +161,6 @@ export function PlayerDetailPage({
                 {ALL_ARCHETYPES[player.archetype]?.name || player.archetype.replace(/_/g, ' ')}
               </div>
             </div>
-          </div>
         </div>
 
         <div className="hero-right">

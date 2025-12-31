@@ -1,0 +1,357 @@
+/* src/ui/components/Welcome.css */
+/* Welcome/Landing page styles */
+
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--bg-dark);
+}
+
+.welcome h1 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+  letter-spacing: -1px;
+}
+
+.welcome > p {
+  color: var(--text-secondary);
+  font-size: 18px;
+  margin-bottom: 32px;
+}
+
+/* Primary action buttons */
+.btn-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 32px;
+  min-width: 220px;
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-start:hover {
+  background: var(--accent-hover);
+}
+
+/* Button group - stack vertically with gap */
+.welcome .btn-start + .btn-start,
+.welcome .btn-start + label.btn-start {
+  margin-top: 12px;
+}
+
+/* Secondary button style (Create Custom League) */
+.btn-start.secondary {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.btn-start.secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-muted);
+}
+
+/* Import button style */
+.btn-start.import,
+.welcome label.btn-start {
+  background: #6366f1;
+}
+
+.btn-start.import:hover,
+.welcome label.btn-start:hover {
+  background: #7c7ff2;
+}
+
+/* ===== SAVED GAMES SECTION ===== */
+.saves-list-welcome {
+  margin-top: 48px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.saves-list-welcome h3 {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+/* Individual save item */
+.save-item-welcome {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 10px;
+  transition: border-color 0.15s ease;
+}
+
+.save-item-welcome:hover {
+  border-color: var(--text-muted);
+}
+
+.save-item-welcome .save-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.save-item-welcome .save-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.save-item-welcome .save-details {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Save item buttons */
+.save-item-welcome > div {
+  display: flex;
+  gap: 8px;
+}
+
+.save-item-welcome button {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--bg-hover);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.save-item-welcome button:hover {
+  background: var(--border);
+}
+
+.save-item-welcome button.delete {
+  color: var(--danger);
+  border-color: transparent;
+  background: transparent;
+}
+
+.save-item-welcome button.delete:hover {
+  background: rgba(255, 70, 85, 0.1);
+  border-color: var(--danger);
+}
+
+/* ===== SETUP SCREEN ===== */
+.setup-screen {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.setup-screen h1 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.setup-section {
+  margin-bottom: 32px;
+}
+
+.setup-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+}
+
+/* Region selector */
+.region-selector {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.region-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.region-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-muted);
+}
+
+.region-btn.active {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.region-btn img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.region-team-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* Team selector grid */
+.team-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.team-select-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 16px;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.team-select-card:hover {
+  border-color: var(--text-muted);
+  background: var(--bg-hover);
+}
+
+.team-select-card.selected {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.team-select-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.team-select-name {
+  font-weight: 600;
+  font-size: 14px;
+  text-align: center;
+}
+
+.team-select-abbr {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Setup actions (back/start buttons) */
+.setup-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.btn-back {
+  padding: 12px 24px;
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-back:hover {
+  background: var(--bg-hover);
+}
+
+.btn-start-game {
+  padding: 12px 32px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-start-game:hover {
+  background: var(--accent-hover);
+}
+
+.btn-start-game:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .region-selector {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .welcome h1 {
+    font-size: 40px;
+  }
+  
+  .welcome > p {
+    font-size: 16px;
+  }
+  
+  .btn-start {
+    min-width: 100%;
+    padding: 12px 24px;
+  }
+  
+  .region-selector {
+    grid-template-columns: 1fr;
+  }
+  
+  .team-selector {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

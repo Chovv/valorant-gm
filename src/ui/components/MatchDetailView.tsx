@@ -1,5 +1,6 @@
 // src/ui/components/MatchDetailView.tsx
 import type { Team, MatchResult } from '../../types';
+import './MatchDetailView.css';
 
 interface Standing {
   teamId: string;
@@ -92,9 +93,9 @@ export function MatchDetailView({ match, homeTeam, awayTeam, homeStanding, awayS
           </div>
 
           <div className="match-hero-score">
-            <span className={`hero-score ${homeWon ? 'winner' : ''}`}>{match.homeScore}</span>
+            <span className={`hero-score ${homeWon ? 'winner home-winner' : ''}`}>{match.homeScore}</span>
             <span className="hero-score-divider">:</span>
-            <span className={`hero-score ${!homeWon ? 'winner' : ''}`}>{match.awayScore}</span>
+            <span className={`hero-score ${!homeWon ? 'winner away-winner' : ''}`}>{match.awayScore}</span>
           </div>
 
           <div className={`match-hero-team right ${!homeWon ? 'winner' : 'loser'}`}>
@@ -110,20 +111,22 @@ export function MatchDetailView({ match, homeTeam, awayTeam, homeStanding, awayS
       </div>
 
       {/* Map Score Cards */}
-      <div className="map-score-cards">
-        {match.mapScores.map((mapScore, idx) => {
-          const homeMapWin = mapScore.homeRounds > mapScore.awayRounds;
-          return (
-            <div key={idx} className={`map-score-card ${homeMapWin ? 'home-win' : 'away-win'}`}>
-              <span className="map-card-name">{mapScore.map}</span>
-              <div className="map-card-score">
-                <span className={homeMapWin ? 'winner' : ''}>{mapScore.homeRounds}</span>
-                <span className="map-card-divider">-</span>
-                <span className={!homeMapWin ? 'winner' : ''}>{mapScore.awayRounds}</span>
+      <div className="map-cards-section">
+        <div className="map-score-cards">
+          {match.mapScores.map((mapScore, idx) => {
+            const homeMapWin = mapScore.homeRounds > mapScore.awayRounds;
+            return (
+              <div key={idx} className={`map-score-card ${homeMapWin ? 'home-win' : 'away-win'}`}>
+                <span className="map-card-name">{mapScore.map}</span>
+                <div className="map-card-score">
+                  <span className={homeMapWin ? 'winner' : ''}>{mapScore.homeRounds}</span>
+                  <span className="map-card-divider">-</span>
+                  <span className={!homeMapWin ? 'winner' : ''}>{mapScore.awayRounds}</span>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Scoreboard for each map */}

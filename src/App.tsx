@@ -62,6 +62,8 @@ import type { RNG } from "./utils/random";
 import { PlayerEditModal } from "./ui/components/PlayerEditModal";
 import { APP_VERSION } from './version';
 import "./App.css";
+import './ui/components/Welcome.css';
+import { Toast } from './ui/components/Toast';
 
 function generateAgentPoolForRole(rng: RNG, role: Role): AgentPool {
   const pool: AgentPool = {};
@@ -179,6 +181,13 @@ type NavView =
   | "scrims";
 type AppScreen = "welcome" | "setup" | "game" | "editor";
 
+// Toast notification type
+interface ToastNotification {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
 export default function App() {
   const [screen, setScreen] = useState<AppScreen>("welcome");
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -191,7 +200,7 @@ export default function App() {
   const [recentResults, setRecentResults] = useState<DayResult[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<Region>("americas");
   const [matchToasts, setMatchToasts] = useState<MatchToastData[]>([]);
-  const [notificationToast, setNotificationToast] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [previousView, setPreviousView] = useState<NavView>("dashboard");
   const [showEditPlayerModal, setShowEditPlayerModal] = useState(false);
   const [devMode, setDevMode] = useState(false);
@@ -205,17 +214,19 @@ export default function App() {
     null
   );
 
+  // Toast helper function
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = crypto.randomUUID();
+    setToasts(prev => [...prev, { id, message, type }]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
   useEffect(() => {
     getAllSaves().then(setSaves);
   }, []);
-
-  // Auto-dismiss notification toast after 3 seconds
-  useEffect(() => {
-    if (notificationToast) {
-      const timer = setTimeout(() => setNotificationToast(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [notificationToast]);
 
   const handleDismissToast = (id: string) => {
     setMatchToasts(prev => prev.filter(t => t.id !== id));
@@ -325,16 +336,16 @@ export default function App() {
           if (userTeam) setSelectedRegion(userTeam.region);
           setScreen("game");
           
-          alert(`Successfully imported league with ${importedTeams.length} teams!`);
+          showToast(`Successfully imported league with ${importedTeams.length} teams!`, 'success');
         } else if (json.teamsByRegion) {
           // Team configs format - need to convert to full teams
-          alert("Team configs format detected. Please use 'Full League Export' format for importing.");
+          showToast("Team configs format detected. Please use 'Full League Export' format for importing.", 'error');
         } else {
-          alert("Unrecognized JSON format. Please use a valid ValorantGM export file.");
+          showToast("Unrecognized JSON format. Please use a valid ValorantGM export file.", 'error');
         }
       } catch (err) {
         console.error("Import error:", err);
-        alert("Failed to import JSON file. Please check the file format.");
+        showToast("Failed to import JSON file. Please check the file format.", 'error');
       }
     };
     reader.readAsText(file);
@@ -418,13 +429,13 @@ export default function App() {
 
     // Can't scrim during playoffs
     if (gameState.phase === 'regional_playoffs' || gameState.phase === 'international') {
-      setNotificationToast('❌ Cannot scrim during playoffs');
+      showToast('Cannot scrim during playoffs', 'error');
       return;
     }
 
     // Can't scrim twice in same day
     if (gameState.lastScrimDay === gameState.currentDay) {
-      setNotificationToast('❌ Already scrimmaged today');
+      showToast('Already scrimmaged today', 'error');
       return;
     }
 
@@ -484,9 +495,12 @@ export default function App() {
     setRecentResults(prev => [...prev.slice(-20), scrimDayResult]);
     setScrimHistory(prev => [...prev, result]);
     setShowScrimModal(false);
-    setNotificationToast(result.statChanges.length > 0 
-      ? `🏋️ Scrim complete! ${result.statChanges.length} player(s) developed`
-      : `🏋️ Scrim complete. No significant changes.`);
+    showToast(
+      result.statChanges.length > 0 
+        ? `Scrim complete! ${result.statChanges.length} player(s) developed`
+        : `Scrim complete. No significant changes.`,
+      'success'
+    );
   };
 
   // Simulate until user's team has their next match
@@ -576,13 +590,13 @@ export default function App() {
     
     // Check if season is complete
     if (isSeasonComplete()) {
-      setNotificationToast("❌ The season is complete. There are no more games.");
+      showToast("The season is complete. There are no more games.", 'error');
       return;
     }
     
     // Check if user team is eliminated
     if (isUserTeamEliminated()) {
-      setNotificationToast("❌ Your team has been eliminated. There are no more games this season.");
+      showToast("Your team has been eliminated. There are no more games this season.", 'error');
       return;
     }
     
@@ -594,14 +608,14 @@ export default function App() {
       // Check if season completed during simulation
       if (isSeasonComplete()) {
         setGameState({ ...gameState });
-        setNotificationToast(`🏁 Season complete! Simulated ${daysSimulated} day(s).`);
+        showToast(`Season complete! Simulated ${daysSimulated} day(s).`, 'info');
         return;
       }
       
       // Check if user got eliminated during simulation
       if (isUserTeamEliminated()) {
         setGameState({ ...gameState });
-        setNotificationToast("❌ Your team has been eliminated from the playoffs.");
+        showToast("Your team has been eliminated from the playoffs.", 'error');
         return;
       }
       
@@ -675,13 +689,13 @@ export default function App() {
       ...prev,
       { day: gameState.currentDay, matchesPlayed: [], events },
     ]);
-    setNotificationToast("⏭️ Skipped to playoffs! All regular season matches have been simulated.");
+    showToast("Skipped to playoffs! All regular season matches have been simulated.", 'success');
   };
 
   const handleSimToChampions = () => {
     if (!gameState) return;
     if (gameState.phase === 'international' && gameState.internationalTournament?.champion) {
-      setNotificationToast("🏆 Champions has already concluded!");
+      showToast("Champions has already concluded!", 'info');
       return;
     }
     if (
@@ -710,7 +724,7 @@ export default function App() {
       ...prev,
       { day: gameState.currentDay, matchesPlayed: [], events: [{ type: 'phase_change', message: 'Simulated to VALORANT Champions!' }] },
     ]);
-    setNotificationToast("🌍 Simulated to VALORANT Champions! The international tournament is ready.");
+    showToast("Simulated to VALORANT Champions! The international tournament is ready.", 'success');
   };
 
   // Roster Management Handlers
@@ -752,7 +766,7 @@ export default function App() {
 
     // Don't allow releasing a starter
     if (userTeam.startingLineup?.some(s => s.playerId === playerId)) {
-      alert("Cannot release a player in the starting lineup. Move them to bench first.");
+      showToast("Cannot release a player in the starting lineup. Move them to bench first.", 'error');
       return;
     }
 
@@ -783,9 +797,9 @@ export default function App() {
         ...gameState,
         teams: result.updatedTeams,
       });
-      setNotificationToast(`🤝 ${result.message}`);
+      showToast(result.message, 'success');
     } else {
-      setNotificationToast(`❌ Trade failed: ${result.message}`);
+      showToast(`Trade failed: ${result.message}`, 'error');
     }
   };
 
@@ -804,7 +818,7 @@ export default function App() {
     // Update selected region to match the new team's region
     setSelectedRegion(newTeam.region);
     
-    setNotificationToast(`🔄 Switched to ${newTeam.name}`);
+    showToast(`Switched to ${newTeam.name}`, 'success');
   };
 
   const handleSavePlayer = (updatedPlayer: Player) => {
@@ -847,7 +861,7 @@ export default function App() {
     );
     setCurrentSaveId(saved.id);
     setSaves(await getAllSaves());
-    alert(`Game saved! (${name || "Unnamed Save"})`);
+    showToast(`Game saved! (${name || "Unnamed Save"})`, 'success');
   };
 
   // Export league data as JSON for customization
@@ -893,6 +907,7 @@ export default function App() {
           agentPool: player.agentPool,
           contract: player.contract,
           careerStats: player.careerStats,
+          imageUrl: player.imageUrl,
         })),
       })),
       freeAgents: (gameState.freeAgents || []).map(player => ({
@@ -909,6 +924,7 @@ export default function App() {
         development: player.development,
         agentPool: player.agentPool,
         contract: player.contract,
+        imageUrl: player.imageUrl,
       })),
       standings: gameState.standings,
       champions: gameState.champions,
@@ -957,6 +973,7 @@ export default function App() {
             coachability: player.personality.coachability,
           },
           agents: player.agentPool,
+          imageUrl: player.imageUrl,
         })),
       };
     });
@@ -1185,6 +1202,18 @@ export default function App() {
   if (screen === "welcome") {
     return (
       <div className="app">
+        {/* Toast Container */}
+        <div className="toast-container">
+          {toasts.map(toast => (
+            <Toast
+              key={toast.id}
+              message={toast.message}
+              type={toast.type}
+              onClose={() => removeToast(toast.id)}
+            />
+          ))}
+        </div>
+        
         <div className="welcome">
           <h1>🎮 ValorantGM</h1>
           <p>A VALORANT esports management simulation</p>
@@ -1192,26 +1221,12 @@ export default function App() {
             Start New Game
           </button>
           <button
-            className="btn-start"
+            className="btn-start secondary"
             onClick={() => setScreen("editor")}
-            style={{
-              marginTop: "12px",
-              background: "var(--bg-hover)",
-              border: "1px solid var(--border)",
-            }}
           >
             ✏️ Create Custom League
           </button>
-          <label
-            className="btn-start"
-            style={{
-              marginTop: "12px",
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              border: "none",
-              cursor: "pointer",
-              display: "inline-block",
-            }}
-          >
+          <label className="btn-start import">
             📥 Import League JSON
             <input
               type="file"
@@ -1371,6 +1386,18 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* Toast Container */}
+      <div className="toast-container">
+        {toasts.map(toast => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onClose={() => removeToast(toast.id)}
+          />
+        ))}
+      </div>
+
       <div className="top-bar">
         <div className="top-bar-logo">🎮 ValorantGM <span className="app-version">v{APP_VERSION}</span></div>
         <div className="top-bar-info">
@@ -2318,13 +2345,6 @@ export default function App() {
         onDismiss={handleDismissToast}
         onClickMatch={handleToastClick}
       />
-
-      {/* Notification Toast */}
-      {notificationToast && (
-        <div className="notification-toast" onClick={() => setNotificationToast(null)}>
-          {notificationToast}
-        </div>
-      )}
 
       {/* PWA Update Prompt */}
       <PWAUpdatePrompt />
