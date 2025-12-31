@@ -116,6 +116,9 @@ export interface Player {
   draftPick: number | null;
   yearsInLeague: number;
   retired: boolean;
+  
+  // Profile image URL (optional - falls back to generated avatar)
+  imageUrl?: string;
 }
 
 /**
