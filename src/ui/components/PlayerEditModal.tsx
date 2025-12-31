@@ -64,6 +64,7 @@ const clonePlayer = (player: Player): Player => ({
   potential: { ...player.potential },
   development: { ...player.development },
   agentPool: { ...player.agentPool },
+  imageUrl: player.imageUrl,
 });
 
 const calculateOvrFromRatings = (ratings: Player['ratings'], archetype: Player['archetype']): number => {
@@ -140,7 +141,11 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
     const clampedValue = Math.max(0, Math.min(99, value));
     setEditedPlayer(prev => {
       const newRatings = { ...prev.ratings, [key]: clampedValue };
-      return { ...prev, ratings: newRatings, overall: calculateOvrFromRatings(newRatings, prev.archetype) };
+      return {
+        ...prev,
+        ratings: newRatings,
+        overall: calculateOvrFromRatings(newRatings, prev.archetype),
+      };
     });
     setHasChanges(true);
   };
@@ -148,7 +153,10 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
   const handlePersonalityChange = (key: keyof Player['personality'], value: number) => {
     setEditedPlayer(prev => ({
       ...prev,
-      personality: { ...prev.personality, [key]: Math.max(0, Math.min(99, value)) },
+      personality: {
+        ...prev.personality,
+        [key]: Math.max(0, Math.min(99, value)),
+      },
     }));
     setHasChanges(true);
   };
@@ -156,6 +164,8 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
   const handleInfoChange = (key: string, value: string | number) => {
     if (key === 'name') {
       setEditedPlayer(prev => ({ ...prev, name: String(value).slice(0, 20) }));
+    } else if (key === 'imageUrl') {
+      setEditedPlayer(prev => ({ ...prev, imageUrl: String(value).trim() || undefined }));
     } else if (key === 'age') {
       setEditedPlayer(prev => ({ ...prev, age: Math.max(16, Math.min(40, Number(value))) }));
     } else if (key === 'role') {
@@ -170,7 +180,6 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
     } else if (key === 'archetype') {
       const newArchetype = value as Player['archetype'];
       setEditedPlayer(prev => {
-        // Recalculate OVR based on new archetype weights
         const newOverall = calculateOvrFromRatings(prev.ratings, newArchetype);
         return { ...prev, archetype: newArchetype, overall: newOverall };
       });
@@ -200,7 +209,6 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
       if (value === null) {
         delete newAgentPool[agent];
       } else {
-        // Clear any other agent with same priority
         for (const [existingAgent, existingValue] of Object.entries(newAgentPool)) {
           if (existingValue === value && existingAgent !== agent) {
             delete newAgentPool[existingAgent];
@@ -236,7 +244,11 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
         {/* Header */}
         <div className="pem-header">
           <div className="pem-header-left">
-            <img src={ROLE_ICONS[editedPlayer.role]} alt={editedPlayer.role} className="pem-role-icon" />
+            <img
+              src={ROLE_ICONS[editedPlayer.role]}
+              alt={editedPlayer.role}
+              className="pem-role-icon"
+            />
             <div className="pem-header-info">
               <h2 className="pem-player-name">{editedPlayer.name}</h2>
               <div className="pem-player-meta">
@@ -257,6 +269,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                   value={editedPlayer.overall}
                   onChange={e => handleOverallChange(Number(e.target.value))}
                   className={`pem-ovr-input ${baseOvrDiff > 0 ? 'up' : baseOvrDiff < 0 ? 'down' : ''}`}
+                  style={{ width: '52px', minWidth: '52px', maxWidth: '52px' }}
                 />
                 {baseOvrDiff !== 0 && (
                   <span className={`pem-ovr-diff ${baseOvrDiff > 0 ? 'positive' : 'negative'}`}>
@@ -308,7 +321,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                   </span>
                 </div>
               )}
-              
+
               {isStarter && effectiveOvrInfo.compositionPenalty !== 0 && (
                 <div className="pem-comp-warning">
                   ⚠️ Team missing core role(s)
@@ -317,10 +330,12 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                   </span>
                 </div>
               )}
-              
+
               <div className="pem-archetype">
                 <span className="pem-archetype-label">Archetype</span>
-                <span className="pem-archetype-name">{ALL_ARCHETYPES[editedPlayer.archetype]?.name || editedPlayer.archetype}</span>
+                <span className="pem-archetype-name">
+                  {ALL_ARCHETYPES[editedPlayer.archetype]?.name || editedPlayer.archetype}
+                </span>
               </div>
 
               <div className="pem-ratings-grid">
@@ -432,9 +447,20 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                       maxLength={20}
                     />
                   </div>
+                  <div className="pem-info-item pem-info-full">
+                    <label>Profile Picture URL</label>
+                    <input
+                      type="text"
+                      value={editedPlayer.imageUrl || ''}
+                      onChange={e => handleInfoChange('imageUrl', e.target.value)}
+                      placeholder="https://example.com/player.png"
+                      className="pem-image-url-input"
+                    />
+                    <span className="pem-input-hint">Leave empty for auto-generated avatar</span>
+                  </div>
                 </div>
               </div>
-              
+
               <div className="pem-info-section">
                 <h3 className="pem-info-title">Basic Info</h3>
                 <div className="pem-info-grid">
@@ -470,8 +496,8 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                   </div>
                   <div className="pem-info-item">
                     <label>Archetype</label>
-                    <select 
-                      value={editedPlayer.archetype} 
+                    <select
+                      value={editedPlayer.archetype}
                       onChange={e => handleInfoChange('archetype', e.target.value)}
                       className="pem-archetype-select"
                     >
@@ -499,22 +525,20 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                   </div>
                 </div>
               </div>
-              
+
               <div className="pem-info-section">
                 <h3 className="pem-info-title">Archetype Info</h3>
                 {(() => {
                   const archetype = ALL_ARCHETYPES[editedPlayer.archetype];
                   if (!archetype) return null;
-                  
-                  // Get top 3 weights
+
                   const sortedWeights = Object.entries(archetype.weights)
                     .sort((a, b) => b[1] - a[1])
                     .slice(0, 3);
-                  
-                  // Get rating biases
+
                   const biases = Object.entries(archetype.ratingBias || {})
                     .filter(([, v]) => v !== 0);
-                  
+
                   const ratingLabels: Record<string, string> = {
                     aim: 'Aim',
                     sprayControl: 'Spray',
@@ -523,7 +547,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                     clutchFactor: 'Clutch',
                     communication: 'Comms',
                   };
-                  
+
                   return (
                     <div className="pem-archetype-info">
                       <div className="pem-archetype-header">
@@ -531,7 +555,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                         <span className="pem-archetype-role">{archetype.role}</span>
                       </div>
                       <span className="pem-archetype-desc">{archetype.description}</span>
-                      
+
                       <div className="pem-archetype-details">
                         <div className="pem-archetype-weights">
                           <span className="pem-detail-label">OVR Weights</span>
@@ -547,14 +571,14 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                             ))}
                           </div>
                         </div>
-                        
+
                         {biases.length > 0 && (
                           <div className="pem-archetype-biases">
                             <span className="pem-detail-label">Generation Bonus</span>
                             <div className="pem-bias-tags">
                               {biases.map(([key, value]) => (
-                                <span 
-                                  key={key} 
+                                <span
+                                  key={key}
                                   className={`pem-bias-tag ${Number(value) > 0 ? 'positive' : 'negative'}`}
                                 >
                                   {ratingLabels[key] || key} {Number(value) > 0 ? '+' : ''}{value}
@@ -568,19 +592,19 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                   );
                 })()}
               </div>
-              
+
               <div className="pem-info-section">
                 <h3 className="pem-info-title">Potential</h3>
                 <div className="pem-potential-display">
                   <div className="pem-potential-bar">
-                    <div 
+                    <div
                       className="pem-potential-fill"
-                      style={{ 
-                        left: `${editedPlayer.potential.floor}%`, 
-                        width: `${editedPlayer.potential.ceiling - editedPlayer.potential.floor}%` 
+                      style={{
+                        left: `${editedPlayer.potential.floor}%`,
+                        width: `${editedPlayer.potential.ceiling - editedPlayer.potential.floor}%`,
                       }}
                     />
-                    <div 
+                    <div
                       className="pem-potential-current"
                       style={{ left: `${editedPlayer.overall}%` }}
                     />
@@ -661,7 +685,12 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                       const isInPool = currentValue !== undefined;
                       return (
                         <div key={agent} className={`pem-agent-item ${isInPool ? `prio-${currentPriority}` : ''}`}>
-                          <img src={getAgentIconUrl(agent)} alt={agent} className="pem-agent-icon" title={formatAgentName(agent)} />
+                          <img
+                            src={getAgentIconUrl(agent)}
+                            alt={agent}
+                            className="pem-agent-icon"
+                            title={formatAgentName(agent)}
+                          />
                           <select
                             value={currentPriority}
                             onChange={e => handleAgentPriorityChange(agent, e.target.value)}

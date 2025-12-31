@@ -283,6 +283,7 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
   // const getRoleClass = (role: string) => `role-${role.toLowerCase()}`;
 
   const getRatingClass = (rating: number) => {
+    if (rating >= 90) return 'rating-legendary';
     if (rating >= 80) return 'rating-elite';
     if (rating >= 70) return 'rating-high';
     if (rating >= 55) return 'rating-mid';

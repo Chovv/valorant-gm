@@ -6,6 +6,7 @@ import type { Player, Role, Team } from '../types';
 import { ALL_ARCHETYPES } from '../data/archetypes';
 import { toLetterGrade, getGradeClassFromValue } from '../utils/letterGrade';
 import { PlayerEditModal } from './components/PlayerEditModal';
+import { PlayerAvatar } from './components/PlayerAvatar';
 import { generatePlayer } from '../sim/playerGenerator';
 import { createRNG } from '../utils/random';
 import './FreeAgencyPage.css';
@@ -266,7 +267,6 @@ export const FreeAgencyPage: React.FC<FreeAgencyPageProps> = ({
         {/* Filters */}
         <div className="fa-filters">
           <div className="fa-search">
-            <span className="search-icon">🔍</span>
             <input
               type="text"
               placeholder="Search players..."
@@ -376,14 +376,19 @@ export const FreeAgencyPage: React.FC<FreeAgencyPageProps> = ({
         {selectedPlayer ? (
           <>
             <div className="fa-detail-header">
-              <div className="fa-detail-role">
-                <img src={ROLE_ICONS[selectedPlayer.role]} alt={selectedPlayer.role} className="fa-detail-role-icon" />
-                <span className={`role-tag role-${selectedPlayer.role}`}>{formatRole(selectedPlayer.role)}</span>
-              </div>
+              <PlayerAvatar
+                playerId={selectedPlayer.id}
+                playerName={selectedPlayer.name}
+                imageUrl={selectedPlayer.imageUrl}
+                size="xl"
+                className="fa-detail-avatar"
+              />
               <div className={`fa-detail-ovr ${getOvrClass(selectedPlayer.overall)}`}>
                 {selectedPlayer.overall}
               </div>
             </div>
+
+            <span className={`role-tag role-${selectedPlayer.role}`}>{formatRole(selectedPlayer.role)}</span>
 
             <div className="fa-detail-name">{selectedPlayer.name}</div>
             

@@ -1,0 +1,711 @@
+/* src/ui/components/MatchDetailView.css */
+/* Match Detail View - Clean flat styling */
+
+.match-detail-view {
+  animation: matchDetailFadeIn 0.35s ease-out;
+  width: 100%;
+}
+
+@keyframes matchDetailFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== BACK BUTTON ===== */
+.match-detail-view .back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-bottom: 20px;
+}
+
+.match-detail-view .back-link:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.match-detail-view .back-arrow {
+  font-size: 14px;
+}
+
+/* ===== HERO HEADER ===== */
+.match-detail-view .match-hero {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 32px 48px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* Gradient bar on top - red (home) left, cyan (away) right */
+.match-detail-view .match-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 45%, var(--success) 55%, var(--success) 100%);
+}
+
+.match-detail-view .match-hero-accent {
+  display: none;
+}
+
+.match-detail-view .match-hero-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+
+.match-detail-view .match-hero-team {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.match-detail-view .match-hero-team.left {
+  justify-content: flex-start;
+}
+
+.match-detail-view .match-hero-team.right {
+  justify-content: flex-end;
+}
+
+.match-detail-view .match-hero-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.match-detail-view .match-hero-team-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.match-detail-view .match-hero-team-info.right {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.match-detail-view .match-hero-team-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+/* Home team (left) winner = red */
+.match-detail-view .match-hero-team.left.winner .match-hero-team-name {
+  color: var(--accent);
+}
+
+/* Away team (right) winner = cyan */
+.match-detail-view .match-hero-team.right.winner .match-hero-team-name {
+  color: var(--success);
+}
+
+.match-detail-view .match-hero-team.loser {
+  opacity: 0.5;
+}
+
+.match-detail-view .match-hero-team.loser .match-hero-team-name {
+  color: var(--text-secondary);
+}
+
+.match-detail-view .match-hero-record {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Score Display */
+.match-detail-view .match-hero-score {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 48px;
+  flex-shrink: 0;
+}
+
+.match-detail-view .hero-score {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 64px;
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+/* Home team winner = red */
+.match-detail-view .hero-score.home-winner {
+  color: var(--accent);
+}
+
+/* Away team winner = cyan */
+.match-detail-view .hero-score.away-winner {
+  color: var(--success);
+}
+
+.match-detail-view .hero-score-divider {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--border);
+}
+
+/* ===== MAP SCORE CARDS ===== */
+.match-detail-view .map-cards-section {
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.match-detail-view .map-score-cards {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.match-detail-view .map-score-card {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Win indicator on TOP of card - colored by winning team */
+.match-detail-view .map-score-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+}
+
+/* Home team win = red accent */
+.match-detail-view .map-score-card.home-win::before {
+  background: var(--accent);
+}
+
+/* Away team win = cyan/teal */
+.match-detail-view .map-score-card.away-win::before {
+  background: var(--success);
+}
+
+.match-detail-view .map-card-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.match-detail-view .map-card-score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.match-detail-view .map-card-score .winner {
+  color: var(--text);
+}
+
+.match-detail-view .map-card-divider {
+  color: var(--text-dark);
+  font-weight: 400;
+}
+
+/* ===== SCOREBOARD SECTIONS ===== */
+.match-detail-view .scoreboard-section {
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+/* Map Header */
+.match-detail-view .scoreboard-map-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  padding: 14px 24px;
+}
+
+.match-detail-view .scoreboard-team-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.match-detail-view .scoreboard-team-side.left {
+  justify-content: flex-start;
+}
+
+.match-detail-view .scoreboard-team-side.right {
+  justify-content: flex-end;
+}
+
+.match-detail-view .scoreboard-team-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.match-detail-view .scoreboard-team-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.match-detail-view .scoreboard-team-side.winner .scoreboard-team-name {
+  color: var(--accent);
+}
+
+.match-detail-view .scoreboard-rounds {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.match-detail-view .scoreboard-team-side.winner .scoreboard-rounds {
+  color: var(--accent);
+}
+
+.match-detail-view .scoreboard-map-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  padding: 6px 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+}
+
+/* Scoreboard Grid - Side by Side Tables */
+.match-detail-view .scoreboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  width: 100%;
+}
+
+.match-detail-view .scoreboard-grid.series {
+  gap: 16px;
+}
+
+/* Table Wrappers */
+.match-detail-view .scoreboard-table-wrapper {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.match-detail-view .scoreboard-table-wrapper.home {
+  border-radius: 0 0 0 var(--radius-md);
+  border-right: none;
+}
+
+.match-detail-view .scoreboard-table-wrapper.away {
+  border-radius: 0 0 var(--radius-md) 0;
+}
+
+.match-detail-view .scoreboard-table-wrapper.series {
+  border-radius: var(--radius-md);
+}
+
+.match-detail-view .scoreboard-table-wrapper.series.home,
+.match-detail-view .scoreboard-table-wrapper.series.away {
+  border: 1px solid var(--border);
+}
+
+/* Scoreboard Tables */
+.match-detail-view .scoreboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.match-detail-view .scoreboard-table thead tr {
+  background: var(--bg-darker);
+}
+
+.match-detail-view .scoreboard-table th {
+  padding: 10px 14px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.match-detail-view .scoreboard-table th.col-player {
+  text-align: left;
+  width: 38%;
+}
+
+.match-detail-view .scoreboard-table th.col-acs { width: 12%; }
+.match-detail-view .scoreboard-table th.col-kda { width: 16%; }
+.match-detail-view .scoreboard-table th.col-kd { width: 12%; }
+.match-detail-view .scoreboard-table th.col-fk { width: 11%; }
+.match-detail-view .scoreboard-table th.col-fd { width: 11%; }
+
+.match-detail-view .scoreboard-table td {
+  padding: 12px 14px;
+  font-size: 13px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.match-detail-view .scoreboard-table td.col-player {
+  text-align: left;
+}
+
+.match-detail-view .scoreboard-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.match-detail-view .scoreboard-table tbody tr:hover td {
+  background: var(--bg-hover-subtle);
+}
+
+/* Top Frag Row */
+.match-detail-view .scoreboard-table tbody tr.top-frag td {
+  background: rgba(255, 70, 85, 0.06);
+}
+
+.match-detail-view .scoreboard-table tbody tr.top-frag:hover td {
+  background: rgba(255, 70, 85, 0.1);
+}
+
+/* Player Cell */
+.match-detail-view .player-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.match-detail-view .agent-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  background: var(--bg-darker);
+  flex-shrink: 0;
+}
+
+.match-detail-view .agent-stack {
+  display: flex;
+  margin-right: 4px;
+}
+
+.match-detail-view .agent-icon.stacked {
+  width: 24px;
+  height: 24px;
+  margin-right: -8px;
+  border: 2px solid var(--bg-card);
+}
+
+.match-detail-view .agent-icon.stacked:last-child {
+  margin-right: 0;
+}
+
+.match-detail-view .team-abbr {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  min-width: 28px;
+}
+
+.match-detail-view .player-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.match-detail-view .player-name.clickable {
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.match-detail-view .player-name.clickable:hover {
+  color: var(--accent);
+}
+
+.match-detail-view .igl-tag {
+  padding: 2px 6px;
+  background: rgba(255, 192, 72, 0.15);
+  border: 1px solid rgba(255, 192, 72, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--warning);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+/* Stats Columns */
+.match-detail-view .col-acs {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text) !important;
+}
+
+.match-detail-view .col-kda {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.match-detail-view .col-kd {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.match-detail-view .col-kd.positive {
+  color: var(--success) !important;
+}
+
+.match-detail-view .col-kd.negative {
+  color: var(--danger) !important;
+}
+
+.match-detail-view .col-fk {
+  color: var(--text-secondary);
+}
+
+.match-detail-view .col-fd {
+  color: var(--text-secondary);
+}
+
+/* ===== SERIES TOTALS ===== */
+.match-detail-view .series-totals-section {
+  margin-top: 32px;
+  width: 100%;
+}
+
+.match-detail-view .series-totals-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.match-detail-view .series-totals-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  padding: 10px 28px;
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+/* Series Team Banner */
+.match-detail-view .series-team-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
+}
+
+.match-detail-view .series-team-banner.home {
+  border-top: 3px solid var(--accent);
+}
+
+.match-detail-view .series-team-banner.away {
+  border-top: 3px solid var(--success);
+}
+
+.match-detail-view .series-team-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.match-detail-view .series-team-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Series Table Specific */
+.match-detail-view .scoreboard-table.series th,
+.match-detail-view .scoreboard-table.series td {
+  padding: 12px 10px;
+}
+
+.match-detail-view .scoreboard-table.series th.col-player {
+  width: 32%;
+}
+
+.match-detail-view .scoreboard-table.series th.col-acs { width: 10%; }
+.match-detail-view .scoreboard-table.series th.col-k { width: 8%; }
+.match-detail-view .scoreboard-table.series th.col-d { width: 8%; }
+.match-detail-view .scoreboard-table.series th.col-a { width: 8%; }
+.match-detail-view .scoreboard-table.series th.col-kd { width: 10%; }
+.match-detail-view .scoreboard-table.series th.col-fk { width: 8%; }
+.match-detail-view .scoreboard-table.series th.col-fd { width: 8%; }
+
+.match-detail-view .scoreboard-table.series .col-k,
+.match-detail-view .scoreboard-table.series .col-d,
+.match-detail-view .scoreboard-table.series .col-a {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1200px) {
+  .match-detail-view .match-hero {
+    padding: 24px 32px;
+  }
+
+  .match-detail-view .match-hero-logo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .match-detail-view .match-hero-team-name {
+    font-size: 22px;
+  }
+
+  .match-detail-view .hero-score {
+    font-size: 52px;
+  }
+
+  .match-detail-view .match-hero-score {
+    padding: 0 32px;
+  }
+}
+
+@media (max-width: 900px) {
+  .match-detail-view .scoreboard-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .match-detail-view .scoreboard-table-wrapper.home,
+  .match-detail-view .scoreboard-table-wrapper.away {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+  }
+
+  .match-detail-view .scoreboard-map-header {
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+  }
+
+  .match-detail-view .map-score-cards {
+    flex-wrap: wrap;
+  }
+
+  .match-detail-view .map-score-card {
+    min-width: calc(50% - 6px);
+  }
+}
+
+@media (max-width: 600px) {
+  .match-detail-view .match-hero-content {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .match-detail-view .match-hero-team {
+    justify-content: center !important;
+  }
+
+  .match-detail-view .match-hero-team-info,
+  .match-detail-view .match-hero-team-info.right {
+    text-align: center;
+    align-items: center;
+  }
+
+  .match-detail-view .match-hero-score {
+    order: -1;
+    padding: 0;
+  }
+
+  .match-detail-view .hero-score {
+    font-size: 48px;
+  }
+
+  .match-detail-view .scoreboard-table th,
+  .match-detail-view .scoreboard-table td {
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+
+  .match-detail-view .scoreboard-table th.col-player,
+  .match-detail-view .scoreboard-table td.col-player {
+    width: 45%;
+  }
+
+  .match-detail-view .agent-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .match-detail-view .team-abbr {
+    display: none;
+  }
+
+  .match-detail-view .player-name {
+    font-size: 12px;
+  }
+}

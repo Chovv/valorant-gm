@@ -1,5 +1,5 @@
 /* src/ui/components/PlayerStatsTable.css */
-/* Styles for player stats table with expandable map details */
+/* Career Stats and Match History Table */
 
 .player-stats-section {
   display: flex;
@@ -7,91 +7,143 @@
   gap: 16px;
 }
 
-/* Career stats grid */
+/* Career Statistics Grid */
 .career-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  gap: 0;
 }
 
-@media (max-width: 900px) {
-  .career-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.career-stat-group {
+  padding: 16px;
+  border-right: 1px solid var(--border);
+}
+
+.career-stat-group:last-child {
+  border-right: none;
 }
 
 .career-stat-group h4 {
-  margin: 0 0 12px 0;
+  font-family: 'Rajdhani', sans-serif;
   font-size: 12px;
-  text-transform: uppercase;
+  font-weight: 700;
   color: var(--text-muted);
+  text-transform: uppercase;
+  margin: 0 0 12px 0;
   letter-spacing: 0.5px;
 }
 
+.career-stat-group .stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+}
+
+.career-stat-group .stat-row:last-child {
+  border-bottom: none;
+}
+
+.career-stat-group .stat-row .label {
+  color: var(--text-secondary);
+}
+
+.career-stat-group .stat-row .value {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.career-stat-group .stat-row .value.positive {
+  color: var(--success);
+}
+
+.career-stat-group .stat-row .value.negative {
+  color: var(--danger);
+}
+
+.career-stat-group .stat-row .value.acs {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* Playoff Stats Summary */
 .playoff-stats-summary {
   margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: var(--radius-sm);
 }
 
 .playoff-stats-summary h4 {
   margin: 0 0 8px 0;
   font-size: 13px;
+  font-weight: 600;
+  color: var(--warning);
 }
 
 .playoff-stats-row {
   display: flex;
   gap: 24px;
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
-/* Header hint */
+/* Panel Header Hint */
 .panel-header .header-hint {
   font-size: 11px;
+  font-weight: 400;
   color: var(--text-muted);
-  font-weight: normal;
-  margin-left: 12px;
-  opacity: 0.7;
+  margin-left: auto;
 }
 
-/* Stats table */
-.stats-table.expandable {
+/* Match History Table */
+.stats-table.player-match-history {
+  width: 100%;
   border-collapse: collapse;
+  font-size: 13px;
 }
 
-.stats-table.expandable th,
-.stats-table.expandable td {
-  padding: 10px 8px;
-  text-align: center;
-  border-bottom: 1px solid var(--border);
+.stats-table.player-match-history thead {
+  background: var(--bg-darker);
 }
 
-.stats-table.expandable th {
-  font-size: 11px;
-  text-transform: uppercase;
+.stats-table.player-match-history th {
+  padding: 10px 12px;
+  font-size: 10px;
+  font-weight: 700;
   color: var(--text-muted);
-  font-weight: 600;
+  text-transform: uppercase;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
-/* Match row - clickable */
-.match-row {
+.stats-table.player-match-history td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+/* Match Row */
+.stats-table.player-match-history .match-row {
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background 0.15s ease;
 }
 
-.match-row:hover {
-  background-color: var(--bg-hover);
+.stats-table.player-match-history .match-row:hover {
+  background: var(--bg-hover);
 }
 
-.match-row.expanded {
-  background-color: rgba(255, 255, 255, 0.03);
+.stats-table.player-match-history .match-row.expanded {
+  background: var(--bg-hover);
 }
 
-/* Expand icon */
+/* Expand Icon */
 .expand-cell {
   width: 30px;
-  text-align: center !important;
+  text-align: center;
 }
 
 .expand-icon {
@@ -103,75 +155,77 @@
 
 .expand-icon.expanded {
   transform: rotate(90deg);
+  color: var(--accent);
 }
 
-/* Day cell badges */
+/* Day Cell */
 .day-cell {
-  text-align: left !important;
   white-space: nowrap;
 }
 
 .playoff-badge,
 .intl-badge {
   margin-right: 4px;
-  font-size: 12px;
 }
 
-/* Opponent cell */
+/* Opponent Cell */
 .opponent-cell {
-  text-align: left !important;
-  padding-top: 13.5px !important;
-  padding-bottom: 13px !important;
+  white-space: nowrap;
 }
 
 .opponent-cell .vs {
-  color: var(--text-muted);
+  color: var(--text-dark);
   margin-right: 6px;
   font-size: 11px;
 }
 
 .opponent-cell .opponent-abbr {
   font-weight: 600;
+  color: var(--text);
 }
 
-/* Result cell */
+/* Result Cell */
 .result-cell {
-  font-weight: 600;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .result-cell.win {
-  color: #4ade80;
+  color: var(--success);
 }
 
 .result-cell.loss {
-  color: #f87171;
+  color: var(--danger);
 }
 
-/* KD coloring */
-.positive {
-  color: #4ade80;
+/* Stat Values */
+.stats-table.player-match-history td.positive {
+  color: var(--success);
 }
 
-.negative {
-  color: #f87171;
+.stats-table.player-match-history td.negative {
+  color: var(--danger);
 }
 
-/* ACS highlight */
-.acs {
+.stats-table.player-match-history td.acs {
   color: var(--accent);
   font-weight: 600;
 }
 
-/* View match button */
+/* View Match Button */
 .view-match-btn {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  padding: 2px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   margin-left: 8px;
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
@@ -181,46 +235,26 @@
   color: white;
 }
 
-/* Map detail row */
+/* Map Detail Row (Expanded) */
 .map-detail-row {
-  background-color: rgba(0, 0, 0, 0.2);
-  font-size: 13px;
-  animation: slideDown 0.2s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  background: var(--bg-darker);
 }
 
 .map-detail-row td {
-  padding: 8px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
 }
 
-.map-detail-row:last-of-type td {
-  border-bottom: 1px solid var(--border) !important;
-}
-
-/* Map connector (tree lines) */
 .map-connector {
-  color: var(--text-muted);
+  width: 30px;
+  text-align: center;
+  color: var(--text-dark);
   font-family: monospace;
-  font-size: 14px;
-  opacity: 0.5;
-  text-align: center !important;
-  padding-left: 8px !important;
 }
 
-/* Map name cell */
 .map-name {
-  text-align: left !important;
+  padding-left: 0 !important;
 }
 
 .map-info {
@@ -236,33 +270,42 @@
 }
 
 .map-label {
-  text-transform: capitalize;
   font-weight: 500;
   color: var(--text);
 }
 
 .agent-label {
-  text-transform: capitalize;
+  font-size: 11px;
   color: var(--text-muted);
-  font-size: 12px;
 }
 
-/* Mobile responsive */
-@media (max-width: 768px) {
-  .stats-table.expandable {
-    font-size: 12px;
+/* Responsive */
+@media (max-width: 900px) {
+  .career-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
-
-  .stats-table.expandable th,
-  .stats-table.expandable td {
-    padding: 8px 4px;
+  
+  .career-stat-group:nth-child(2) {
+    border-right: none;
   }
-
-  .view-match-btn {
-    display: none;
+  
+  .career-stat-group:nth-child(3),
+  .career-stat-group:nth-child(4) {
+    border-top: 1px solid var(--border);
   }
+}
 
-  .header-hint {
-    display: none;
+@media (max-width: 600px) {
+  .career-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .career-stat-group {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .career-stat-group:last-child {
+    border-bottom: none;
   }
 }

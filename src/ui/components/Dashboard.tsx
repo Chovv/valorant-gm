@@ -90,68 +90,163 @@ export function Dashboard({ gameState, onViewTeam, onViewMatch, recentResults, r
     (userRegion && gameState.regionalPlayoffs[userRegion] !== undefined);
 
   return (
-    <div className="dashboard-grid">
-      {/* Left Column - Standings */}
-      <div className="panel">
-        <div className="panel-header">{userRegion?.toUpperCase()} Standings</div>
-        <div className="panel-body" style={{ padding: 0 }}>
-          <table className="standings-table">
-            <thead>
-              <tr>
-                <th></th>
-                <th>Team</th>
-                <th>W</th>
-                <th>L</th>
-              </tr>
-            </thead>
-            <tbody>
-              {regionStandings.map((entry, idx) => {
-                const team = gameState.teams.find(t => t.id === entry.teamId);
-                const isUser = entry.teamId === gameState.userTeamId;
-                const madePlayoffs = idx < 6;
-                const eliminated = idx >= 6;
-                
-                // Determine clinch indicator
-                let clinchIndicator = null;
-                if (playoffsStarted) {
-                  if (madePlayoffs) {
-                    clinchIndicator = <span className="clinch-indicator clinched" title="Clinched playoffs">x</span>;
-                  } else if (eliminated) {
-                    clinchIndicator = <span className="clinch-indicator eliminated" title="Eliminated">z</span>;
+    <div className="dashboard-layout">
+      {/* Left Column - Standings + Game Log */}
+      <div className="dashboard-left">
+        {/* Standings */}
+        <div className="panel dashboard-standings">
+          <div className="panel-header">{userRegion?.toUpperCase()} Standings</div>
+          <div className="panel-body">
+            <table className="standings-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Team</th>
+                  <th>W</th>
+                  <th>L</th>
+                </tr>
+              </thead>
+              <tbody>
+                {regionStandings.map((entry, idx) => {
+                  const team = gameState.teams.find(t => t.id === entry.teamId);
+                  const isUser = entry.teamId === gameState.userTeamId;
+                  const madePlayoffs = idx < 6;
+                  const eliminated = idx >= 6;
+                  
+                  // Determine clinch indicator
+                  let clinchIndicator = null;
+                  if (playoffsStarted) {
+                    if (madePlayoffs) {
+                      clinchIndicator = <span className="clinch-indicator clinched" title="Clinched playoffs">x</span>;
+                    } else if (eliminated) {
+                      clinchIndicator = <span className="clinch-indicator eliminated" title="Eliminated">z</span>;
+                    }
                   }
-                }
-                
-                return (
-                  <tr key={entry.teamId} className={eliminated && playoffsStarted ? 'eliminated-row' : ''}>
-                    <td className="rank">{idx + 1}</td>
-                    <td>
-                      <span 
-                        className={`team-name-with-logo ${isUser ? 'user-team' : ''}`}
-                        onClick={() => onViewTeam(entry.teamId)}
-                      >
-                        {clinchIndicator}
-                        <img 
-                          src={team?.logo} 
-                          alt="" 
-                          className="standings-team-logo"
-                        />
-                        {team?.abbreviation}
-                      </span>
-                    </td>
-                    <td className="record">{entry.wins}</td>
-                    <td className="record">{entry.losses}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                  
+                  return (
+                    <tr key={entry.teamId} className={eliminated && playoffsStarted ? 'eliminated-row' : ''}>
+                      <td className="rank">{idx + 1}</td>
+                      <td>
+                        <span 
+                          className={`team-name-with-logo ${isUser ? 'user-team' : ''}`}
+                          onClick={() => onViewTeam(entry.teamId)}
+                        >
+                          {clinchIndicator}
+                          <img 
+                            src={team?.logo} 
+                            alt="" 
+                            className="standings-team-logo"
+                          />
+                          {team?.abbreviation}
+                        </span>
+                      </td>
+                      <td className="record">{entry.wins}</td>
+                      <td className="record">{entry.losses}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Game Log */}
+        <div className="panel dashboard-game-log">
+          <div className="panel-header">📋 Game Log</div>
+          <div className="panel-body">
+            <div className="game-log">
+              {allRecentEvents.length === 0 ? (
+                <div className="game-log-empty">
+                  No events yet. Press "Play Day" to advance the simulation.
+                </div>
+              ) : (
+                allRecentEvents.map((event, idx) => {
+                  const userAbbr = userTeam?.abbreviation ?? '';
+                  const isUserMatch = event.message.includes(userAbbr);
+                  const isChampion = event.type === 'champion_crowned';
+                  const isPhaseChange = event.type === 'phase_change';
+                  const isPlayoffAdvance = event.type === 'playoff_advance';
+                  const isMatchResult = event.type === 'match_result';
+                  const isScrimResult = event.type === 'scrim_result';
+                  
+                  // Determine if user won or lost (message format: "WINNER def. LOSER X-Y")
+                  let isUserWin = false;
+                  let isUserLoss = false;
+                  if (isUserMatch && isMatchResult) {
+                    // Check if user's abbreviation is before "def." (winner) or after (loser)
+                    const defIndex = event.message.indexOf(' def. ');
+                    if (defIndex > -1) {
+                      const beforeDef = event.message.substring(0, defIndex);
+                      const afterDef = event.message.substring(defIndex + 6);
+                      if (beforeDef.includes(userAbbr)) {
+                        isUserWin = true;
+                      } else if (afterDef.includes(userAbbr)) {
+                        isUserLoss = true;
+                      }
+                    }
+                  }
+                  
+                  // Try to find the match ID from the result data
+                  const matchData = event.data as { id?: string } | undefined;
+                  const resultId = matchData?.id;
+                  const matchId = findMatchIdFromResult(resultId);
+                  const isClickable = isMatchResult && matchId;
+                  
+                  // Check if this is a Champions/international event
+                  const isChampionsEvent = event.message.includes('Champions') || 
+                                          event.message.includes('Play-Ins') ||
+                                          event.message.includes('Quarterfinals:') ||
+                                          event.message.includes('Semifinals:') ||
+                                          event.message.includes('Grand Finals');
+                  
+                  // Extract region from message [AMERICAS], [EMEA], etc.
+                  const regionMatch = event.message.match(/^\[([A-Z]+)\]/);
+                  const regionKey = regionMatch ? regionMatch[1].toLowerCase() as Region : null;
+                  const regionLogo = regionKey && regionLogos[regionKey] ? regionLogos[regionKey] : null;
+                  const displayMessage = regionMatch ? event.message.replace(/^\[[A-Z]+\]\s*/, '') : event.message;
+                  
+                  // Determine which logo to show
+                  const eventLogo = isChampionsEvent && championsLogo ? championsLogo : regionLogo;
+                  
+                  let className = 'game-log-item';
+                  if (isUserWin) className += ' user-win';
+                  else if (isUserLoss) className += ' user-loss';
+                  else if (isUserMatch) className += ' user-match';
+                  if (isChampion) className += ' champion';
+                  if (isPhaseChange) className += ' phase-change';
+                  if (isPlayoffAdvance) className += ' playoff-advance';
+                  if (isChampionsEvent) className += ' champions-event';
+                  if (isScrimResult) className += ' scrim-result';
+                  if (isClickable) className += ' clickable';
+                  
+                  return (
+                    <div 
+                      key={idx} 
+                      className={className}
+                      onClick={() => {
+                        if (isClickable && matchId) {
+                          onViewMatch(matchId);
+                        }
+                      }}
+                      style={isClickable ? { cursor: 'pointer' } : undefined}
+                      title={isClickable ? 'Click to view match details' : undefined}
+                    >
+                      <span className="game-log-day">Day {event.day}</span>
+                      {eventLogo && <img src={eventLogo} alt="" className="game-log-region-logo" />}
+                      <span className="game-log-message">{displayMessage}</span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Center Column - Team Info */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Right Column - Team Info + Schedule */}
+      <div className="dashboard-right">
         {/* Team Summary */}
-        <div className="panel">
+        <div className="panel dashboard-team-summary">
           <div className="panel-header">{userTeam?.name}</div>
           <div className="panel-body">
             <div className="team-summary">
@@ -214,7 +309,7 @@ export function Dashboard({ gameState, onViewTeam, onViewMatch, recentResults, r
         </div>
 
         {/* Your Schedule */}
-        <div className="panel">
+        <div className="panel dashboard-schedule">
           <div className="panel-header">Your Schedule</div>
           <div className="panel-body">
             <div className="schedule-list">
@@ -283,98 +378,6 @@ export function Dashboard({ gameState, onViewTeam, onViewMatch, recentResults, r
                 );
               })}
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Column - Game Log */}
-      <div className="panel" style={{ maxHeight: '600px', display: 'flex', flexDirection: 'column' }}>
-        <div className="panel-header">📋 Game Log</div>
-        <div className="panel-body" style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
-          <div className="game-log">
-            {allRecentEvents.length === 0 ? (
-              <div className="game-log-empty">
-                No events yet. Press "Play Day" to advance the simulation.
-              </div>
-            ) : (
-              allRecentEvents.map((event, idx) => {
-                const userAbbr = userTeam?.abbreviation ?? '';
-                const isUserMatch = event.message.includes(userAbbr);
-                const isChampion = event.type === 'champion_crowned';
-                const isPhaseChange = event.type === 'phase_change';
-                const isPlayoffAdvance = event.type === 'playoff_advance';
-                const isMatchResult = event.type === 'match_result';
-                const isScrimResult = event.type === 'scrim_result';
-                
-                // Determine if user won or lost (message format: "WINNER def. LOSER X-Y")
-                let isUserWin = false;
-                let isUserLoss = false;
-                if (isUserMatch && isMatchResult) {
-                  // Check if user's abbreviation is before "def." (winner) or after (loser)
-                  const defIndex = event.message.indexOf(' def. ');
-                  if (defIndex > -1) {
-                    const beforeDef = event.message.substring(0, defIndex);
-                    const afterDef = event.message.substring(defIndex + 6);
-                    if (beforeDef.includes(userAbbr)) {
-                      isUserWin = true;
-                    } else if (afterDef.includes(userAbbr)) {
-                      isUserLoss = true;
-                    }
-                  }
-                }
-                
-                // Try to find the match ID from the result data
-                const matchData = event.data as { id?: string } | undefined;
-                const resultId = matchData?.id;
-                const matchId = findMatchIdFromResult(resultId);
-                const isClickable = isMatchResult && matchId;
-                
-                // Check if this is a Champions/international event
-                const isChampionsEvent = event.message.includes('Champions') || 
-                                        event.message.includes('Play-Ins') ||
-                                        event.message.includes('Quarterfinals:') ||
-                                        event.message.includes('Semifinals:') ||
-                                        event.message.includes('Grand Finals');
-                
-                // Extract region from message [AMERICAS], [EMEA], etc.
-                const regionMatch = event.message.match(/^\[([A-Z]+)\]/);
-                const regionKey = regionMatch ? regionMatch[1].toLowerCase() as Region : null;
-                const regionLogo = regionKey && regionLogos[regionKey] ? regionLogos[regionKey] : null;
-                const displayMessage = regionMatch ? event.message.replace(/^\[[A-Z]+\]\s*/, '') : event.message;
-                
-                // Determine which logo to show
-                const eventLogo = isChampionsEvent && championsLogo ? championsLogo : regionLogo;
-                
-                let className = 'game-log-item';
-                if (isUserWin) className += ' user-win';
-                else if (isUserLoss) className += ' user-loss';
-                else if (isUserMatch) className += ' user-match';
-                if (isChampion) className += ' champion';
-                if (isPhaseChange) className += ' phase-change';
-                if (isPlayoffAdvance) className += ' playoff-advance';
-                if (isChampionsEvent) className += ' champions-event';
-                if (isScrimResult) className += ' scrim-result';
-                if (isClickable) className += ' clickable';
-                
-                return (
-                  <div 
-                    key={idx} 
-                    className={className}
-                    onClick={() => {
-                      if (isClickable && matchId) {
-                        onViewMatch(matchId);
-                      }
-                    }}
-                    style={isClickable ? { cursor: 'pointer' } : undefined}
-                    title={isClickable ? 'Click to view match details' : undefined}
-                  >
-                    <span className="game-log-day">Day {event.day}</span>
-                    {eventLogo && <img src={eventLogo} alt="" className="game-log-region-logo" />}
-                    <span className="game-log-message">{displayMessage}</span>
-                  </div>
-                );
-              })
-            )}
           </div>
         </div>
       </div>

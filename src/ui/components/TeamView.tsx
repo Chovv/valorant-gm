@@ -103,7 +103,9 @@ export function TeamView({
   }
 
   const getRatingClass = (rating: number) => {
-    if (rating >= 75) return 'rating-high';
+    if (rating >= 90) return 'rating-legendary';
+    if (rating >= 80) return 'rating-elite';
+    if (rating >= 70) return 'rating-high';
     if (rating >= 55) return 'rating-mid';
     return 'rating-low';
   };
@@ -123,9 +125,14 @@ export function TeamView({
 
   return (
     <div className="team-view-container">
-      {/* Navigation Bar */}
-      <div className="team-nav-bar">
-        <div className="team-nav-left">
+      {/* Header - matches other page headers */}
+      <div className="content-header team-view-header">
+        <img src={team.logo} alt={team.name} className="team-header-logo" />
+        <h1>{team.name}</h1>
+        {isUserTeam && <span className="team-badge">YOUR TEAM</span>}
+        {devMode && !isUserTeam && <span className="team-badge dev-badge">DEV MODE</span>}
+        
+        <div className="team-header-actions">
           {onPrevTeam && (
             <button className="team-nav-btn" onClick={onPrevTeam} title="Previous team">
               <span className="nav-icon">‹</span>
@@ -138,33 +145,10 @@ export function TeamView({
               <span className="nav-icon">›</span>
             </button>
           )}
-        </div>
-        
-        <div className="team-nav-center">
-          <div className="team-nav-info">
-            <img src={team.logo} alt={team.name} className="team-nav-logo" />
-            <div className="team-nav-text">
-              <span className="team-nav-name">{team.name}</span>
-              <span className="team-nav-abbr">{team.abbreviation}</span>
-            </div>
-            {isUserTeam && <span className="team-nav-badge">YOUR TEAM</span>}
-            {devMode && !isUserTeam && <span className="team-nav-badge dev-badge">DEV MODE</span>}
-          </div>
-        </div>
-        
-        <div className="team-nav-spacer">
           {showManageRoster && (
             <button 
-              className="team-nav-btn manage-roster-btn"
+              className="manage-roster-btn"
               onClick={onManageRoster}
-              style={{
-                background: devMode && !isUserTeam 
-                  ? 'linear-gradient(135deg, #f59e0b, #ef4444)' 
-                  : 'linear-gradient(135deg, #ff4655, #ff6b6b)',
-                border: 'none',
-                color: 'white',
-                fontWeight: 600,
-              }}
             >
               {devMode && !isUserTeam ? '🔧' : '⚙️'} Manage Roster
             </button>

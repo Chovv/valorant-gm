@@ -1,0 +1,683 @@
+/* src/ui/components/PlayoffBracket.css */
+/* Playoff Bracket Styles - Clean flat design */
+
+/* ===== REGIONAL PLAYOFFS BRACKET ===== */
+.playoff-container {
+  animation: playoffFadeIn 0.35s ease-out;
+  width: 100%;
+  overflow-x: auto;
+}
+
+@keyframes playoffFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Main bracket layout - horizontal with bracket lines */
+.playoff-bracket-vlr {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+  padding: 20px 0;
+  width: 100%;
+  min-width: 900px;
+  position: relative;
+  align-items: start;
+}
+
+/* Round columns */
+.playoff-round-vlr {
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px;
+  position: relative;
+}
+
+.playoff-round-vlr.quarterfinals {
+  padding-right: 32px;
+}
+
+.playoff-round-vlr.semifinals {
+  padding: 0 32px;
+}
+
+.playoff-round-vlr.finals-column {
+  padding-left: 32px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Round title */
+.playoff-round-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Matchups container - quarters need spacing for bracket lines */
+.playoff-matchups-vlr {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+}
+
+/* Quarter-finals: two pairs of matches with gap between pairs */
+.playoff-round-vlr.quarterfinals .playoff-matchups-vlr {
+  gap: 16px;
+}
+
+/* Add space between the two QF pairs */
+.playoff-round-vlr.quarterfinals .playoff-matchups-vlr .playoff-matchup-card:nth-child(2) {
+  margin-bottom: 32px;
+}
+
+/* Semi-finals: position to align with QF pairs */
+.playoff-round-vlr.semifinals .playoff-matchups-vlr {
+  gap: 16px;
+  /* Offset to center between QF match pairs */
+  margin-top: 44px;
+}
+
+/* Add gap between SF matches to spread them apart */
+.playoff-round-vlr.semifinals .playoff-matchups-vlr .playoff-matchup-card:first-child {
+  margin-bottom: 80px;
+}
+
+/* Finals section positioning */
+.finals-section {
+  margin-top: 44px;
+}
+
+.finals-section .playoff-matchups-vlr {
+  /* Center finals between the two semi-finals */
+  margin-top: 48px;
+}
+
+/* Individual matchup card */
+.playoff-matchup-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.playoff-matchup-card.clickable {
+  cursor: pointer;
+}
+
+.playoff-matchup-card.clickable:hover {
+  border-color: var(--accent);
+}
+
+.playoff-matchup-card.tbd {
+  opacity: 0.6;
+}
+
+.playoff-matchup-card.finals {
+  border: 2px solid var(--warning);
+  background: linear-gradient(180deg, rgba(255, 192, 72, 0.06) 0%, var(--bg-card) 100%);
+}
+
+.playoff-matchup-card.grand-finals {
+  border: 2px solid var(--warning);
+  background: linear-gradient(180deg, rgba(255, 192, 72, 0.08) 0%, var(--bg-card) 100%);
+}
+
+.playoff-matchup-card.third-place {
+  opacity: 0.85;
+  border-style: dashed;
+}
+
+/* Bracket connector lines - from quarters to semis */
+.playoff-round-vlr.quarterfinals .playoff-matchup-card::after {
+  content: '';
+  position: absolute;
+  right: -32px;
+  top: 50%;
+  width: 32px;
+  height: 2px;
+  background: var(--border);
+}
+
+/* Vertical connector for first QF pair (matches 1-2) */
+.playoff-round-vlr.quarterfinals .playoff-matchup-card:first-child::before {
+  content: '';
+  position: absolute;
+  right: -32px;
+  top: 50%;
+  width: 2px;
+  height: calc(100% + 16px);
+  background: var(--border);
+}
+
+/* Vertical connector for second QF pair (matches 3-4) */
+.playoff-round-vlr.quarterfinals .playoff-matchup-card:nth-child(3)::before {
+  content: '';
+  position: absolute;
+  right: -32px;
+  top: 50%;
+  width: 2px;
+  height: calc(100% + 16px);
+  background: var(--border);
+}
+
+/* Hide the ::before on other QF matches */
+.playoff-round-vlr.quarterfinals .playoff-matchup-card:nth-child(2)::before,
+.playoff-round-vlr.quarterfinals .playoff-matchup-card:nth-child(4)::before {
+  display: none;
+}
+
+/* Bracket connector lines - from semis to finals */
+.playoff-round-vlr.semifinals .playoff-matchup-card::after {
+  content: '';
+  position: absolute;
+  right: -32px;
+  top: 50%;
+  width: 32px;
+  height: 2px;
+  background: var(--border);
+}
+
+/* Vertical connector for semis */
+.playoff-round-vlr.semifinals .playoff-matchup-card:first-child::before {
+  content: '';
+  position: absolute;
+  right: -32px;
+  top: 50%;
+  width: 2px;
+  height: calc(100% + 96px);
+  background: var(--border);
+}
+
+/* Team row within matchup card */
+.playoff-team-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s ease;
+}
+
+.playoff-team-row:last-child {
+  border-bottom: none;
+}
+
+.playoff-matchup-card.clickable:hover .playoff-team-row {
+  background: var(--bg-hover-subtle);
+}
+
+.playoff-team-row.winner {
+  background: rgba(255, 70, 85, 0.08);
+}
+
+.playoff-team-row.loser {
+  opacity: 0.45;
+}
+
+/* Team seed */
+.playoff-team-seed {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dark);
+  min-width: 22px;
+}
+
+/* Team logo */
+.playoff-team-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Team name */
+.playoff-team-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playoff-team-name.winner-text {
+  color: var(--accent);
+}
+
+/* Team score */
+.playoff-team-score {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 24px;
+  text-align: right;
+}
+
+.playoff-team-score.winner-score {
+  color: var(--accent);
+}
+
+/* Win probability */
+.playoff-team-prob {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-darker);
+  color: var(--text-muted);
+  min-width: 38px;
+  text-align: center;
+}
+
+.playoff-team-prob.favorite {
+  color: var(--success);
+  background: rgba(10, 200, 185, 0.15);
+}
+
+.playoff-team-prob.underdog {
+  color: var(--text-muted);
+}
+
+/* TBD placeholder */
+.playoff-team-tbd {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dark);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* Champion badge */
+.champion-badge {
+  font-size: 16px;
+  margin-left: 4px;
+}
+
+/* 3rd Place section - below finals */
+.third-place-section {
+  margin-top: 48px;
+}
+
+.third-place-section .playoff-round-title {
+  color: var(--text-dark);
+  font-size: 10px;
+  margin-bottom: 12px;
+}
+
+.third-place-section .playoff-matchup-card::after,
+.third-place-section .playoff-matchup-card::before {
+  display: none;
+}
+
+/* Hide connector lines on finals */
+.finals-section .playoff-matchup-card::after,
+.finals-section .playoff-matchup-card::before {
+  display: none;
+}
+
+/* ===== INTERNATIONAL BRACKET (CHAMPIONS) ===== */
+.intl-bracket-container {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 20px 0;
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* International round columns */
+.intl-round {
+  display: flex;
+  flex-direction: column;
+  min-width: 240px;
+  flex: 1;
+}
+
+.intl-round.playins-round {
+  min-width: 220px;
+}
+
+.intl-round.finals-round {
+  min-width: 260px;
+}
+
+/* Round headers */
+.intl-round-header {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 10px 0;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.intl-round-header.grand-finals-header {
+  color: var(--warning);
+  border-bottom-color: var(--warning);
+}
+
+/* Matchups column */
+.intl-matchups-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.intl-matchups-column.playins-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.intl-matchups-column.semis-column {
+  gap: 24px;
+  justify-content: center;
+}
+
+.intl-matchups-column.finals-column {
+  justify-content: center;
+  min-height: 200px;
+}
+
+.intl-matchup-wrapper {
+  width: 100%;
+}
+
+/* Region seed tag */
+.region-seed-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid;
+  min-width: 36px;
+  flex-shrink: 0;
+}
+
+/* ===== QUALIFIED TEAMS GRID (International) ===== */
+.qualified-teams-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.qualified-region {
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.qualified-region-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  margin: 0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+}
+
+.qualified-region-logo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* Individual team rows inside qualified region */
+.qualified-team-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s ease;
+}
+
+.qualified-team-row:last-child {
+  border-bottom: none;
+}
+
+.qualified-team-row:hover {
+  background: var(--bg-hover-subtle);
+}
+
+.qualified-seed {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 20px;
+}
+
+.qualified-team-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.qualified-team-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ===== REGION TABS ===== */
+.region-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.region-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.region-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.region-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.region-tab-logo {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.region-tab.active .region-tab-logo {
+  filter: brightness(0) invert(1);
+}
+
+/* Region header logo */
+.region-header-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1400px) {
+  .qualified-teams-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .playoff-bracket-vlr {
+    min-width: 800px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .playoff-bracket-vlr {
+    min-width: 750px;
+  }
+  
+  .playoff-round-vlr.quarterfinals,
+  .playoff-round-vlr.semifinals {
+    padding: 0 24px;
+  }
+  
+  .playoff-round-vlr.quarterfinals .playoff-matchup-card::after,
+  .playoff-round-vlr.semifinals .playoff-matchup-card::after {
+    width: 24px;
+    right: -24px;
+  }
+  
+  .playoff-round-vlr.quarterfinals .playoff-matchup-card:first-child::before,
+  .playoff-round-vlr.quarterfinals .playoff-matchup-card:nth-child(3)::before,
+  .playoff-round-vlr.semifinals .playoff-matchup-card:first-child::before {
+    right: -24px;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Stack vertically on mobile - hide bracket lines */
+  .playoff-bracket-vlr {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    min-width: unset;
+  }
+
+  .playoff-round-vlr,
+  .playoff-round-vlr.quarterfinals,
+  .playoff-round-vlr.semifinals,
+  .playoff-round-vlr.finals-column {
+    padding: 0;
+    width: 100%;
+  }
+  
+  /* Hide all connector lines on mobile */
+  .playoff-round-vlr.quarterfinals .playoff-matchup-card::after,
+  .playoff-round-vlr.semifinals .playoff-matchup-card::after,
+  .playoff-round-vlr.quarterfinals .playoff-matchup-card::before,
+  .playoff-round-vlr.semifinals .playoff-matchup-card::before {
+    display: none;
+  }
+  
+  /* Reset margins on mobile */
+  .playoff-round-vlr.quarterfinals .playoff-matchups-vlr .playoff-matchup-card:nth-child(2) {
+    margin-bottom: 0;
+  }
+  
+  .playoff-round-vlr.semifinals .playoff-matchups-vlr {
+    margin-top: 0;
+  }
+  
+  .playoff-round-vlr.semifinals .playoff-matchups-vlr .playoff-matchup-card:first-child {
+    margin-bottom: 0;
+  }
+  
+  .finals-section {
+    margin-top: 0;
+  }
+  
+  .finals-section .playoff-matchups-vlr {
+    margin-top: 0;
+  }
+  
+  .third-place-section {
+    margin-top: 24px;
+  }
+
+  .intl-bracket-container {
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .intl-round {
+    min-width: 100%;
+  }
+
+  .qualified-teams-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .region-tabs {
+    flex-direction: column;
+  }
+
+  .region-tab {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .playoff-team-name {
+    font-size: 12px;
+  }
+
+  .playoff-team-logo {
+    width: 24px;
+    height: 24px;
+  }
+
+  .playoff-team-row {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+  
+  .qualified-teams-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .qualified-team-logo {
+    width: 28px;
+    height: 28px;
+  }
+}

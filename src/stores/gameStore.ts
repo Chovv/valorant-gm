@@ -610,6 +610,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           agentPool: player.agentPool,
           contract: player.contract,
           careerStats: player.careerStats,
+          imageUrl: player.imageUrl,
         })),
       })),
       freeAgents: (gameState.freeAgents || []).map(player => ({
@@ -626,6 +627,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         development: player.development,
         agentPool: player.agentPool,
         contract: player.contract,
+        imageUrl: player.imageUrl,
       })),
       standings: gameState.standings,
       champions: gameState.champions,
@@ -672,6 +674,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             coachability: player.personality.coachability,
           },
           agents: player.agentPool,
+          imageUrl: player.imageUrl,
         })),
       };
     });

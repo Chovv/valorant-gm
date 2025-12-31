@@ -1,0 +1,92 @@
+/* src/ui/components/PlayerAvatar.css */
+/* Player avatar component styles */
+
+.player-avatar {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-darker);
+  flex-shrink: 0;
+}
+
+.player-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.2s ease;
+}
+
+.player-avatar.loading .player-avatar-img {
+  opacity: 0;
+}
+
+.player-avatar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--bg-darker), var(--bg-card));
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.player-avatar:not(.loading)::before {
+  opacity: 0;
+}
+
+/* Size variants */
+.player-avatar-xs {
+  width: 24px;
+  height: 24px;
+}
+
+.player-avatar-sm {
+  width: 32px;
+  height: 32px;
+}
+
+.player-avatar-md {
+  width: 48px;
+  height: 48px;
+}
+
+.player-avatar-lg {
+  width: 64px;
+  height: 64px;
+}
+
+.player-avatar-xl {
+  width: 80px;
+  height: 80px;
+}
+
+/* Optional border styling */
+.player-avatar.with-border {
+  border: 2px solid var(--border);
+}
+
+.player-avatar.with-border:hover {
+  border-color: var(--accent);
+}
+
+/* Circular variant (opt-in) */
+.player-avatar.circular {
+  border-radius: 50%;
+}
+
+/* Generic placeholder avatar */
+.player-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-darker);
+  color: var(--text-muted);
+}
+
+.player-avatar-placeholder::before {
+  display: none;
+}
+
+.player-avatar-icon {
+  width: 60%;
+  height: 60%;
+}

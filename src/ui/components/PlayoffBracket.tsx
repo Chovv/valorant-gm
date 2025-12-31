@@ -1,6 +1,7 @@
 // src/ui/components/PlayoffBracket.tsx
 import type { PlayoffBracket as PlayoffBracketType, PlayoffMatchup, Team } from '../../types';
 import { calculateWinProbability } from '../../sim/winProbability';
+import './PlayoffBracket.css';
 
 interface PlayoffBracketProps {
   bracket: PlayoffBracketType;
