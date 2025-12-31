@@ -1,5 +1,5 @@
 // src/ui/components/PowerRankingsPage.tsx
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { Team, Region, StandingsEntry, MatchResult, Player, Role } from '../../types';
 import type { ScheduledMatch } from '../../sim/gameState';
 import type { StartingSlot } from '../../types/roster';
