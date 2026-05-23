@@ -51,32 +51,41 @@ If you would rather not take the league as given, the League Editor lets you edi
 
 ## FAQ
 
-**Is every run the same?**
-No, each new game plays out on its own, with different upsets, breakout players, and champions. A single save is deterministic from its seed, so it stays internally consistent and reproducible, but separate playthroughs diverge. And even then, if you're interested in simulating matchups from older eras of VALORANT, there's a sandbox mode that allows you to simulate against older and nostalgic rosters, just like in basketballgm.
+### Is every run the same?
 
-**Do the best teams with the best players always win?**
-No, higher pIndex teams are favored, but matches resolve round by round and duel by duel, so economy swings, composition, and clutch moments produce real upsets. A favorite usually takes a best-of series, but single maps and full tournaments still surprise you (whether for good or for worse).
+No, each new game plays out on its own, with different upsets, breakout players, and champions. A single save is deterministic from its seed, so it stays internally consistent and reproducible, but separate playthroughs diverge into their own stories. There's also a sandbox mode that lets you simulate against older and nostalgic rosters, just like in basketballgm.
 
-**How much randomness is there?**
+### Do the best teams with the best players always win?
+
+No. Higher pIndex teams are favored, but matches resolve round by round and duel by duel, so economy swings, composition, and clutch moments produce real upsets. A favorite usually takes a best-of series, but single maps and full tournaments still surprise you (whether for good or for worse).
+
+### How much randomness is there?
+
 It is weighted, and it is definitely not a coin flip. Each player's contribution runs through pIndex (overall, aim, role fit, clutch, IGL bonus, composition, and buy state), and the seeded RNG resolves the individual duels around those weights. Skill and roster-building win out over a season, while the variance lives in individual rounds and maps.
 
-**Does team composition and agent choice actually matter?**
-Yes, the role balance feeds composition bonuses and penalties, playing someone off their role carries an explicit penalty, and agent ultimates factor into rounds based on when they fire. A stacked roster on a bad comp underperforms.
+### Does team composition and agent choice actually matter?
 
-**Do players develop or decline?**
+Yes. Role balance feeds composition bonuses and penalties, playing someone off their role carries an explicit penalty, and agent ultimates factor into rounds based on when they fire. A stacked roster on a bad comp underperforms.
+
+### Do players develop or decline?
+
 Yes, players progress, peak, and fall off with age, and their overalls change accordingly season to season. New prospects regenerate each year, so rosters need active management.
 
-**Can I just sim, or actually watch the games?**
-You can do both! Blow through a season quickly, or open the live match view for a round-by-round play-by-play.
+### Can I just sim, or actually watch the games?
 
-**What's the replay value?**
+You can do both. Blow through a season quickly, or open the live match view for a round-by-round play-by-play.
+
+### What's the replay value?
+
 Different teams across four regions, custom leagues and a full editor, a transfer market with free agency and trades, players who rise and decline, regenerating prospects each season, and titles, awards, and records to chase year over year.
 
-**Is this connected to real VCT results?**
-Nope, it uses real team names with fictional, editable rosters. It is a simulation, not a results tracker.
+### Is this connected to real VCT results?
 
-**Do I need an account or internet?**
-Nope, it all runs entirely in your browser just like basketballgm. Free, no installations, no sign-up, and you can even play it on your flight if you have it loaded before (which I have done so myself haha). All saves stay on your device.
+No. It uses real team names with fictional, editable rosters. It is a simulation, not a results tracker.
+
+### Do I need an account or internet?
+
+Nope, it all runs entirely in your browser, just like basketballgm. Free, no installations, no sign-up, and you can play it on your flight if you have it loaded before (which I have done so myself haha). All saves stay on your device.
 
 ## Project structure
 
