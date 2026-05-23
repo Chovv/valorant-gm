@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { Team, Player, Role, Region } from '../../types';
 import { calculateTeamAttributes } from '../../sim/teamRatings';
 import { ALL_TEAMS, type TeamConfig, type PlayerConfig } from '../../data/teams';
+import './LeagueEditor.css';
 
 interface LeagueEditorProps {
   onSaveLeague: (teams: Team[]) => void;
@@ -332,7 +333,10 @@ export function LeagueEditor({ onSaveLeague, onCancel, existingTeams }: LeagueEd
         <div className="panel">
           <div className="panel-header">
             Teams
-            <button className="link-btn" style={{ marginLeft: 'auto' }} onClick={addTeam}>+ Add</button>
+            <button className="editor-add-btn" style={{ marginLeft: 'auto' }} onClick={addTeam}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              Add
+            </button>
           </div>
           <div className="panel-body" style={{ padding: 0, maxHeight: '500px', overflowY: 'auto' }}>
             {regionTeams.map((team, idx) => (
@@ -349,9 +353,10 @@ export function LeagueEditor({ onSaveLeague, onCancel, existingTeams }: LeagueEd
                   </span>
                 </div>
                 <button
-                  className="link-btn"
+                  className="editor-remove-btn"
                   onClick={(e) => { e.stopPropagation(); removeTeam(team.id); }}
-                  style={{ color: 'var(--danger)', fontSize: '12px' }}
+                  aria-label={`Remove ${team.abbreviation}`}
+                  title="Remove team"
                 >
                   ×
                 </button>

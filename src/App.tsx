@@ -2536,33 +2536,49 @@ export default function App() {
             {/* Left: Branding + Actions */}
             <div className="welcome-left">
               <div className="welcome-brand">
-                <h1>🎮 ValorantGM</h1>
-                <span className="welcome-version">v{APP_VERSION}</span>
+                <div className="welcome-logo">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="square">
+                    <line x1="12" y1="2" x2="12" y2="8" />
+                    <line x1="12" y1="16" x2="12" y2="22" />
+                    <line x1="2" y1="12" x2="8" y2="12" />
+                    <line x1="16" y1="12" x2="22" y2="12" />
+                    <circle cx="12" cy="12" r="1.6" fill="#fff" stroke="none" />
+                  </svg>
+                </div>
+                <div className="welcome-wordmark">
+                  <div className="welcome-title">VALORANT<span className="gm">GM</span></div>
+                  <div className="welcome-version">v{APP_VERSION}</div>
+                </div>
               </div>
-              <p className="welcome-tagline">Manage your VCT franchise</p>
+
+              <p className="welcome-tagline">Build a dynasty. Draft, trade, and coach your roster through a full VCT season — from Kickoff to Champions.</p>
 
               <div className="welcome-actions">
                 <button className="btn-start" onClick={handleStartSetup}>
+                  <svg viewBox="0 0 24 24" fill="#fff" stroke="none"><path d="M6 4l14 8-14 8V4z" /></svg>
                   Start New Game
                 </button>
                 <button
                   className="btn-start secondary"
                   onClick={() => setScreen("custom_league")}
                 >
-                  🎲 Custom League
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" /></svg>
+                  Custom League
                 </button>
                 <div className="welcome-actions-row">
                   <button
                     className="btn-start secondary"
                     onClick={() => setScreen("editor")}
                   >
-                    ✏️ League Editor
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                    League Editor
                   </button>
                   <button
                     className="btn-start secondary"
                     onClick={() => importFileRef.current?.click()}
                   >
-                    📥 Import JSON
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+                    Import JSON
                   </button>
                   <input
                     ref={importFileRef}
@@ -2575,7 +2591,18 @@ export default function App() {
               </div>
 
               <div className="welcome-footer">
-                ValorantGM is a fan project and is not affiliated with Riot Games or VALORANT.
+                <div className="footer-credit">
+                  <span>Made by William Chong</span>
+                  <span className="sep">·</span>
+                  <a href="https://github.com/Chovv" target="_blank" rel="noreferrer">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.09.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02.8-.22 1.65-.33 2.5-.34.85.01 1.7.12 2.5.34 1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85 0 1.34-.01 2.42-.01 2.75 0 .27.18.58.69.48A10.01 10.01 0 0 0 22 12c0-5.52-4.48-10-10-10z" /></svg>
+                    GitHub
+                  </a>
+                  <span className="sep">·</span>
+                  <a href="https://github.com/Chovv/valorant-gm" target="_blank" rel="noreferrer">Source</a>
+                </div>
+                <div className="footer-privacy">All saves are stored locally in your browser. Nothing is uploaded.</div>
+                <div className="footer-disclaimer">ValorantGM is an unofficial fan project. Not affiliated with or endorsed by Riot Games. VALORANT is a trademark of Riot Games, Inc.</div>
               </div>
             </div>
 
@@ -2588,7 +2615,10 @@ export default function App() {
 
               {saves.length === 0 ? (
                 <div className="saves-empty">
-                  <span className="saves-empty-icon">💾</span>
+                  <svg className="saves-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 12h4M8 10v4M15 13h.01M18 11h.01" />
+                    <path d="M17.32 5H6.68a4 4 0 0 0-3.98 3.59c-.06.6-.95 6.5-.95 7.91A2.5 2.5 0 0 0 4.25 19c1 0 1.5-.5 2-1l1.5-1.5h8.5l1.5 1.5c.5.5 1 1 2 1a2.5 2.5 0 0 0 2.5-2.5c0-1.41-.89-7.31-.95-7.91A4 4 0 0 0 17.32 5Z" />
+                  </svg>
                   <p>No saved games yet</p>
                   <span className="saves-empty-hint">Start a new game to begin your career</span>
                 </div>
@@ -2700,7 +2730,7 @@ export default function App() {
     return (
       <div className="app">
         <div className="custom-league-screen">
-          <h1>🎲 Custom League</h1>
+          <h1>Custom League</h1>
           <p className="custom-league-desc">Real VCT teams with fresh rosters. Pick a mode below.</p>
 
           <div className="custom-league-cards">
@@ -2912,7 +2942,7 @@ export default function App() {
       </div>
 
       <div className="top-bar">
-        <div className="top-bar-logo">🎮 ValorantGM <span className="app-version">v{APP_VERSION}</span></div>
+        <div className="top-bar-logo"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" strokeLinecap="square" style={{ stroke: "var(--accent)", strokeWidth: 2.5, verticalAlign: "-2px", marginRight: "7px" }}><line x1="12" y1="3" x2="12" y2="9" /><line x1="12" y1="15" x2="12" y2="21" /><line x1="3" y1="12" x2="9" y2="12" /><line x1="15" y1="12" x2="21" y2="12" /><circle cx="12" cy="12" r="1.5" style={{ fill: "var(--accent)" }} stroke="none" /></svg>ValorantGM <span className="app-version">v{APP_VERSION}</span></div>
         <div className="top-bar-info">
           <span className="top-bar-phase">
             {gameState.phase.replace(/_/g, ' ').toUpperCase()}

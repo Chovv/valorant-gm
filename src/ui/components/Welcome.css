@@ -28,31 +28,61 @@
 
 .welcome-brand {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
+  gap: 14px;
 }
 
-.welcome-brand h1 {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 48px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -1px;
+.welcome-logo {
+  width: 52px;
+  height: 52px;
+  background: var(--accent);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.welcome-logo svg {
+  width: 28px;
+  height: 28px;
+}
+
+.welcome-wordmark {
+  display: flex;
+  flex-direction: column;
   line-height: 1;
 }
 
+.welcome-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  line-height: 0.95;
+}
+
+.welcome-title .gm {
+  color: var(--accent);
+}
+
 .welcome-version {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text-muted);
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: 7px;
 }
 
 .welcome-tagline {
   color: var(--text-secondary);
-  font-size: 16px;
-  margin-top: 8px;
-  margin-bottom: 40px;
+  font-size: 14px;
+  margin-top: 16px;
+  margin-bottom: 36px;
+  max-width: 360px;
+  line-height: 1.5;
 }
 
 /* Actions */
@@ -91,6 +121,18 @@
   background: var(--accent-hover);
 }
 
+.btn-start svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.btn-start.secondary svg {
+  width: 15px;
+  height: 15px;
+  opacity: 0.75;
+}
+
 .btn-start.secondary {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -106,7 +148,51 @@
 
 /* Footer */
 .welcome-footer {
-  margin-top: 48px;
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.footer-credit {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.footer-credit .sep {
+  color: var(--text-dark);
+}
+
+.footer-credit a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s ease;
+}
+
+.footer-credit a:hover {
+  color: var(--accent);
+}
+
+.footer-credit a svg {
+  width: 13px;
+  height: 13px;
+}
+
+.footer-privacy {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.footer-disclaimer {
   font-size: 11px;
   color: var(--text-dark);
   line-height: 1.5;
@@ -153,21 +239,25 @@
   justify-content: center;
   padding: 48px 24px;
   background: var(--bg-card);
-  border: 1px dashed var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   text-align: center;
 }
 
 .saves-empty-icon {
-  font-size: 32px;
+  width: 38px;
+  height: 38px;
+  color: var(--text-muted);
   margin-bottom: 12px;
-  opacity: 0.4;
+  opacity: 0.7;
 }
 
 .saves-empty p {
-  font-size: 14px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-secondary);
+  letter-spacing: 0.5px;
   margin-bottom: 4px;
 }
 
@@ -760,8 +850,8 @@
 }
 
 @media (max-width: 600px) {
-  .welcome-brand h1 {
-    font-size: 36px;
+  .welcome-title {
+    font-size: 34px;
   }
 
   .welcome-actions-row {

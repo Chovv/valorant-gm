@@ -1,0 +1,72 @@
+/* Base text button (used by Close / Cancel links in the import-export panel) */
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.link-btn:hover {
+  color: var(--accent-hover);
+}
+
+/* "+ Add" action sitting in a panel header */
+.editor-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-family: "Rajdhani", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 11px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.editor-add-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+.editor-add-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* "×" remove button on each team row — muted, reddens on hover */
+.editor-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.editor-remove-btn:hover {
+  background: rgba(255, 70, 85, 0.14);
+  color: var(--danger);
+}
