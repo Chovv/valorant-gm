@@ -1,4 +1,4 @@
-# Valogm — VALORANT Esports Manager
+# ValoGM — VALORANT Esports Manager
 
 A browser-based esports management sim. You take over a professional VALORANT team and run it across full competitive seasons, from regional Kickoff through international Champions.
 
@@ -6,13 +6,13 @@ Inspired by [Basketball GM](https://basketball-gm.com/) by dumbmatter.
 
 **Stack:** React · TypeScript · Vite · Zustand · seeded RNG (`seedrandom`) · `localStorage` saves
 
-## The idea
+## The Idea
 
-I've always been drawn to roster management games for competitive sports, and to the what-ifs of building and running a team. This project is my version of that itch, pointed at VALORANT, a tactical-shooter game. The whole thing is built around an engine that plays each match out round by round, the same way a real game unfolds, so that results come from _how_ a match is played rather than a coin flip on team rating.
+I've always been drawn to roster management games for competitive sports, and to the what-ifs of building and running a team. This elaborate project is my version of that itch, pointed at VALORANT, a tactical-shooter game. The whole thing is built around an engine that plays each match out round by round, the same way a real game unfolds, so that results come from _how_ a match is played rather than a coin flip on team rating.
 
 That one decision shapes everything else. Because matches are simulated in detail, economy matters, agent picks matter, who your in-game leader is matters, and a worse team on a good day can take down a favorite. The front office (drafting, trading, developing players) then sits on top of a simulation that actually rewards good roster-building over a season.
 
-## How a match plays out
+## How A Match Plays Out
 
 A match is a series of maps, and each map is a series of rounds. Every round, the engine works through what really decides a VALORANT round:
 
@@ -20,7 +20,7 @@ First it looks at each team's **economy and buy state** (full buy, half, force, 
 
 Rounds add up to maps, maps to series, series to tournaments, and a full season of those produces champions, award winners, and record-book entries.
 
-The randomness is controlled, not chaotic. Everything random flows through a single **seeded RNG** which means a given save reproduces exactly while two separate playthroughs diverge into their own stories. The models behind the scenes:
+The randomness is controlled, not chaotic though. Everything random flows through a single **seeded RNG** which means a given save reproduces exactly while two separate playthroughs diverge into their own stories. The models behind the scenes:
 
 - **pIndex:** per-player, per-round score from overall, aim, role fit, clutch, IGL bonus, composition, and buy state
 - **Win probability:** estimated from each team's aggregate pIndex to set series odds
@@ -31,19 +31,19 @@ The randomness is controlled, not chaotic. Everything random flows through a sin
 
 ![Live match](./demo/live.png)
 
-## Running the front office
+## Running The Front Office
 
 Winning once is roster-building. Winning over years is management. Players progress, peak, and decline with age, and their overalls shift accordingly season to season, so the roster you assemble today will need refreshing later. New prospects regenerate every year, and a transfer market with free agency, trades, and scouting gives you the levers to keep up. There is no "set it and forget it" dynasty.
 
 ![Roster management](./demo/roster.png)
 
-## The season
+## The Season
 
 You can play any team across the four regions (Americas, EMEA, Pacific, and China) through the full VCT-style calendar: Kickoff brackets, Stage group stages and playoffs, international events, and Champions. Championship points carry across events, and an all-time records book persists from season to season.
 
 ![Bracket](./demo/bracket.png)
 
-## Make it your own
+## Make it Your Own
 
 If you would rather not take the league as given, the League Editor lets you edit every team, roster, and player rating before you start. Custom League hands you real teams with fresh randomized rosters for a clean slate, and any league can be exported or imported as JSON to save and share setups.
 
