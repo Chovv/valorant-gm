@@ -33,3 +33,8 @@ Thumbs.db
 
 # PWA dev
 dev-dist
+
+# Local junk
+*.zip
+.claude/
+saves/
