@@ -15,8 +15,10 @@ import './PlayerEditModal.css';
 interface PlayerEditModalProps {
   player: Player;
   team: Team;
+  mapPool?: string[];
   onSave: (updatedPlayer: Player) => void;
   onClose: () => void;
+  onDelete?: (playerId: string) => void;
 }
 
 type EditTab = 'ratings' | 'personality' | 'info' | 'agents';
@@ -33,9 +35,9 @@ const ROLE_ICONS: Record<Role, string> = {
 // All agents organized by role (complete list)
 const ALL_AGENTS: Record<Role, string[]> = {
   duelist: ['jett', 'raze', 'phoenix', 'reyna', 'yoru', 'neon', 'iso', 'waylay'],
-  controller: ['omen', 'brimstone', 'astra', 'viper', 'harbor', 'clove'],
+  controller: ['omen', 'brimstone', 'astra', 'harbor', 'clove', 'viper'],
   initiator: ['sova', 'breach', 'skye', 'kayo', 'fade', 'gekko', 'tejo'],
-  sentinel: ['killjoy', 'cypher', 'sage', 'chamber', 'deadlock', 'vyse', 'veto'],
+  sentinel: ['killjoy', 'cypher', 'sage', 'chamber', 'deadlock', 'viper', 'vyse', 'veto'],
   flex: [],
 };
 
@@ -89,12 +91,15 @@ const calculateOvrFromRatings = (ratings: Player['ratings'], archetype: Player['
 export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
   player,
   team,
+  mapPool = [],
   onSave,
   onClose,
+  onDelete,
 }) => {
   const [activeTab, setActiveTab] = useState<EditTab>('ratings');
   const [editedPlayer, setEditedPlayer] = useState<Player>(() => clonePlayer(player));
   const [hasChanges, setHasChanges] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const lineup: StartingSlot[] = team.startingLineup || 
     team.roster.slice(0, 5).map(p => ({ playerId: p.id, assignedRole: p.role }));
@@ -167,7 +172,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
     } else if (key === 'imageUrl') {
       setEditedPlayer(prev => ({ ...prev, imageUrl: String(value).trim() || undefined }));
     } else if (key === 'age') {
-      setEditedPlayer(prev => ({ ...prev, age: Math.max(16, Math.min(40, Number(value))) }));
+      setEditedPlayer(prev => ({ ...prev, age: Number(value) || 0 }));
     } else if (key === 'role') {
       const newRole = value as Role;
       const agents = AGENT_POOLS[newRole] || AGENT_POOLS.duelist;
@@ -186,7 +191,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
     } else if (key === 'peakAge') {
       setEditedPlayer(prev => ({
         ...prev,
-        development: { ...prev.development, peakAge: Math.max(18, Math.min(35, Number(value))) },
+        development: { ...prev.development, peakAge: Number(value) || 0 },
       }));
     } else if (key === 'potentialFloor') {
       setEditedPlayer(prev => ({
@@ -239,7 +244,7 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
   };
 
   return (
-    <div className="pem-overlay" onClick={onClose}>
+    <div className="pem-overlay">
       <div className="pem-modal" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="pem-header">
@@ -381,16 +386,47 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                   );
                 })}
               </div>
+
+              {/* Consistency - separate from skill ratings */}
+              <div className="pem-consistency-section" style={{ marginTop: '16px', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                <div className="pem-personality-header">
+                  <span className="pem-personality-icon">🎲</span>
+                  <div className="pem-personality-info">
+                    <span className="pem-personality-label">Consistency</span>
+                    <span className="pem-personality-desc">Match-day reliability — low = feast or famine, high = rock solid</span>
+                  </div>
+                </div>
+                <div className="pem-personality-control">
+                  <input
+                    type="range"
+                    min={0}
+                    max={99}
+                    value={editedPlayer.consistency ?? 65}
+                    onChange={e => setEditedPlayer(prev => ({ ...prev, consistency: Number(e.target.value) }))}
+                    className={`pem-slider ${getGradeClassFromValue(editedPlayer.consistency ?? 65)}`}
+                  />
+                  <div className="pem-personality-values">
+                    <span className={`pem-grade ${getGradeClassFromValue(editedPlayer.consistency ?? 65)}`}>{toLetterGrade(editedPlayer.consistency ?? 65)}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={99}
+                      value={editedPlayer.consistency ?? 65}
+                      onChange={e => setEditedPlayer(prev => ({ ...prev, consistency: Math.max(0, Math.min(99, Number(e.target.value))) }))}
+                      className="pem-rating-num"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Personality Tab */}
           {activeTab === 'personality' && (
             <div className="pem-personality">
               {[
                 { key: 'leadership' as const, label: 'Leadership', icon: '👑', desc: 'Ability to lead and inspire teammates' },
                 { key: 'workEthic' as const, label: 'Work Ethic', icon: '💪', desc: 'Dedication to practice and improvement' },
-                { key: 'mentality' as const, label: 'Mentality', icon: '🧘', desc: 'Mental fortitude under pressure' },
+                { key: 'mentality' as const, label: 'Mentality', icon: '🧘', desc: 'Mental fortitude — affects playoff performance (Big Stage)' },
                 { key: 'teamPlayer' as const, label: 'Team Player', icon: '🤝', desc: 'Willingness to sacrifice for the team' },
                 { key: 'coachability' as const, label: 'Coachability', icon: '📚', desc: 'Receptiveness to feedback and coaching' },
               ].map(({ key, label, icon, desc }) => {
@@ -458,6 +494,64 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                     />
                     <span className="pem-input-hint">Leave empty for auto-generated avatar</span>
                   </div>
+                  <div className="pem-info-item">
+                    <label>Signature Gun</label>
+                    <select
+                      value={editedPlayer.gunPref || ''}
+                      onChange={e => { setEditedPlayer(prev => ({ ...prev, gunPref: e.target.value || undefined })); setHasChanges(true); }}
+                      className="pem-select"
+                    >
+                      <option value="">None</option>
+                      <option value="Vandal">Vandal</option>
+                      <option value="Phantom">Phantom</option>
+                      <option value="Operator">Operator</option>
+                      <option value="Odin">Odin</option>
+                      <option value="Ares">Ares</option>
+                      <option value="Guardian">Guardian</option>
+                      <option value="Outlaw">Outlaw</option>
+                      <option value="Bulldog">Bulldog</option>
+                      <option value="Marshal">Marshal</option>
+                      <option value="Judge">Judge</option>
+                      <option value="Bucky">Bucky</option>
+                      <option value="Spectre">Spectre</option>
+                      <option value="Stinger">Stinger</option>
+                      <option value="Sheriff">Sheriff</option>
+                      <option value="Ghost">Ghost</option>
+                      <option value="Frenzy">Frenzy</option>
+                      <option value="Classic">Classic</option>
+                      <option value="Shorty">Shorty</option>
+                    </select>
+                  </div>
+                  {editedPlayer.contract === null && (
+                    <div className="pem-info-item pem-info-full">
+                      <label>IGL Candidate</label>
+                      <div className="pem-toggle-row">
+                        <button
+                          type="button"
+                          className={`pem-toggle-btn ${editedPlayer.isIGL ? 'active' : ''}`}
+                          onClick={() => setEditedPlayer(prev => ({ ...prev, isIGL: !prev.isIGL }))}
+                        >
+                          {editedPlayer.isIGL ? '★ IGL' : '☆ Not IGL'}
+                        </button>
+                        <span className="pem-input-hint">Mark this free agent as a known in-game leader</span>
+                      </div>
+                    </div>
+                  )}
+                  {editedPlayer.contract === null && (
+                    <div className="pem-info-item pem-info-full">
+                      <label>Retirement Status</label>
+                      <div className="pem-toggle-row">
+                        <button
+                          type="button"
+                          className={`pem-toggle-btn ${editedPlayer.retired ? 'danger' : ''}`}
+                          onClick={() => { setEditedPlayer(prev => ({ ...prev, retired: !prev.retired })); setHasChanges(true); }}
+                        >
+                          {editedPlayer.retired ? '🚪 Retired' : '🎮 Active'}
+                        </button>
+                        <span className="pem-input-hint">Retired players are removed from the FA pool at season end</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -470,8 +564,6 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                       type="number"
                       value={editedPlayer.age}
                       onChange={e => handleInfoChange('age', e.target.value)}
-                      min={16}
-                      max={40}
                     />
                   </div>
                   <div className="pem-info-item">
@@ -490,8 +582,6 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
                       type="number"
                       value={editedPlayer.development.peakAge}
                       onChange={e => handleInfoChange('peakAge', e.target.value)}
-                      min={18}
-                      max={35}
                     />
                   </div>
                   <div className="pem-info-item">
@@ -643,6 +733,8 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
             </div>
           )}
 
+
+
           {/* Agents Tab */}
           {activeTab === 'agents' && (
             <div className="pem-agents">
@@ -713,10 +805,28 @@ export const PlayerEditModal: React.FC<PlayerEditModalProps> = ({
 
         {/* Footer */}
         <div className="pem-footer">
-          <button className="pem-btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="pem-btn-save" onClick={() => onSave(editedPlayer)} disabled={!hasChanges}>
-            Save Changes
-          </button>
+          {onDelete && (
+            <button
+              className={`pem-btn-delete ${confirmDelete ? 'confirming' : ''}`}
+              onClick={() => {
+                if (confirmDelete) {
+                  onDelete(player.id);
+                  onClose();
+                } else {
+                  setConfirmDelete(true);
+                }
+              }}
+              onBlur={() => setConfirmDelete(false)}
+            >
+              {confirmDelete ? 'Confirm Delete?' : 'Delete Player'}
+            </button>
+          )}
+          <div className="pem-footer-right">
+            <button className="pem-btn-cancel" onClick={onClose}>Cancel</button>
+            <button className="pem-btn-save" onClick={() => onSave(editedPlayer)} disabled={!hasChanges}>
+              Save Changes
+            </button>
+          </div>
         </div>
       </div>
     </div>

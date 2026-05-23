@@ -3,11 +3,14 @@
 
 import type { Player } from './player';
 import type { StartingSlot } from './roster';
+import type { LanguageGroup } from '../utils/languageGroups';
 
 /**
  * Team regions for league structure
  */
 export type Region = 'americas' | 'emea' | 'pacific' | 'china';
+
+export type CoachSpecialty = 'development' | 'tactical' | 'mental';
 
 /**
  * Staff member interface
@@ -16,6 +19,8 @@ export interface StaffMember {
   id: string;
   name: string;
   rating: number; // 0-100 effectiveness
+  nationality?: string;
+  specialty?: CoachSpecialty[];
 }
 
 /**
@@ -56,6 +61,7 @@ export interface Team {
   abbreviation: string;  // e.g., "SEN", "LOUD"
   logo: string;
   region: Region;
+  homeLang?: LanguageGroup; // anchored at creation, never drifts with roster turnover
 
   roster: Player[];               // Full roster (up to 10 players)
   startingLineup?: StartingSlot[]; // 5 starters with assigned roles (optional - defaults to first 5 with natural roles)

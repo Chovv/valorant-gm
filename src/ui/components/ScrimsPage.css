@@ -202,6 +202,9 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .dev-player-role {
@@ -581,16 +584,124 @@
   margin: 0 0 4px 0;
 }
 
+.scrim-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.scrim-section-header h3 {
+  margin: 0;
+}
+
+.scrim-section-header p {
+  margin: 4px 0 0 0;
+}
+
+.btn-add-academy {
+  padding: 6px 12px;
+  background: var(--success);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-add-academy:hover {
+  background: #0ab89b;
+  transform: translateY(-1px);
+}
+
 .scrim-section-desc {
   font-size: 12px;
   color: var(--text-muted);
-  margin: 0 0 12px 0;
+  margin: 0;
+}
+
+.scrim-section > .scrim-section-desc {
+  margin-bottom: 12px;
 }
 
 .scrim-opponent-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.scrim-opponent-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.scrim-opponent-row .scrim-opponent-btn {
+  flex: 1;
+}
+
+.scrim-opponent-row.custom .scrim-opponent-btn {
+  border-color: var(--success);
+  border-width: 1px;
+  border-style: dashed;
+}
+
+.academy-dev-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.btn-edit-academy,
+.btn-delete-academy {
+  width: 32px;
+  height: calc(50% - 2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.btn-edit-academy:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+.btn-delete-academy:hover {
+  background: rgba(255, 70, 85, 0.1);
+  border-color: var(--danger);
+}
+
+.btn-delete-academy.confirm {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}
+
+.custom-badge {
+  padding: 2px 6px;
+  background: rgba(10, 200, 185, 0.15);
+  border-radius: var(--radius-sm);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--success);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.no-opponents {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 16px;
+  margin: 0;
 }
 
 .scrim-opponent-btn {
@@ -772,6 +883,9 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .scrim-detail-player-header .player-role {

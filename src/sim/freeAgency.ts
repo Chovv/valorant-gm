@@ -2,9 +2,13 @@
 // Free agency system for ValorantGM
 
 import type { Player, Role, PlayerArchetype } from '../types';
+import type { Region } from '../types/team';
 import type { RNG } from '../utils/random';
 import { randomInt } from '../utils/random';
 import { FREE_AGENTS, type PlayerConfig } from '../data/teams';
+import { drawName, type NamePoolCtx } from './namePool';
+
+export type { NamePoolCtx };
 
 // First names for random player generation
 const FIRST_NAMES = [
@@ -44,11 +48,42 @@ function generateGamerTag(rng: RNG): string {
 
 const ROLES: Role[] = ['duelist', 'controller', 'initiator', 'sentinel', 'flex'];
 
+// weighted nationality pools per region — mirrors REGION_NATIONALITIES in MassPlayerEditor
+const REGION_NAT_WEIGHTS: Record<Region, { code: string; w: number }[]> = {
+  americas: [
+    { code: 'BR', w: 35 }, { code: 'US', w: 25 }, { code: 'CL', w: 10 }, { code: 'AR', w: 10 },
+    { code: 'MX', w: 5 }, { code: 'CA', w: 5 }, { code: 'CO', w: 3 }, { code: 'PE', w: 3 },
+    { code: 'UY', w: 2 }, { code: 'PR', w: 2 },
+  ],
+  emea: [
+    { code: 'TR', w: 18 }, { code: 'RU', w: 13 }, { code: 'SE', w: 7 }, { code: 'FR', w: 7 },
+    { code: 'FI', w: 5 }, { code: 'ES', w: 5 }, { code: 'DE', w: 4 }, { code: 'PL', w: 4 },
+    { code: 'UA', w: 4 }, { code: 'DK', w: 3 }, { code: 'GB', w: 4 }, { code: 'IL', w: 3 },
+    { code: 'CZ', w: 3 }, { code: 'LV', w: 3 }, { code: 'GE', w: 2 }, { code: 'KZ', w: 2 },
+    { code: 'MA', w: 3 }, { code: 'IT', w: 3 }, { code: 'PT', w: 2 }, { code: 'BA', w: 2 },
+    { code: 'RS', w: 2 }, { code: 'LT', w: 1 },
+  ],
+  pacific: [
+    { code: 'KR', w: 25 }, { code: 'JP', w: 15 }, { code: 'PH', w: 15 }, { code: 'ID', w: 12 },
+    { code: 'TH', w: 8 }, { code: 'SG', w: 5 }, { code: 'IN', w: 5 }, { code: 'AU', w: 5 },
+    { code: 'VN', w: 5 }, { code: 'MY', w: 3 }, { code: 'TW', w: 2 },
+  ],
+  china: [{ code: 'CN', w: 95 }, { code: 'HK', w: 3 }, { code: 'MO', w: 2 }],
+};
+
+export function pickNat(rng: RNG, region: Region): string {
+  const pool = REGION_NAT_WEIGHTS[region];
+  const total = pool.reduce((s, x) => s + x.w, 0);
+  let r = rng() * total;
+  for (const { code, w } of pool) { r -= w; if (r <= 0) return code; }
+  return pool[pool.length - 1].code;
+}
+
 /**
  * Convert a PlayerConfig from teams.ts to a full Player object
  */
-export function convertPlayerConfigToPlayer(config: PlayerConfig, rng: RNG): Player {
-  const { name, role, overall, aim, utility, gameSense, clutch, age, agents } = config;
+export function convertPlayerConfigToPlayer(config: PlayerConfig, rng: RNG, disabledAgents?: string[]): Player {
+  const { name, role, overall, aim, utility, gameSense, clutch, age, agents, consistency: configConsistency } = config;
   
   // Calculate potential based on age
   let ceilingBonus = 0;
@@ -64,7 +99,7 @@ export function convertPlayerConfigToPlayer(config: PlayerConfig, rng: RNG): Pla
   const peakAge = age <= 20 ? randomInt(rng, 23, 27) : randomInt(rng, 22, 26);
   
   // Generate agent pool - use provided agents or generate for role
-  const agentPool = agents || generateAgentPoolForRole(rng, role);
+  const agentPool = agents || generateAgentPoolForRole(rng, role, disabledAgents);
 
   return {
     id: `fa_${name.toLowerCase().replace(/[^a-z0-9]/g, '')}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
@@ -89,6 +124,7 @@ export function convertPlayerConfigToPlayer(config: PlayerConfig, rng: RNG): Pla
     },
     
     overall,
+    consistency: configConsistency ?? randomInt(rng, 45, 85),
     
     development: {
       peakAge,
@@ -125,6 +161,9 @@ export function generateFreeAgent(
     minOverall?: number;
     maxOverall?: number;
     role?: Role;
+    region?: Region;
+    disabledAgents?: string[];
+    namePool?: NamePoolCtx | null;
   }
 ): Player {
   const {
@@ -133,6 +172,9 @@ export function generateFreeAgent(
     minOverall = 55,
     maxOverall = 82,
     role,
+    region,
+    disabledAgents,
+    namePool,
   } = options || {};
 
   const age = randomInt(rng, minAge, maxAge);
@@ -180,11 +222,19 @@ export function generateFreeAgent(
   const peakAge = age <= 20 ? randomInt(rng, 23, 27) : randomInt(rng, 22, 26);
 
   // Generate agent pool for role
-  const agentPool = generateAgentPoolForRole(rng, playerRole);
+  const agentPool = generateAgentPoolForRole(rng, playerRole, disabledAgents);
+
+  // resolve nationality before name so we can use it for pool lookup
+  const nationality = region ? pickNat(rng, region) : undefined;
+
+  // try esports name pool first, fall back to random gamer tag
+  let name = namePool ? drawName(rng, namePool.used, nationality, region) : null;
+  if (!name) name = generateGamerTag(rng);
+  if (namePool) namePool.used.add(name);
 
   return {
     id: `fa_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    name: generateGamerTag(rng),
+    name,
     age,
     role: playerRole,
     background: 'unknown_talent',
@@ -205,6 +255,7 @@ export function generateFreeAgent(
     },
     
     overall: baseOverall,
+    consistency: randomInt(rng, 40, 85),
     
     development: {
       peakAge,
@@ -222,6 +273,7 @@ export function generateFreeAgent(
     
     contract: null, // Free agent
     agentPool,
+    nationality,
     
     draftYear: null,
     draftPick: null,
@@ -244,14 +296,16 @@ function getDefaultArchetype(role: Role): PlayerArchetype {
 // Agent pools by role
 export const AGENT_POOLS: Record<Role, string[]> = {
   duelist: ['jett', 'raze', 'phoenix', 'reyna', 'yoru', 'neon', 'iso', 'waylay'],
-  controller: ['omen', 'brimstone', 'astra', 'viper', 'harbor', 'clove'],
+  controller: ['omen', 'brimstone', 'astra', 'harbor', 'clove', 'viper'],
   initiator: ['sova', 'breach', 'skye', 'kayo', 'fade', 'gekko', 'tejo'],
-  sentinel: ['killjoy', 'cypher', 'sage', 'chamber', 'deadlock', 'vyse', 'veto'],
+  sentinel: ['killjoy', 'cypher', 'sage', 'chamber', 'deadlock', 'viper', 'vyse', 'veto'],
   flex: ['jett', 'raze', 'omen', 'sova', 'skye', 'killjoy', 'chamber'],
 };
 
-export function generateAgentPoolForRole(rng: RNG, role: Role): Record<string, number> {
-  const agents = AGENT_POOLS[role] || AGENT_POOLS.duelist;
+export function generateAgentPoolForRole(rng: RNG, role: Role, disabledAgents?: string[]): Record<string, number> {
+  let agents = AGENT_POOLS[role] || AGENT_POOLS.duelist;
+  if (disabledAgents?.length) agents = agents.filter(a => !disabledAgents.includes(a));
+  if (agents.length === 0) agents = AGENT_POOLS[role] || AGENT_POOLS.duelist; // fallback if all disabled
   const pool: Record<string, number> = {};
   
   // Pick 2-3 agents with priority values
@@ -276,12 +330,14 @@ export function generateAgentPoolForRole(rng: RNG, role: Role): Record<string, n
  * Generate initial free agent pool using predefined FREE_AGENTS from teams.ts
  * Falls back to random generation if needed
  */
-export function generateFreeAgentPool(rng: RNG, count: number = 75): Player[] {
+export function generateFreeAgentPool(rng: RNG, count: number = 75, disabledAgents?: string[], namePool?: NamePoolCtx | null): Player[] {
   const freeAgents: Player[] = [];
   
   // First, convert all predefined free agents
   for (const config of FREE_AGENTS) {
-    freeAgents.push(convertPlayerConfigToPlayer(config, rng));
+    const p = convertPlayerConfigToPlayer(config, rng, disabledAgents);
+    if (namePool) namePool.used.add(p.name); // track config names to avoid dupes
+    freeAgents.push(p);
   }
   
   // If we need more players, generate random ones to fill the gap
@@ -290,35 +346,19 @@ export function generateFreeAgentPool(rng: RNG, count: number = 75): Player[] {
     const youngCount = Math.floor(remainingCount * 0.5);
     const midCount = Math.floor(remainingCount * 0.3);
     const vetCount = remainingCount - youngCount - midCount;
-    
-    // Young prospects
+
+    // regional distribution: americas 30%, emea 35%, pacific 25%, china 10%
+    const regions: Region[] = ['americas', 'americas', 'americas', 'emea', 'emea', 'emea', 'emea', 'pacific', 'pacific', 'pacific', 'china'];
+    const pickRegion = (i: number) => regions[i % regions.length];
+
     for (let i = 0; i < youngCount; i++) {
-      freeAgents.push(generateFreeAgent(rng, {
-        minAge: 17,
-        maxAge: 20,
-        minOverall: 55,
-        maxOverall: 72,
-      }));
+      freeAgents.push(generateFreeAgent(rng, { minAge: 17, maxAge: 20, minOverall: 55, maxOverall: 72, region: pickRegion(i), disabledAgents, namePool }));
     }
-    
-    // Mid-tier players
     for (let i = 0; i < midCount; i++) {
-      freeAgents.push(generateFreeAgent(rng, {
-        minAge: 20,
-        maxAge: 26,
-        minOverall: 62,
-        maxOverall: 78,
-      }));
+      freeAgents.push(generateFreeAgent(rng, { minAge: 20, maxAge: 26, minOverall: 62, maxOverall: 78, region: pickRegion(i), disabledAgents, namePool }));
     }
-    
-    // Veterans
     for (let i = 0; i < vetCount; i++) {
-      freeAgents.push(generateFreeAgent(rng, {
-        minAge: 26,
-        maxAge: 32,
-        minOverall: 58,
-        maxOverall: 76,
-      }));
+      freeAgents.push(generateFreeAgent(rng, { minAge: 26, maxAge: 32, minOverall: 58, maxOverall: 76, region: pickRegion(i), disabledAgents, namePool }));
     }
   }
   
@@ -416,20 +456,29 @@ export function refreshFreeAgentPool(
   rng: RNG,
   currentFreeAgents: Player[],
   retireCount: number = 10,
-  newCount: number = 15
+  newCount: number = 15,
+  disabledAgents?: string[],
+  namePool?: NamePoolCtx | null,
 ): Player[] {
-  // Retire some older/lower rated players
-  const sorted = [...currentFreeAgents].sort((a, b) => {
-    // Sort by combination of age and overall (older + lower = more likely to retire)
-    const scoreA = a.age * 2 - a.overall;
-    const scoreB = b.age * 2 - b.overall;
+  // hard-retire players who are old, peaked, and below VCT-quality floor — they won't get signed anyway
+  // always remove explicitly retired players; also auto-cull declining vets who haven't been flagged
+  const hardRetire = (p: Player) => p.retired || (p.age >= 29 && (p.potential.ceiling - p.overall) < 5 && p.overall < 73);
+  const afterHardRetire = currentFreeAgents.filter(p => !hardRetire(p));
+
+  // soft cull: sort remaining by desirability (older + lower ceiling = more likely to go)
+  const sorted = [...afterHardRetire].sort((a, b) => {
+    const isProtected = (p: Player) => !p.retired && (p.age <= 21 && p.potential.ceiling >= 83);
+    const scoreA = a.age * 2 - a.overall - (isProtected(a) ? 30 : 0);
+    const scoreB = b.age * 2 - b.overall - (isProtected(b) ? 30 : 0);
     return scoreB - scoreA;
   });
+
+  const alreadyCulled = currentFreeAgents.length - afterHardRetire.length;
+  const softCullCount = Math.max(0, retireCount - alreadyCulled);
+  const remaining = sorted.slice(softCullCount);
   
-  // Remove the "worst" players (highest age, lowest overall)
-  const remaining = sorted.slice(retireCount);
-  
-  // Add new young players
+  // Add new young players distributed across regions
+  const regions: Region[] = ['americas', 'americas', 'americas', 'emea', 'emea', 'emea', 'emea', 'pacific', 'pacific', 'pacific', 'china'];
   const newPlayers: Player[] = [];
   for (let i = 0; i < newCount; i++) {
     newPlayers.push(generateFreeAgent(rng, {
@@ -437,6 +486,9 @@ export function refreshFreeAgentPool(
       maxAge: 21,
       minOverall: 55,
       maxOverall: 72,
+      region: regions[i % regions.length],
+      disabledAgents,
+      namePool,
     }));
   }
   

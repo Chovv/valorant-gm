@@ -2,7 +2,7 @@
 // Comprehensive player detail page with ratings, stats, potential, and career history
 
 import { useState, useMemo } from 'react';
-import type { Player, Team, Role } from '../../types';
+import type { Player, Team, Role, PlayerAwardType } from '../../types';
 import { toLetterGrade, getGradeClass } from '../../utils/letterGrade';
 import { ALL_ARCHETYPES } from '../../data/archetypes';
 import { PlayerStatsTable } from './PlayerStatsTable';
@@ -129,6 +129,41 @@ export function PlayerDetailPage({
 
   const isIGL = team.iglId === player.id;
 
+  // group awards by type for display
+  const AWARD_LABELS: Record<PlayerAwardType, string> = {
+    world_champion: 'Won Championship',
+    kickoff_champion: 'Kickoff Champion',
+    finals_mvp: 'Finals MVP',
+    season_mvp: 'Season MVP',
+    rookie_of_year: 'Rising Star',
+    best_duelist: 'Best Duelist',
+    best_controller: 'Best Controller',
+    best_initiator: 'Best Initiator',
+    best_sentinel: 'Best Sentinel',
+    all_vct_first: 'All-VCT First Team',
+    all_vct_second: 'All-VCT Second Team',
+    clutch_king: 'Clutch King',
+    entry_fragger: 'Entry Fragger of the Year',
+  };
+
+  const groupedAwards = useMemo(() => {
+    if (!player.awards?.length) return [];
+    const groups = new Map<PlayerAwardType, number[]>();
+    for (const a of player.awards) {
+      const years = groups.get(a.type) || [];
+      years.push(a.year);
+      groups.set(a.type, years);
+    }
+    return Array.from(groups.entries()).map(([type, years]) => {
+      years.sort((a, b) => a - b);
+      const count = years.length;
+      const range = count === 1
+        ? `(${years[0]})`
+        : `(${years[0]}-${years[years.length - 1]})`;
+      return { type, count, range, label: AWARD_LABELS[type] || type };
+    });
+  }, [player.awards]);
+
   return (
     <div className="player-detail-page">
       {/* Back Button */}
@@ -143,6 +178,7 @@ export function PlayerDetailPage({
             playerId={player.id}
             playerName={player.name}
             imageUrl={player.imageUrl}
+            nationality={player.nationality}
             size="xl"
             className="player-avatar-hero rectangular"
           />
@@ -156,6 +192,7 @@ export function PlayerDetailPage({
                 <span className="team-name">{team.name}</span>
                 <span className="player-age">Age {player.age}</span>
                 {isIGL && <span className="igl-badge">IGL</span>}
+                {player.gunPref && <span className="gun-pref-badge">{player.gunPref}</span>}
               </div>
               <div className="archetype-tag">
                 {ALL_ARCHETYPES[player.archetype]?.name || player.archetype.replace(/_/g, ' ')}
@@ -251,6 +288,22 @@ export function PlayerDetailPage({
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="overview-grid">
+            {/* Awards Card (only if player has awards) */}
+            {groupedAwards.length > 0 && (
+              <div className="detail-card awards-card" style={{ gridColumn: '1 / -1' }}>
+                <h3>Awards</h3>
+                <div className="player-awards-list">
+                  {groupedAwards.map(({ type, count, range, label }) => (
+                    <div key={type} className="player-award-row">
+                      <span className="player-award-text">
+                        {count > 1 && <span className="player-award-count">{count}x</span>}
+                        {label} {range}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Potential Card */}
             <div className="detail-card potential-card">
               <h3>Potential</h3>
@@ -482,6 +535,14 @@ export function PlayerDetailPage({
                     return `${worst.label} (${player.ratings[worst.key]})`;
                   })()}
                 </span>
+              </div>
+              <div className="summary-item" title="Match-day form variance: high = reliable, low = boom-or-bust">
+                <span className="summary-label">🎲 Consistency</span>
+                <span className="summary-value">{player.consistency ?? '—'}</span>
+              </div>
+              <div className="summary-item" title="Playoff performance modifier: high = clutch under pressure">
+                <span className="summary-label">🏆 Big Stage</span>
+                <span className="summary-value">{player.personality?.mentality ?? '—'}</span>
               </div>
             </div>
           </div>

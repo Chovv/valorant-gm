@@ -1,13 +1,98 @@
 // src/sim/scrims.ts
 // Scrim system logic for player development
 
-import type { Team, Player, Ratings, Region } from '../types';
+import type { Team, Player, Ratings, Region, Role, AgentPool } from '../types';
 import type { RNG } from '../utils/random';
+import { coachMod, specMod } from './coachBonus';
 import type { ScrimResult, ScrimStatChange, SeasonStartStats, FatigueLevel, Tier2Team } from '../types/scrims';
-import { TIER2_TEAMS, getFatigueLevel } from '../types/scrims';
+import { getFatigueLevel } from '../types/scrims';
 import { simulateMatch } from './matchSim';
 import { generatePlayer } from './playerGenerator';
 import { calculateTeamAttributes } from './teamRatings';
+import { getAgentsForRole } from '../data/agents';
+
+/**
+ * Generate a proper agent pool with exactly one of each priority (1, 2, 3)
+ * for a given role
+ */
+function generateAgentPool(rng: RNG, role: Role, disabledAgents?: string[]): AgentPool {
+  let availableAgents = getAgentsForRole(role);
+  if (disabledAgents?.length) {
+    const disabledSet = new Set(disabledAgents);
+    const filtered = availableAgents.filter(a => !disabledSet.has(a));
+    if (filtered.length >= 3) availableAgents = filtered; // only filter if enough remain
+  }
+  
+  // Shuffle agents
+  const shuffled = [...availableAgents].sort(() => rng() - 0.5);
+  
+  // Assign priorities: 1 (main), 2 (secondary), 3 (pocket)
+  const pool: AgentPool = {};
+  if (shuffled.length >= 1) pool[shuffled[0]] = 1; // Main
+  if (shuffled.length >= 2) pool[shuffled[1]] = 2; // Secondary
+  if (shuffled.length >= 3) pool[shuffled[2]] = 3; // Pocket
+  
+  return pool;
+}
+
+/**
+ * Generate a full Player object for an academy team
+ * with specified name, role, and overall
+ */
+export function generateAcademyPlayer(
+  rng: RNG, 
+  name: string, 
+  role: Role, 
+  overall: number,
+  teamAbbr: string,
+  index: number
+): Player {
+  // Generate base player with the specified role and overall
+  const player = generatePlayer(rng, {
+    role,
+    forceOverall: overall,
+  });
+  
+  // Override with custom values
+  player.id = `t2_${teamAbbr.toLowerCase()}_p${index}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+  player.name = name;
+  player.overall = overall;
+  
+  // Generate proper agent pool (1, 2, 3 priorities)
+  player.agentPool = generateAgentPool(rng, role);
+  
+  return player;
+}
+
+/**
+ * Generate a full roster for a Tier 2 team
+ * Used when creating default academy teams
+ */
+export function generateAcademyRoster(
+  rng: RNG,
+  teamAbbr: string,
+  averageOVR: number,
+  playerNames?: string[]
+): Player[] {
+  const roles: Role[] = ['duelist', 'initiator', 'controller', 'sentinel', 'flex'];
+  const defaultNames = ['Ace', 'Blaze', 'Cipher', 'Dash', 'Echo'];
+  const names = playerNames || defaultNames;
+  
+  return roles.map((role, idx) => {
+    // Vary OVR around average (-3 to +3)
+    const variance = Math.floor((rng() - 0.5) * 6);
+    const playerOvr = Math.max(40, Math.min(99, averageOVR + variance));
+    
+    return generateAcademyPlayer(
+      rng,
+      names[idx] || `Player ${idx + 1}`,
+      role,
+      playerOvr,
+      teamAbbr,
+      idx
+    );
+  });
+}
 
 /**
  * Create a temporary team object for scrim opponents
@@ -73,13 +158,15 @@ const SCRIM_CONFIG = {
  * Calculate positive outcome ratio based on IGL game sense
  * Returns value between 0.4 (bad IGL) and 0.75 (elite IGL)
  */
-function calculatePositiveRatio(iglGameSense: number, fatigueLevel: FatigueLevel): number {
-  const baseRatio = 0.5; // 50/50 baseline
+function calculatePositiveRatio(iglGameSense: number, fatigueLevel: FatigueLevel, coachRating?: number, coachSpecialty?: import('../../types/team').CoachSpecialty[], analystRating?: number, analystSpecialty?: import('../../types/team').CoachSpecialty[]): number {
+  const baseRatio = 0.5;
   const iglBonus = (iglGameSense - SCRIM_CONFIG.IGL_GAME_SENSE_BASELINE) * SCRIM_CONFIG.IGL_POSITIVE_RATIO_BOOST;
   const fatigueNerf = SCRIM_CONFIG.FATIGUE_NEGATIVE_BOOST[fatigueLevel];
-  
-  // Clamp between 0.35 and 0.75
-  return Math.max(0.35, Math.min(0.75, baseRatio + iglBonus - fatigueNerf));
+  // head coach: 8% boost (development), analyst: 6% boost (development)
+  const coachBonus = coachMod(coachRating) * 0.08 * specMod(coachSpecialty, 'development');
+  const analystBonus = coachMod(analystRating) * 0.06 * specMod(analystSpecialty, 'development');
+
+  return Math.max(0.35, Math.min(0.80, baseRatio + iglBonus - fatigueNerf + coachBonus + analystBonus));
 }
 
 /**
@@ -304,7 +391,8 @@ function processPlayerScrim(
 export function getAvailableScrimOpponents(
   team: Team,
   allTeams: Team[],
-  upcomingPlayoffOpponentIds: string[] = []
+  upcomingPlayoffOpponentIds: string[] = [],
+  tier2Teams?: Record<Region, Tier2Team[]>
 ): { regional: Team[]; tier2: Tier2Team[] } {
   // Regional teams in same region (excluding self and upcoming playoff opponents)
   const regional = allTeams.filter(t => 
@@ -313,34 +401,26 @@ export function getAvailableScrimOpponents(
     !upcomingPlayoffOpponentIds.includes(t.id)
   );
   
-  // Tier 2 teams for this region
-  const tier2 = TIER2_TEAMS[team.region] || [];
+  // Tier 2 teams for this region (all stored in tier2Teams now, including defaults)
+  const tier2 = tier2Teams?.[team.region] || [];
   
   return { regional, tier2 };
 }
 
 /**
- * Generate a temporary roster for a Tier 2 team based on their average OVR
+ * Get roster for a Tier 2 team
+ * If the team has players defined, return them directly
+ * Otherwise generate a temporary roster (for legacy default teams without rosters)
  */
 function generateTier2Roster(rng: RNG, tier2Team: Tier2Team): Player[] {
-  const roles: Array<'duelist' | 'initiator' | 'controller' | 'sentinel' | 'flex'> = [
-    'duelist', 'initiator', 'controller', 'sentinel', 'flex'
-  ];
-  
-  const roster: Player[] = [];
-  for (let i = 0; i < 5; i++) {
-    // Vary OVR around the average
-    const variance = Math.floor((rng() - 0.5) * 10); // -5 to +5
-    const playerOvr = Math.max(55, Math.min(75, tier2Team.averageOVR + variance));
-    
-    const player = generatePlayer(rng, {
-      role: roles[i],
-      forceOverall: playerOvr,
-    });
-    roster.push(player);
+  // If players are already defined (full Player objects), return them directly
+  if (tier2Team.players && tier2Team.players.length >= 5) {
+    return tier2Team.players.slice(0, 5);
   }
   
-  return roster;
+  // Fallback: generate roster for teams without players
+  // This should only happen for legacy data
+  return generateAcademyRoster(rng, tier2Team.abbreviation, tier2Team.averageOVR);
 }
 
 /**
@@ -355,7 +435,16 @@ export function runScrim(
   currentDay: number,
   currentYear: number,
   allTeams: Team[],
-  tier2Teams?: Tier2Team[]
+  tier2Teams?: Tier2Team[],
+  mapPool?: string[],
+  agentMeta?: Record<string, number>,
+  mapMeta?: Record<string, Partial<Record<string, string[]>>>,
+  agentVariance?: number,
+  teamMapComps?: Record<string, Record<string, Record<string, string>>>,
+  agentRoleOverrides?: Record<string, string[]>,
+  teamMapCompNoPenalty?: Record<string, Record<string, string[]>>,
+  teamMapCompBuffs?: Record<string, Record<string, Record<string, number>>>,
+  disabledAgents?: string[]
 ): ScrimResult {
   const fatigueLevel = getFatigueLevel(scrimsThisWeek);
   
@@ -364,7 +453,7 @@ export function runScrim(
   const iglGameSense = igl?.ratings.gameSense ?? 70;
   
   // Calculate positive outcome ratio
-  const positiveRatio = calculatePositiveRatio(iglGameSense, fatigueLevel);
+  const positiveRatio = calculatePositiveRatio(iglGameSense, fatigueLevel, team.staff.headCoach?.rating, team.staff.headCoach?.specialty, team.staff.analyst?.rating, team.staff.analyst?.specialty);
   
   // Process each starter for development
   const statChanges: ScrimStatChange[] = [];
@@ -435,7 +524,18 @@ export function runScrim(
     undefined, // Use default lineup
     undefined,
     team,
-    opponentTeamObj
+    opponentTeamObj,
+    false,
+    mapPool,
+    agentMeta,
+    mapMeta,
+    agentVariance,
+    teamMapComps,
+    team.id,
+    agentRoleOverrides,
+    teamMapCompNoPenalty,
+    teamMapCompBuffs,
+    disabledAgents
   );
   
   return {

@@ -20,7 +20,7 @@ export interface AgentSynergy {
  */
 export const AGENT_SYNERGIES: AgentSynergy[] = [
   // Strong synergies (+3)
-  { agents: ['viper', 'harbor'], bonus: 3, reason: 'Double controller wall pressure' },
+  { agents: ['viper', 'harbor'], bonus: 3, reason: 'Double wall pressure and area denial' },
   { agents: ['sova', 'cypher'], bonus: 3, reason: 'Complete info coverage' },
   
   // Good synergies (+2)
@@ -38,7 +38,7 @@ export const AGENT_SYNERGIES: AgentSynergy[] = [
   { agents: ['sage', 'killjoy'], bonus: 1, reason: 'Defensive anchor combo' },
   { agents: ['brimstone', 'raze'], bonus: 1, reason: 'Area denial combo' },
   { agents: ['fade', 'raze'], bonus: 1, reason: 'Haunt + grenade combo' },
-  { agents: ['viper', 'astra'], bonus: 1, reason: 'Smoke layering' },
+  { agents: ['viper', 'astra'], bonus: 1, reason: 'Toxic screen + star utility combo' },
   { agents: ['clove', 'reyna'], bonus: 1, reason: 'Self-sustain duo' },
   
   // Anti-synergies (-1)

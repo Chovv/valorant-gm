@@ -22,6 +22,7 @@ export interface PlayerConfig {
   gameSense: number;
   clutch: number;
   age: number;
+  consistency?: number; // Optional: 0-100 match-day reliability (defaults to archetype-based)
   agents?: AgentPool; // Optional: specify agent pool for one-tricks
   personality?: PersonalityConfig; // Optional: specify personality traits
 }

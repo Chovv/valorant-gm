@@ -3,40 +3,80 @@
 
 .welcome {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
   padding: 48px 24px;
-  text-align: center;
   background: var(--bg-dark);
 }
 
-.welcome h1 {
+.welcome-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  max-width: 960px;
+  width: 100%;
+  align-items: start;
+}
+
+/* ===== LEFT COLUMN: BRANDING + ACTIONS ===== */
+.welcome-left {
+  display: flex;
+  flex-direction: column;
+  padding-top: 32px;
+}
+
+.welcome-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.welcome-brand h1 {
   font-family: 'Rajdhani', sans-serif;
-  font-size: 56px;
+  font-size: 48px;
   font-weight: 700;
   color: var(--text);
-  margin-bottom: 12px;
   letter-spacing: -1px;
+  line-height: 1;
 }
 
-.welcome > p {
+.welcome-version {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.welcome-tagline {
   color: var(--text-secondary);
-  font-size: 18px;
-  margin-bottom: 32px;
+  font-size: 16px;
+  margin-top: 8px;
+  margin-bottom: 40px;
 }
 
-/* Primary action buttons */
+/* Actions */
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.welcome-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
 .btn-start {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 14px 32px;
-  min-width: 220px;
+  padding: 14px 24px;
   font-size: 15px;
   font-weight: 600;
+  line-height: 1.2;
   background: var(--accent);
   color: white;
   border: none;
@@ -44,23 +84,19 @@
   cursor: pointer;
   transition: background 0.15s ease;
   text-decoration: none;
+  box-sizing: border-box;
 }
 
 .btn-start:hover {
   background: var(--accent-hover);
 }
 
-/* Button group - stack vertically with gap */
-.welcome .btn-start + .btn-start,
-.welcome .btn-start + label.btn-start {
-  margin-top: 12px;
-}
-
-/* Secondary button style (Create Custom League) */
 .btn-start.secondary {
   background: var(--bg-card);
   border: 1px solid var(--border);
   color: var(--text);
+  font-size: 13px;
+  padding: 12px 16px;
 }
 
 .btn-start.secondary:hover {
@@ -68,98 +104,265 @@
   border-color: var(--text-muted);
 }
 
-/* Import button style */
-.btn-start.import,
-.welcome label.btn-start {
-  background: #6366f1;
-}
-
-.btn-start.import:hover,
-.welcome label.btn-start:hover {
-  background: #7c7ff2;
-}
-
-/* ===== SAVED GAMES SECTION ===== */
-.saves-list-welcome {
+/* Footer */
+.welcome-footer {
   margin-top: 48px;
-  width: 100%;
-  max-width: 480px;
+  font-size: 11px;
+  color: var(--text-dark);
+  line-height: 1.5;
 }
 
-.saves-list-welcome h3 {
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 16px;
-  text-align: left;
-}
-
-/* Individual save item */
-.save-item-welcome {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  margin-bottom: 10px;
-  transition: border-color 0.15s ease;
-}
-
-.save-item-welcome:hover {
-  border-color: var(--text-muted);
-}
-
-.save-item-welcome .save-info {
+/* ===== RIGHT COLUMN: SAVED GAMES ===== */
+.welcome-right {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  text-align: left;
+  min-height: 0;
 }
 
-.save-item-welcome .save-name {
+.saves-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.saves-header h2 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
   font-weight: 600;
-  font-size: 14px;
   color: var(--text);
+  letter-spacing: 0.5px;
 }
 
-.save-item-welcome .save-details {
+.saves-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-hover);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* Empty state */
+.saves-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.saves-empty-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+
+.saves-empty p {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.saves-empty-hint {
   font-size: 12px;
   color: var(--text-muted);
 }
 
-/* Save item buttons */
-.save-item-welcome > div {
+/* Save cards list */
+.saves-list-welcome {
   display: flex;
+  flex-direction: column;
   gap: 8px;
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
-.save-item-welcome button {
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  background: var(--bg-hover);
-  color: var(--text);
+/* Individual save card */
+.save-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--bg-card);
   border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.save-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.save-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.save-team-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.save-team-logo-placeholder {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-hover);
   border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.save-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.save-card-top-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.save-card-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.save-name-input {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg-hover);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+}
+
+/* Meta row: team abbr, record, phase, day */
+.save-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.save-card-team {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.save-card-record {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.save-card-phase {
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.phase-preseason {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.phase-kickoff {
+  background: rgba(255, 70, 85, 0.12);
+  color: var(--accent);
+}
+
+.phase-champions {
+  background: rgba(255, 192, 72, 0.12);
+  color: var(--warning);
+}
+
+.phase-offseason {
+  background: rgba(10, 200, 185, 0.12);
+  color: var(--success);
+}
+
+.save-card-day,
+.save-card-season {
+  color: var(--text-dark);
+}
+
+/* Right side of card: time + action buttons */
+.save-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.save-card-time {
+  font-size: 11px;
+  color: var(--text-dark);
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
+.save-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.save-item-welcome button:hover {
-  background: var(--border);
+.save-action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
 }
 
-.save-item-welcome button.delete {
-  color: var(--danger);
-  border-color: transparent;
-  background: transparent;
-}
-
-.save-item-welcome button.delete:hover {
+.save-action-btn.delete:hover {
   background: rgba(255, 70, 85, 0.1);
-  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.save-action-btn.duplicate:hover {
+  background: rgba(99, 179, 237, 0.1);
+  color: #63b3ed;
 }
 
 /* ===== SETUP SCREEN ===== */
@@ -171,122 +374,313 @@
 
 .setup-screen h1 {
   font-family: 'Rajdhani', sans-serif;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
-  margin-bottom: 32px;
-  text-align: center;
+  margin-bottom: 20px;
 }
 
-.setup-section {
-  margin-bottom: 32px;
-}
-
-.setup-section h2 {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: var(--text-secondary);
-}
-
-/* Region selector */
-.region-selector {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-.region-btn {
+/* region pills */
+.setup-region-pills {
   display: flex;
-  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.setup-pill {
+  display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 20px;
+  gap: 6px;
+  padding: 8px 16px;
   background: var(--bg-card);
-  border: 2px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text);
-  font-weight: 600;
-  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.region-btn:hover {
+.setup-pill:hover {
   background: var(--bg-hover);
-  border-color: var(--text-muted);
+  color: var(--text);
 }
 
-.region-btn.active {
+.setup-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.setup-pill-count {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+/* main body: grid + preview */
+.setup-body {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 16px;
+  align-items: start;
+}
+
+/* team grid */
+.setup-team-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.setup-team-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.setup-team-card:hover {
+  border-color: var(--text-muted);
+  background: var(--bg-hover);
+}
+
+.setup-team-card.selected {
   border-color: var(--accent);
   background: var(--bg-hover);
 }
 
-.region-btn img {
+.setup-team-logo {
   width: 32px;
   height: 32px;
   object-fit: contain;
+  flex-shrink: 0;
 }
 
-.region-team-count {
+.setup-team-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.setup-team-name {
+  font-weight: 600;
   font-size: 12px;
-  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.setup-team-abbr {
+  font-size: 10px;
+  font-weight: 600;
   color: var(--text-muted);
+  letter-spacing: 0.5px;
 }
 
-/* Team selector grid */
-.team-selector {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-.team-select-card {
+.setup-team-badges {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 20px 16px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.setup-tier-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.setup-tier-badge.grade-s { background: #ffd700; color: #000; }
+.setup-tier-badge.grade-a { background: var(--success); color: #000; }
+.setup-tier-badge.grade-b { background: var(--role-sentinel); color: #000; }
+.setup-tier-badge.grade-c { background: var(--text-muted); color: #000; }
+.setup-tier-badge.grade-d { background: #6b7280; color: white; }
+.setup-tier-badge.grade-f { background: #4b5563; color: white; }
+
+.setup-ovr-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: 'Rajdhani', sans-serif;
+}
+
+/* roster preview sidebar */
+.setup-preview {
   background: var(--bg-card);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.15s ease;
+  overflow: hidden;
+  position: sticky;
+  top: 24px;
 }
 
-.team-select-card:hover {
-  border-color: var(--text-muted);
-  background: var(--bg-hover);
+.setup-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
 }
 
-.team-select-card.selected {
-  border-color: var(--accent);
-  background: var(--bg-hover);
-}
-
-.team-select-logo {
-  width: 56px;
-  height: 56px;
+.setup-preview-logo {
+  width: 32px;
+  height: 32px;
   object-fit: contain;
+  flex-shrink: 0;
 }
 
-.team-select-name {
+.setup-preview-name {
   font-weight: 600;
   font-size: 14px;
-  text-align: center;
 }
 
-.team-select-abbr {
-  font-size: 12px;
+.setup-preview-region {
+  font-size: 11px;
   color: var(--text-muted);
 }
 
-/* Setup actions (back/start buttons) */
+.setup-preview-header .setup-tier-badge {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 3px 10px;
+}
+
+.setup-preview-roster {
+  padding: 0;
+}
+
+.setup-preview-roster-header {
+  display: grid;
+  grid-template-columns: 1fr 48px 40px;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+
+.setup-preview-player {
+  display: grid;
+  grid-template-columns: 1fr 48px 40px;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-subtle);
+  align-items: center;
+}
+
+.setup-preview-player:last-child {
+  border-bottom: none;
+}
+
+.setup-preview-player-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.setup-preview-role {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.setup-preview-role.role-duelist { color: var(--role-duelist); }
+.setup-preview-role.role-controller { color: var(--role-controller); }
+.setup-preview-role.role-initiator { color: var(--role-initiator); }
+.setup-preview-role.role-sentinel { color: var(--role-sentinel); }
+.setup-preview-role.role-flex { color: var(--role-flex); }
+
+.setup-preview-player-ovr {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: right;
+}
+
+.setup-preview-summary {
+  display: flex;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--bg-darker);
+  border-top: 1px solid var(--border);
+}
+
+.setup-preview-summary > div {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  align-items: center;
+}
+
+.setup-preview-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.setup-preview-summary span:not(.setup-preview-label) {
+  font-weight: 700;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+}
+
+.setup-preview-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* setup actions footer */
 .setup-actions {
   display: flex;
-  justify-content: space-between;
-  margin-top: 32px;
-  padding-top: 24px;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid var(--border);
+}
+
+.setup-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.setup-toggle input[type="checkbox"] {
+  appearance: auto;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.setup-toggle-hint {
+  font-size: 11px;
+  opacity: 0.6;
 }
 
 .btn-back {
@@ -328,30 +722,151 @@
 
 /* Responsive */
 @media (max-width: 900px) {
-  .region-selector {
+  .welcome-layout {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .welcome-left {
+    padding-top: 0;
+    align-items: center;
+    text-align: center;
+  }
+
+  .welcome-brand {
+    justify-content: center;
+  }
+
+  .welcome-actions {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .welcome-footer {
+    text-align: center;
+  }
+
+  .setup-body {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-preview {
+    position: static;
+  }
+
+  .setup-team-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 600px) {
-  .welcome h1 {
-    font-size: 40px;
+  .welcome-brand h1 {
+    font-size: 36px;
   }
-  
-  .welcome > p {
-    font-size: 16px;
-  }
-  
-  .btn-start {
-    min-width: 100%;
-    padding: 12px 24px;
-  }
-  
-  .region-selector {
+
+  .welcome-actions-row {
     grid-template-columns: 1fr;
   }
-  
-  .team-selector {
+
+  .btn-start {
+    padding: 12px 20px;
+  }
+
+  .setup-region-pills {
+    flex-wrap: wrap;
+  }
+
+  .setup-team-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .save-card-meta {
+    gap: 6px;
+  }
+}
+
+/* ===== CUSTOM LEAGUE SCREEN ===== */
+.custom-league-screen {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.custom-league-screen h1 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.custom-league-desc {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 36px;
+}
+
+.custom-league-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.custom-league-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 28px 24px;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.custom-league-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.custom-league-card-icon {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+.custom-league-card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.custom-league-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.custom-league-hint {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-muted);
+  background: var(--bg-darker);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  margin-top: 4px;
+}
+
+.custom-league-footer {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 600px) {
+  .custom-league-cards {
+    grid-template-columns: 1fr;
   }
 }

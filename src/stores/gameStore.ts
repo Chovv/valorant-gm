@@ -12,6 +12,8 @@ import {
   type GameState,
   type DayResult,
 } from '../sim/gameState';
+import { getDefaultRecordBook } from '../sim/vctRecords';
+import { MAPS } from '../sim/matchSim';
 import {
   saveGame,
   loadGame,
@@ -19,11 +21,14 @@ import {
   deleteSave,
   type SavedGame,
 } from '../db/gameDatabase';
-import { signFreeAgent, releasePlayer, generateFreeAgentPool } from '../sim/freeAgency';
+import { signFreeAgent, releasePlayer, generateFreeAgentPool, pickNat } from '../sim/freeAgency';
+import { buildNamePoolCtx } from '../sim/namePool';
 import { executeTrade } from '../sim/trading';
 import { runScrim as executeScrim, formatScrimResultLog } from '../sim/scrims';
-import { calculateTeamAttributes } from '../sim/teamRatings';
+import { calculateTeamAttributes, staffFromTeam } from '../sim/teamRatings';
+import { generateChampionsBracket } from '../sim/internationalBracket';
 import { createRNG, randomInt, shuffle } from '../utils/random';
+import { generateCoach, generateCoachPool } from '../sim/coachGenerator';
 import { generatePlayer } from '../sim/playerGenerator';
 import { getAgentsForRole } from '../data/agents';
 import {
@@ -73,12 +78,20 @@ function generateTeamFromConfig(rng: RNG, config: TeamConfig): Team {
       ? { ...playerConfig.agents }
       : generateAgentPoolForRole(rng, playerConfig.role);
 
+    if (!player.nationality) player.nationality = pickNat(rng, config.region);
+
     return player;
   });
 
   const iglPlayer = config.igl
     ? roster.find((p) => p.name === config.igl)
     : roster.find((p) => p.role === 'initiator');
+
+  const staff = {
+    headCoach: generateCoach(rng, { region: config.region }),
+    assistantCoach: null,
+    analyst: null,
+  };
 
   return {
     id: `team_${config.abbreviation.toLowerCase()}`,
@@ -88,9 +101,9 @@ function generateTeamFromConfig(rng: RNG, config: TeamConfig): Team {
     region: config.region,
     roster,
     iglId: iglPlayer?.id || roster[0]?.id || null,
-    staff: { headCoach: null, assistantCoach: null, analyst: null },
+    staff,
     finances: { budget: 1000000, salaryCommitted: 500000, scoutingBudget: 50 },
-    attributes: calculateTeamAttributes(roster),
+    attributes: calculateTeamAttributes(roster, undefined, staff.headCoach?.rating, staff.headCoach?.specialty, staffFromTeam(staff)),
     championships: 0,
     playoffAppearances: 0,
     founded: 2020,
@@ -163,6 +176,10 @@ interface GameStore {
   savePlayer: (updatedPlayer: Player) => void;
   setIGL: (teamId: string, playerId: string) => void;
 
+  // Actions - Staff
+  hireCoach: (coachId: string) => void;
+  fireCoach: () => void;
+
   // Actions - Trading
   executeTrade: (team1Id: string, team2Id: string, player1Ids: string[], player2Ids: string[]) => void;
 
@@ -221,12 +238,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const selectedTeam = setupTeams.find((t) => t.id === setupSelectedTeamId);
     if (!selectedTeam) return;
 
-    const state = createGameState(setupTeams, setupSelectedTeamId, setupSeed);
+    const state = createGameState(setupTeams, setupSelectedTeamId, setupSeed, undefined, true);
+    const namePool = buildNamePoolCtx(state.usedNames, true);
     const faRng = createRNG(`${setupSeed}-freeagents`);
-    const freeAgents = generateFreeAgentPool(faRng, 75);
+    const freeAgents = generateFreeAgentPool(faRng, 75, undefined, namePool);
+    const usedNames = namePool ? [...namePool.used] : state.usedNames;
+    const coachRng = createRNG(`${setupSeed}-coaches`);
+    const freeAgentCoaches = generateCoachPool(coachRng, 15);
 
     set({
-      gameState: { ...state, freeAgents },
+      gameState: { ...state, freeAgents, freeAgentCoaches, usedNames },
       currentSaveId: null,
       recentResults: [],
     });
@@ -390,7 +411,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   skipToPlayoffs: () => {
     const { gameState } = get();
     if (!gameState) return;
-    if (gameState.phase !== 'preseason' && gameState.phase !== 'regular_season') return;
+    if (gameState.phase !== 'preseason' && gameState.phase !== 'kickoff_bracket') return;
 
     const events = skipToPlayoffs(gameState);
     set(state => ({
@@ -416,7 +437,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const maxIterations = 500;
 
     while (safetyCounter < maxIterations) {
-      if (gameState.phase === 'international' && gameState.internationalTournament?.bracket) {
+    if (gameState.phase === 'international' && gameState.internationalTournament?.bracket) {
         break;
       }
       advanceDay(gameState);
@@ -475,7 +496,60 @@ export const useGameStore = create<GameStore>((set, get) => ({
         fatigueLevel: save.gameState.fatigueLevel ?? oldState.scrimsThisWeek ?? 0,
         lastScrimDay: save.gameState.lastScrimDay ?? null,
         seasonStartStats: save.gameState.seasonStartStats ?? {},
+        currentChampionsRound: save.gameState.currentChampionsRound ?? 0,
+        newsFeed: save.gameState.newsFeed ?? [],
+        lastSeenNewsCount: save.gameState.lastSeenNewsCount ?? 0,
+        recordBook: save.gameState.recordBook ?? getDefaultRecordBook(),
+        mapPool: save.gameState.mapPool ?? [...MAPS],
+        agentMeta: save.gameState.agentMeta ?? {},
+        disabledAgents: save.gameState.disabledAgents ?? [],
+        customAgents: save.gameState.customAgents ?? [],
+        mapMeta: save.gameState.mapMeta ?? {},
+        teamMapComps: save.gameState.teamMapComps ?? (save.gameState.userMapComp && save.gameState.userTeamId ? { [save.gameState.userTeamId]: save.gameState.userMapComp } : {}),
+        teamMapCompNoPenalty: save.gameState.teamMapCompNoPenalty ?? {},
+        teamMapCompBuffs: save.gameState.teamMapCompBuffs ?? {},
+        agentRoleOverrides: save.gameState.agentRoleOverrides ?? {},
+        agentVariance: save.gameState.agentVariance ?? 15,
+        agentAbilities: save.gameState.agentAbilities,
+        matchSimConfig: save.gameState.matchSimConfig,
+        useEsportsNames: save.gameState.useEsportsNames ?? false,
+        usedNames: save.gameState.usedNames ?? [],
+        vctPoints: save.gameState.vctPoints ?? {},
+        freeAgentCoaches: save.gameState.freeAgentCoaches ?? [],
       };
+
+      // Migrate legacy players missing consistency — assign archetype-based values
+      const migrationRng = createRNG(`${newSeed}-consistency-migration`);
+      const archetypeConsistencyRanges: Record<string, [number, number]> = {
+        anchor: [70, 95], support_leader: [65, 90], clutch_star: [60, 90],
+        utility_specialist: [60, 85], macro_brain: [60, 85], info_gatherer: [55, 85],
+        support_initiator: [55, 85], lurker: [50, 85], entry_fragger: [45, 80],
+        playmaker: [40, 80], aggressive_smoker: [40, 75], feast_or_famine: [25, 60],
+      };
+      for (const team of updatedGameState.teams) {
+        for (const player of team.roster) {
+          if (player.consistency === undefined || player.consistency === null) {
+            const range = archetypeConsistencyRanges[player.archetype] ?? [45, 85];
+            player.consistency = randomInt(migrationRng, range[0], range[1]);
+          }
+        }
+      }
+
+      // Migrate legacy international tournament bracket (old single-elim → new Swiss + double-elim)
+      if (updatedGameState.internationalTournament) {
+        const oldBracket = updatedGameState.internationalTournament.bracket as any;
+        // Detect old format: has .rounds (PlayoffBracket) instead of .swiss (ChampionsBracket)
+        if (oldBracket.rounds && !oldBracket.swiss) {
+          // Regenerate with new format using existing teams
+          const champTeams = updatedGameState.internationalTournament.teams;
+          updatedGameState.internationalTournament.bracket = generateChampionsBracket(
+            `${newSeed}-champions-migrate`,
+            champTeams,
+          );
+          updatedGameState.internationalTournament.champion = null;
+          updatedGameState.currentChampionsRound = 0;
+        }
+      }
 
       set({
         gameState: updatedGameState,
@@ -535,9 +609,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
               startingLineup: teamData.startingLineup || undefined,
               staff: teamData.staff || { headCoach: null, assistantCoach: null, analyst: null },
               finances: teamData.finances || { budget: 1000000, salaryCommitted: 500000, scoutingBudget: 50 },
-              attributes: teamData.attributes || calculateTeamAttributes(teamData.roster),
+              attributes: teamData.attributes || calculateTeamAttributes(teamData.roster, teamData.startingLineup, teamData.staff?.headCoach?.rating, teamData.staff?.headCoach?.specialty, staffFromTeam(teamData.staff)),
               roster: teamData.roster.map((p: Player) => ({
                 ...p,
+                consistency: p.consistency ?? 65,
                 careerStats: p.careerStats || null,
               })),
             }));
@@ -546,9 +621,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
             const seed = `import-${crypto.randomUUID()}`;
             const state = createGameState(importedTeams, userTeamId, seed);
             const freeAgents = json.freeAgents || [];
+            // restore map pool and agent meta if present
+            const mapPool = json.mapPool && Array.isArray(json.mapPool) ? json.mapPool : state.mapPool;
+            const agentMeta = json.agentMeta && typeof json.agentMeta === 'object' ? json.agentMeta : state.agentMeta;
+            const disabledAgents = Array.isArray(json.disabledAgents) ? json.disabledAgents : [];
+            const customAgents = Array.isArray(json.customAgents) ? json.customAgents : [];
+            const mapMeta = json.mapMeta && typeof json.mapMeta === 'object' ? json.mapMeta : (state.mapMeta ?? {});
+            const agentVariance = typeof json.agentVariance === 'number' ? json.agentVariance : (state.agentVariance ?? 15);
+            const freeAgentCoaches = Array.isArray(json.freeAgentCoaches) ? json.freeAgentCoaches : [];
 
             set({
-              gameState: { ...state, freeAgents },
+              gameState: { ...state, freeAgents, freeAgentCoaches, mapPool, agentMeta, disabledAgents, customAgents, mapMeta, agentVariance },
               currentSaveId: null,
               recentResults: [],
               notificationToast: `✅ Successfully imported league with ${importedTeams.length} teams!`,
@@ -631,6 +714,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
       })),
       standings: gameState.standings,
       champions: gameState.champions,
+      mapPool: gameState.mapPool,
+      agentMeta: gameState.agentMeta,
+      disabledAgents: gameState.disabledAgents ?? [],
+      customAgents: gameState.customAgents ?? [],
+      mapMeta: gameState.mapMeta ?? {},
+      teamMapComps: gameState.teamMapComps ?? {},
+      teamMapCompNoPenalty: gameState.teamMapCompNoPenalty ?? {},
+      teamMapCompBuffs: gameState.teamMapCompBuffs ?? {},
+      agentRoleOverrides: gameState.agentRoleOverrides ?? {},
+      agentVariance: gameState.agentVariance ?? 15,
+      agentAbilities: gameState.agentAbilities,
+      matchSimConfig: gameState.matchSimConfig,
     };
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -803,6 +898,110 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ gameState: { ...gameState, teams: updatedTeams } });
   },
 
+  // Staff
+  hireCoach: (coachId: string) => {
+    const { gameState } = get();
+    if (!gameState) return;
+    const pool = gameState.freeAgentCoaches ?? [];
+    const coach = pool.find(c => c.id === coachId);
+    if (!coach) return;
+    const userTeam = gameState.teams.find(t => t.id === gameState.userTeamId);
+    if (!userTeam) return;
+    // release current coach to FA pool if exists
+    const released = userTeam.staff.headCoach;
+    const updatedPool = pool.filter(c => c.id !== coachId);
+    if (released) updatedPool.push(released);
+    const updatedTeams = gameState.teams.map(t =>
+      t.id === gameState.userTeamId
+        ? { ...t, staff: { ...t.staff, headCoach: coach }, attributes: calculateTeamAttributes(t.roster, t.startingLineup, coach.rating, coach.specialty, staffFromTeam({ ...t.staff, headCoach: coach })) }
+        : t
+    );
+    set({ gameState: { ...gameState, teams: updatedTeams, freeAgentCoaches: updatedPool } });
+  },
+
+  fireCoach: () => {
+    const { gameState } = get();
+    if (!gameState) return;
+    const userTeam = gameState.teams.find(t => t.id === gameState.userTeamId);
+    if (!userTeam?.staff.headCoach) return;
+    const fired = userTeam.staff.headCoach;
+    const updatedPool = [...(gameState.freeAgentCoaches ?? []), fired];
+    const updatedTeams = gameState.teams.map(t =>
+      t.id === gameState.userTeamId
+        ? { ...t, staff: { ...t.staff, headCoach: null }, attributes: calculateTeamAttributes(t.roster, t.startingLineup) }
+        : t
+    );
+    set({ gameState: { ...gameState, teams: updatedTeams, freeAgentCoaches: updatedPool } });
+  },
+
+  hireAssistant: (coachId: string) => {
+    const { gameState } = get();
+    if (!gameState) return;
+    const pool = gameState.freeAgentCoaches ?? [];
+    const coach = pool.find(c => c.id === coachId);
+    if (!coach) return;
+    const userTeam = gameState.teams.find(t => t.id === gameState.userTeamId);
+    if (!userTeam) return;
+    const released = userTeam.staff.assistantCoach;
+    const updatedPool = pool.filter(c => c.id !== coachId);
+    if (released) updatedPool.push(released);
+    const updatedTeams = gameState.teams.map(t =>
+      t.id === gameState.userTeamId
+        ? { ...t, staff: { ...t.staff, assistantCoach: coach }, attributes: calculateTeamAttributes(t.roster, t.startingLineup, t.staff.headCoach?.rating, t.staff.headCoach?.specialty, staffFromTeam({ ...t.staff, assistantCoach: coach })) }
+        : t
+    );
+    set({ gameState: { ...gameState, teams: updatedTeams, freeAgentCoaches: updatedPool } });
+  },
+
+  fireAssistant: () => {
+    const { gameState } = get();
+    if (!gameState) return;
+    const userTeam = gameState.teams.find(t => t.id === gameState.userTeamId);
+    if (!userTeam?.staff.assistantCoach) return;
+    const fired = userTeam.staff.assistantCoach;
+    const updatedPool = [...(gameState.freeAgentCoaches ?? []), fired];
+    const updatedTeams = gameState.teams.map(t =>
+      t.id === gameState.userTeamId
+        ? { ...t, staff: { ...t.staff, assistantCoach: null }, attributes: calculateTeamAttributes(t.roster, t.startingLineup, t.staff.headCoach?.rating, t.staff.headCoach?.specialty, staffFromTeam({ ...t.staff, assistantCoach: null })) }
+        : t
+    );
+    set({ gameState: { ...gameState, teams: updatedTeams, freeAgentCoaches: updatedPool } });
+  },
+
+  hireAnalyst: (coachId: string) => {
+    const { gameState } = get();
+    if (!gameState) return;
+    const pool = gameState.freeAgentCoaches ?? [];
+    const coach = pool.find(c => c.id === coachId);
+    if (!coach) return;
+    const userTeam = gameState.teams.find(t => t.id === gameState.userTeamId);
+    if (!userTeam) return;
+    const released = userTeam.staff.analyst;
+    const updatedPool = pool.filter(c => c.id !== coachId);
+    if (released) updatedPool.push(released);
+    const updatedTeams = gameState.teams.map(t =>
+      t.id === gameState.userTeamId
+        ? { ...t, staff: { ...t.staff, analyst: coach }, attributes: calculateTeamAttributes(t.roster, t.startingLineup, t.staff.headCoach?.rating, t.staff.headCoach?.specialty, staffFromTeam({ ...t.staff, analyst: coach })) }
+        : t
+    );
+    set({ gameState: { ...gameState, teams: updatedTeams, freeAgentCoaches: updatedPool } });
+  },
+
+  fireAnalyst: () => {
+    const { gameState } = get();
+    if (!gameState) return;
+    const userTeam = gameState.teams.find(t => t.id === gameState.userTeamId);
+    if (!userTeam?.staff.analyst) return;
+    const fired = userTeam.staff.analyst;
+    const updatedPool = [...(gameState.freeAgentCoaches ?? []), fired];
+    const updatedTeams = gameState.teams.map(t =>
+      t.id === gameState.userTeamId
+        ? { ...t, staff: { ...t.staff, analyst: null }, attributes: calculateTeamAttributes(t.roster, t.startingLineup, t.staff.headCoach?.rating, t.staff.headCoach?.specialty, staffFromTeam({ ...t.staff, analyst: null })) }
+        : t
+    );
+    set({ gameState: { ...gameState, teams: updatedTeams, freeAgentCoaches: updatedPool } });
+  },
+
   // Trading
   executeTrade: (team1Id: string, team2Id: string, player1Ids: string[], player2Ids: string[]) => {
     const { gameState } = get();
@@ -825,9 +1024,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { gameState, recentResults } = get();
     if (!gameState || !gameState.userTeamId) return;
 
-    // Can't scrim during playoffs
-    if (gameState.phase === 'regional_playoffs' || gameState.phase === 'international') {
-      set({ notificationToast: '❌ Cannot scrim during playoffs' });
+    // can't scrim during international tournament
+    if (gameState.phase === 'international') {
+      set({ notificationToast: '❌ Cannot scrim during international tournament' });
       return;
     }
 
@@ -852,7 +1051,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameState.fatigueLevel,
       gameState.currentDay,
       gameState.currentYear,
-      gameState.teams
+      gameState.teams,
+      undefined,
+      gameState.mapPool,
+      gameState.agentMeta,
+      gameState.mapMeta,
+      gameState.agentVariance ?? 15,
+      gameState.teamMapComps ?? {},
+      gameState.agentRoleOverrides ?? {},
+      gameState.teamMapCompNoPenalty ?? {},
+      gameState.teamMapCompBuffs ?? {}
     );
 
     // Update scrim tracking - increase fatigue by 1
@@ -867,7 +1075,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (t.id === gameState.userTeamId) {
         return {
           ...t,
-          attributes: calculateTeamAttributes(t.roster),
+          attributes: calculateTeamAttributes(t.roster, t.startingLineup, t.staff.headCoach?.rating, t.staff.headCoach?.specialty, staffFromTeam(t.staff)),
         };
       }
       return t;
@@ -907,9 +1115,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const seed = `custom-${crypto.randomUUID()}`;
     const userTeamId = teamsWithIGL[0]?.id || '';
     const state = createGameState(teamsWithIGL, userTeamId, seed);
+    const coachRng = createRNG(`${seed}-coaches`);
+    const freeAgentCoaches = generateCoachPool(coachRng, 15);
 
     set({
-      gameState: state,
+      gameState: { ...state, freeAgentCoaches },
       currentSaveId: null,
       recentResults: [],
     });
@@ -938,28 +1148,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const userTeam = gameState.teams.find(t => t.id === gameState.userTeamId);
     if (!userTeam) return false;
 
-    if (gameState.phase === 'preseason' || gameState.phase === 'regular_season') {
-      return false;
-    }
+    if (gameState.phase === 'preseason') return false;
 
-    const userRegion = userTeam.region;
-    const regionPlayoff = gameState.regionalPlayoffs[userRegion];
-
-    if (regionPlayoff) {
-      const regionStandings = [...gameState.standings]
-        .filter(s => {
-          const team = gameState.teams.find(t => t.id === s.teamId);
-          return team?.region === userRegion;
-        })
-        .sort((a, b) => {
-          if (b.wins !== a.wins) return b.wins - a.wins;
-          return (b.mapWins - b.mapLosses) - (a.mapWins - a.mapLosses);
-        });
-
-      const userRank = regionStandings.findIndex(s => s.teamId === gameState.userTeamId) + 1;
-      if (userRank > 6) return true;
-
-      for (const round of regionPlayoff.rounds) {
+    // during kickoff bracket — eliminated = lost in lower bracket
+    if (gameState.phase === 'kickoff_bracket') {
+      const bracket = gameState.kickoffBrackets?.[userTeam.region];
+      if (!bracket) return false;
+      for (const round of bracket.lower) {
         for (const matchup of round.matchups) {
           if (matchup.winnerId && matchup.winnerId !== gameState.userTeamId) {
             if (matchup.team1Id === gameState.userTeamId || matchup.team2Id === gameState.userTeamId) {
@@ -968,6 +1163,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           }
         }
       }
+      return false;
     }
 
     if (gameState.phase === 'international' && gameState.internationalTournament?.bracket) {
@@ -976,7 +1172,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       );
       if (!qualifiedTeam) return true;
 
-      for (const round of gameState.internationalTournament.bracket.rounds) {
+      // Check Swiss elimination
+      const swissTeam = gameState.internationalTournament.bracket.swiss.teams.find(
+        t => t.teamId === gameState.userTeamId
+      );
+      if (swissTeam?.eliminated) return true;
+
+      // Check lower bracket losses (any LB loss = eliminated)
+      for (const round of gameState.internationalTournament.bracket.lower) {
         for (const matchup of round.matchups) {
           if (matchup.winnerId && matchup.winnerId !== gameState.userTeamId) {
             if (matchup.team1Id === gameState.userTeamId || matchup.team2Id === gameState.userTeamId) {

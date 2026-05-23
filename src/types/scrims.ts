@@ -52,6 +52,8 @@ export interface ScrimResult {
  */
 export type FatigueLevel = 'fresh' | 'trained' | 'tired' | 'exhausted';
 
+import type { Player } from './player';
+
 /**
  * Tier 2 / Academy team configuration
  * These are always-available sparring partners
@@ -61,7 +63,8 @@ export interface Tier2Team {
   name: string;
   abbreviation: string;
   region: Region;
-  averageOVR: number; // Average team OVR for simulation purposes
+  averageOVR: number; // Average team OVR for display purposes
+  players?: Player[]; // Full player roster (5 players)
 }
 
 /**

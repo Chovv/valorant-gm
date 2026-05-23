@@ -6,9 +6,10 @@ import type { Player, Role, Team } from '../types';
 import { ALL_ARCHETYPES } from '../data/archetypes';
 import { toLetterGrade, getGradeClassFromValue } from '../utils/letterGrade';
 import { PlayerEditModal } from './components/PlayerEditModal';
-import { PlayerAvatar } from './components/PlayerAvatar';
+import { PlayerAvatar, InlineFlag } from './components/PlayerAvatar';
 import { generatePlayer } from '../sim/playerGenerator';
 import { createRNG } from '../utils/random';
+import { langAffinity, LANGUAGE_GROUP_LABELS } from '../utils/languageGroups';
 import './FreeAgencyPage.css';
 
 // Role icons
@@ -57,6 +58,12 @@ export const FreeAgencyPage: React.FC<FreeAgencyPageProps> = ({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [newPlayer, setNewPlayer] = useState<Player | null>(null);
+
+  // Handle signing: call parent, then clear selection so UI reacts
+  const handleSignPlayer = (playerId: string) => {
+    onSignPlayer(playerId);
+    setSelectedPlayer(null);
+  };
 
   const roster = userTeam.roster;
   const starters = userTeam.startingLineup?.map(s => s.playerId) || roster.slice(0, 5).map(p => p.id);
@@ -196,6 +203,10 @@ export const FreeAgencyPage: React.FC<FreeAgencyPageProps> = ({
     if (!selectedPlayer && filteredAgents.length > 0) {
       setSelectedPlayer(filteredAgents[0]);
     }
+    // Clear selection if player no longer exists in the list
+    if (selectedPlayer && !filteredAgents.find(p => p.id === selectedPlayer.id)) {
+      setSelectedPlayer(filteredAgents.length > 0 ? filteredAgents[0] : null);
+    }
   }, [filteredAgents, selectedPlayer]);
 
   return (
@@ -223,7 +234,7 @@ export const FreeAgencyPage: React.FC<FreeAgencyPageProps> = ({
                   onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
                 <div className="fa-roster-info">
-                  <span className="fa-roster-name">{player.name}</span>
+                  <span className="fa-roster-name"><InlineFlag code={player.nationality} />{player.name}</span>
                   <span className="fa-roster-meta">
                     {isStarter && <span className="starter-tag">★</span>}
                     <span className={`fa-roster-ovr ${getOvrClass(player.overall)}`}>{player.overall}</span>
@@ -322,6 +333,7 @@ export const FreeAgencyPage: React.FC<FreeAgencyPageProps> = ({
           >
             POT {sortKey === 'potential' && (sortDirection === 'desc' ? '↓' : '↑')}
           </span>
+          <span className="fa-col-lang" title="Language compatibility with your roster">Lang</span>
           {devMode && onDeleteFreeAgent && (
             <span className="fa-col-actions"></span>
           )}
@@ -348,10 +360,16 @@ export const FreeAgencyPage: React.FC<FreeAgencyPageProps> = ({
                   <span className="fa-col-role">
                     <img src={ROLE_ICONS[player.role]} alt={player.role} className="fa-list-role-icon" />
                   </span>
-                  <span className="fa-col-name">{player.name}</span>
+                  <span className="fa-col-name"><InlineFlag code={player.nationality} />{player.name}{player.isIGL && <span className="fa-igl-badge">IGL</span>}</span>
                   <span className="fa-col-age">{player.age}</span>
                   <span className={`fa-col-ovr ${getOvrClass(player.overall)}`}>{player.overall}</span>
                   <span className="fa-col-pot">{player.potential.ceiling}</span>
+                  <span className="fa-col-lang">
+                    {(() => {
+                      const af = langAffinity(player.nationality, userTeam.roster.map(p => p.nationality));
+                      return <span className={`fa-lang-badge fa-lang-${af.tier}`} title={`${LANGUAGE_GROUP_LABELS[af.playerLang]} → ${LANGUAGE_GROUP_LABELS[af.rosterLang]}`}>{af.label}</span>;
+                    })()}
+                  </span>
                   {devMode && onDeleteFreeAgent && (
                     <span className="fa-col-actions">
                       <button
@@ -375,11 +393,13 @@ export const FreeAgencyPage: React.FC<FreeAgencyPageProps> = ({
       <div className="fa-detail-panel">
         {selectedPlayer ? (
           <>
-            <div className="fa-detail-header">
+            <div className="fa-detail-scroll">
+              <div className="fa-detail-header">
               <PlayerAvatar
                 playerId={selectedPlayer.id}
                 playerName={selectedPlayer.name}
                 imageUrl={selectedPlayer.imageUrl}
+                nationality={selectedPlayer.nationality}
                 size="xl"
                 className="fa-detail-avatar"
               />
@@ -390,7 +410,7 @@ export const FreeAgencyPage: React.FC<FreeAgencyPageProps> = ({
 
             <span className={`role-tag role-${selectedPlayer.role}`}>{formatRole(selectedPlayer.role)}</span>
 
-            <div className="fa-detail-name">{selectedPlayer.name}</div>
+            <div className="fa-detail-name">{selectedPlayer.name}{selectedPlayer.isIGL && <span className="fa-igl-badge">IGL</span>}</div>
             
             <div className="fa-detail-meta">
               <span className="meta-item">
@@ -406,6 +426,22 @@ export const FreeAgencyPage: React.FC<FreeAgencyPageProps> = ({
                 <span className="meta-value">{ALL_ARCHETYPES[selectedPlayer.archetype]?.name || selectedPlayer.archetype}</span>
               </span>
             </div>
+
+            {/* Language synergy */}
+            {(() => {
+              const af = langAffinity(selectedPlayer.nationality, userTeam.roster.map(p => p.nationality));
+              const msgs: Record<string, string> = {
+                native: `Speaks ${LANGUAGE_GROUP_LABELS[af.rosterLang]} — full synergy with your roster.`,
+                bridge: `Speaks ${LANGUAGE_GROUP_LABELS[af.playerLang]}. Your roster speaks ${LANGUAGE_GROUP_LABELS[af.rosterLang]} — workable with effort.`,
+                barrier: `Speaks ${LANGUAGE_GROUP_LABELS[af.playerLang]}. Your roster speaks ${LANGUAGE_GROUP_LABELS[af.rosterLang]} — significant language barrier.`,
+              };
+              return (
+                <div className={`fa-lang-synergy fa-lang-synergy-${af.tier}`}>
+                  <span className={`fa-lang-badge fa-lang-${af.tier}`}>{af.label}</span>
+                  <span className="fa-lang-synergy-msg">{msgs[af.tier]}</span>
+                </div>
+              );
+            })()}
 
             {/* Potential Bar */}
             <div className="fa-detail-section">
@@ -471,10 +507,11 @@ export const FreeAgencyPage: React.FC<FreeAgencyPageProps> = ({
             </div>
 
             {/* Action Buttons */}
+            </div>
             <div className="fa-detail-actions">
               <button
                 className="fa-sign-btn"
-                onClick={() => onSignPlayer(selectedPlayer.id)}
+                onClick={() => handleSignPlayer(selectedPlayer.id)}
                 disabled={!canSign}
               >
                 {canSign ? `Sign ${selectedPlayer.name}` : 'Roster Full (10/10)'}

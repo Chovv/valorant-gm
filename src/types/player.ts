@@ -89,6 +89,30 @@ export interface Contract {
 export type AgentPool = Record<string, number>;
 
 /**
+ * Award types a player can accumulate over their career
+ */
+export type PlayerAwardType =
+  | 'world_champion'
+  | 'kickoff_champion'
+  | 'finals_mvp'
+  | 'season_mvp'
+  | 'rookie_of_year'
+  | 'best_duelist'
+  | 'best_controller'
+  | 'best_initiator'
+  | 'best_sentinel'
+  | 'all_vct_first'
+  | 'all_vct_second'
+  | 'clutch_king'
+  | 'entry_fragger';
+
+export interface PlayerAward {
+  type: PlayerAwardType;
+  year: number;
+  detail?: string; // e.g. region for kickoff_champion
+}
+
+/**
  * Complete Player interface
  */
 export interface Player {
@@ -102,6 +126,7 @@ export interface Player {
   ratings: Ratings;
   potential: Potential;
   overall: number;
+  consistency: number;  // 0-100: How reliably they perform (affects match-day form variance)
 
   careerStats?: PlayerCareerStats;
 
@@ -119,6 +144,25 @@ export interface Player {
   
   // Profile image URL (optional - falls back to generated avatar)
   imageUrl?: string;
+  
+  // Country code (ISO 3166-1 alpha-2, e.g. "US", "KR", "BR")
+  nationality?: string;
+  
+  // IGL candidate flag (used for free agents who are known IGLs)
+  isIGL?: boolean;
+
+  // career awards
+  awards?: PlayerAward[];
+
+  // per-map agent priority lists (map name → up to 3 agents in priority order)
+  mapAgentPrefs?: Partial<Record<string, string[]>>;
+
+  // per-player agent variance override (0-100); falls back to global setting if unset
+  agentVariance?: number;
+
+  // signature weapon preference (e.g. 'Odin', 'Operator', 'Vandal')
+  // player prefers this gun on full/half buys and gets a small performance bonus with it
+  gunPref?: string;
 }
 
 /**
