@@ -465,7 +465,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border);
   transition: background 0.15s ease;
 }
@@ -480,22 +480,23 @@
 
 .qualified-seed {
   font-family: 'Rajdhani', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text-muted);
-  min-width: 20px;
+  min-width: 24px;
 }
 
 .qualified-team-logo {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   object-fit: contain;
 }
 
 .qualified-team-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: var(--text);
+  flex: 1;
 }
 
 /* ===== REGION TABS ===== */
@@ -680,4 +681,632 @@
     width: 28px;
     height: 28px;
   }
+}
+
+/* ===== KICKOFF BRACKET (Triple Elimination) ===== */
+.kickoff-container {
+  animation: playoffFadeIn 0.35s ease-out;
+}
+
+/* play button inside section headers */
+.kickoff-section-play {
+  margin-left: 8px;
+  padding: 4px 14px !important;
+  font-size: 12px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  cursor: pointer;
+}
+
+.kickoff-section-play:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: var(--text-primary) !important;
+}
+
+.btn-watch-bracket {
+  margin-left: 12px;
+  padding: 4px 14px !important;
+  font-size: 12px !important;
+  background: rgba(255, 192, 72, 0.15) !important;
+  color: var(--warning) !important;
+  border: 1px solid rgba(255, 192, 72, 0.3) !important;
+  cursor: pointer;
+}
+
+.btn-watch-bracket:hover {
+  background: rgba(255, 192, 72, 0.28) !important;
+}
+
+.btn-live-bracket {
+  margin-left: 12px;
+  padding: 4px 14px !important;
+  font-size: 12px !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  cursor: pointer;
+  animation: bracket-live-pulse 2s ease-in-out infinite;
+}
+
+.btn-live-bracket:hover {
+  background: rgba(239, 68, 68, 0.3) !important;
+}
+
+@keyframes bracket-live-pulse {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.35); }
+  50% { border-color: rgba(239, 68, 68, 0.7); }
+}
+
+.btn-sim-match-bracket {
+  margin-left: 8px;
+  padding: 4px 14px !important;
+  font-size: 12px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  cursor: pointer;
+}
+
+.btn-sim-match-bracket:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: var(--text-primary) !important;
+}
+
+.kickoff-section-round-label {
+  font-size: 11px;
+  color: var(--text-dark);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* seeds panel */
+.kickoff-seeds-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.kickoff-seeds-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* dev seed editing */
+.dev-reseed-btn {
+  font-size: 11px !important;
+  padding: 3px 8px !important;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: auto;
+}
+
+.dev-reseed-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.dev-reseed-confirm {
+  font-size: 11px !important;
+  padding: 3px 10px !important;
+  text-transform: none;
+  letter-spacing: 0;
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: rgba(34, 197, 94, 0.3) !important;
+  color: #4ade80 !important;
+}
+
+.dev-reseed-confirm:hover {
+  background: rgba(34, 197, 94, 0.25) !important;
+}
+
+.dev-reseed-cancel {
+  font-size: 11px !important;
+  padding: 3px 10px !important;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.seed-editable {
+  cursor: grab;
+}
+
+.seed-editable:active {
+  cursor: grabbing;
+}
+
+.seed-drag-handle {
+  color: var(--text-dark);
+  font-size: 14px;
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.seed-dragging {
+  opacity: 0.4;
+}
+
+.seed-drag-over {
+  background: rgba(99, 179, 237, 0.15) !important;
+  box-shadow: inset 0 0 0 1px rgba(99, 179, 237, 0.4);
+}
+
+.kickoff-seeds-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+}
+
+.kickoff-seed-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  transition: background 0.15s ease;
+}
+
+.kickoff-seed-item.has-bye {
+  background: rgba(255, 70, 85, 0.04);
+}
+
+.kickoff-seed-item.user-seed {
+  background: rgba(255, 70, 85, 0.10);
+}
+
+.kickoff-seed-num {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dark);
+  min-width: 22px;
+}
+
+.kickoff-seed-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.kickoff-seed-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.kickoff-bye-tag {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(255, 70, 85, 0.15);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.5px;
+}
+
+/* user team badge */
+.user-team-badge {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  margin-left: 6px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+/* next matchup highlight */
+.playoff-matchup-card.next-matchup {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(255, 70, 85, 0.2), 0 0 12px rgba(255, 70, 85, 0.08);
+  position: relative;
+}
+
+.next-matchup-label {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  padding: 2px 8px;
+  border-radius: 0 var(--radius-md) 0 var(--radius-sm);
+  letter-spacing: 1px;
+  z-index: 1;
+}
+
+.next-matchup-label.live-label {
+  background: #ef4444;
+  animation: bracket-live-pulse-label 2s ease-in-out infinite;
+}
+
+@keyframes bracket-live-pulse-label {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.playoff-matchup-card.suspended-live {
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.15), 0 0 12px rgba(239, 68, 68, 0.06);
+  position: relative;
+  cursor: pointer;
+}
+
+/* user team matchup highlight */
+.playoff-matchup-card.user-matchup {
+  border-color: rgba(255, 70, 85, 0.4);
+  box-shadow: 0 0 0 1px rgba(255, 70, 85, 0.1);
+}
+
+.playoff-team-row.user-team-row {
+  background: rgba(255, 70, 85, 0.06);
+}
+
+.playoff-team-row.user-team-row.winner {
+  background: rgba(255, 70, 85, 0.12);
+}
+
+/* qualifiers panel */
+.kickoff-qualifiers-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.kickoff-qualifiers-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--warning);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.kickoff-qualifiers-list {
+  padding: 8px 0;
+}
+
+.kickoff-qualifier-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+}
+
+.kickoff-qualifier-item.user-seed {
+  background: rgba(255, 70, 85, 0.08);
+}
+
+.kickoff-qualifier-seed {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  min-width: 22px;
+}
+
+.kickoff-qualifier-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.kickoff-qualifier-via {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* bracket sections */
+.kickoff-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.kickoff-section-header {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kickoff-section-icon {
+  font-size: 11px;
+}
+
+.kickoff-section-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-dark);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* ===== BRACKET GRID LAYOUT ===== */
+
+.bracket-header-row {
+  padding: 10px 16px 0;
+}
+
+.bracket-round-header {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kickoff-round-format {
+  font-size: 10px;
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+.bracket-grid {
+  padding: 8px 16px 16px;
+}
+
+/* cell that holds a matchup card — center card vertically */
+.bracket-grid-cell {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.bracket-grid-cell .bracket-card {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* override bracket cards to remove old connector pseudo-elements */
+.bracket-grid-cell .playoff-matchup-card::after,
+.bracket-grid-cell .playoff-matchup-card::before {
+  display: none;
+}
+
+/* TBD bracket cards: subdued */
+.bracket-grid-cell .playoff-matchup-card.tbd {
+  opacity: 0.35;
+  border-style: dashed;
+  border-color: var(--border);
+  background: transparent;
+}
+
+/* finals + tbd: no gold highlight */
+.bracket-grid-cell .playoff-matchup-card.finals.tbd {
+  border-color: var(--border);
+  background: transparent;
+}
+
+/* ===== CONNECTOR CELLS ===== */
+
+.bracket-conn {
+  position: relative;
+}
+
+/* straight 1:1 — horizontal line at center */
+.bracket-conn-straight::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border);
+}
+
+/* merge 2:1 — bracket shape ──┐ ├── ──┘ */
+/* left side: top arm + bottom arm + vertical bar */
+.bracket-conn-merge::before {
+  content: '';
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  left: 0;
+  width: 50%;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-radius: 0 4px 4px 0;
+}
+
+/* right side: horizontal from midpoint to right */
+.bracket-conn-merge::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  right: 0;
+  height: 1px;
+  background: var(--border);
+  transform: translateY(-0.5px);
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 900px) {
+  .kickoff-seeds-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .kickoff-seeds-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bracket-grid,
+  .bracket-header-row {
+    overflow-x: auto;
+  }
+}
+
+/* ===== SWISS STAGE ===== */
+
+.swiss-round-label-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.swiss-round-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #a78bfa;
+}
+
+.swiss-round-play {
+  margin-left: 8px;
+  padding: 3px 12px !important;
+  font-size: 11px !important;
+  min-height: 0 !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  cursor: pointer;
+}
+
+.swiss-round-play:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: var(--text-primary) !important;
+}
+
+.swiss-w {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.swiss-l {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.swiss-status-badge {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.swiss-status-badge.advanced {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+}
+
+.swiss-status-badge.eliminated {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+}
+
+.swiss-status-badge.active {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-dark);
+}
+
+/* Qualified Teams panel enhancements */
+.qualified-team-row.qualified-eliminated {
+  opacity: 0.35;
+}
+
+.qualified-team-row.qualified-user {
+  background: rgba(255, 70, 85, 0.06);
+  border-radius: 4px;
+}
+/* qualified team swiss score — big and readable */
+.qualified-swiss-score {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.qualified-record {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.qualified-record-w   { color: #4ade80; }
+.qualified-record-sep { color: var(--text-muted); font-size: 18px; }
+.qualified-record-l   { color: #f87171; }
+
+/* collapsible section headers */
+.collapsible-header {
+  cursor: pointer;
+  user-select: none;
+}
+.collapsible-header:hover {
+  background: var(--bg-hover-subtle);
+}
+
+/* champions bracket — wider cards, no truncation on abbreviations */
+.champions-bracket-wrap .playoff-team-name {
+  overflow: visible;
+  text-overflow: unset;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.champions-bracket-wrap .playoff-team-row {
+  padding: 10px 14px;
+  gap: 8px;
+}
+
+.champions-bracket-wrap .region-seed-tag {
+  flex-shrink: 0;
 }

@@ -1,0 +1,137 @@
+/* PlayByPlay.css — simple text log style */
+
+.pbp-container {
+  border-top: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.pbp-header {
+  display: none;
+}
+
+.pbp-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-light);
+}
+
+.pbp-map {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.pbp-log {
+  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 8px 0;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+/* Round line */
+.pbp-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 16px;
+  transition: background 0.1s ease;
+}
+
+.pbp-line:hover { background: var(--bg-hover); }
+
+.pbp-round-num {
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 28px;
+  flex-shrink: 0;
+}
+
+.pbp-buys {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  min-width: 160px;
+}
+
+.pbp-buy-tag.full { color: #4ade80; }
+.pbp-buy-tag.half { color: #facc15; }
+.pbp-buy-tag.force { color: #f97316; }
+.pbp-buy-tag.eco { color: #ef4444; }
+.pbp-buy-tag.save { color: #ef4444; }
+.pbp-buy-tag.pistol { color: #a78bfa; }
+
+.pbp-text {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-secondary);
+}
+
+.pbp-home { color: var(--accent); font-weight: 700; }
+.pbp-away { color: #ef4444; font-weight: 700; }
+.pbp-dim { color: var(--text-muted); }
+.pbp-highlight { color: #facc15; font-weight: 600; }
+
+.pbp-score {
+  font-weight: 700;
+  color: var(--text-light);
+  min-width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Dividers */
+.pbp-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px;
+  margin: 2px 0;
+}
+
+.pbp-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.pbp-divider-text {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* timeout row */
+.pbp-timeout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 16px 2px 46px;
+}
+
+.pbp-timeout-badge {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #ffc107;
+  text-transform: uppercase;
+}
+
+.pbp-timeout-team {
+  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pbp-timeout.home .pbp-timeout-team { color: var(--accent); }
+.pbp-timeout.away .pbp-timeout-team { color: var(--success, #0ac8b9); }

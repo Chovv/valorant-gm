@@ -1,0 +1,336 @@
+/* src/ui/components/StageGroupStandingsView.css */
+
+.stage-groups-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  animation: fadeInUp 0.35s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.stage-group-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.stage-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
+}
+
+.stage-group-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stage-group-progress {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* standings grid */
+.sg-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.sg-grid-head {
+  display: grid;
+  grid-template-columns: 36px 1fr 56px 52px 52px 110px;
+  padding: 8px 0;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
+}
+
+.sg-grid-head .sg-col {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 0 10px;
+}
+
+.sg-grid-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 56px 52px 52px 110px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sg-grid-row:last-child {
+  border-bottom: none;
+}
+
+.sg-grid-row:hover {
+  background: var(--bg-hover-subtle);
+}
+
+.sg-grid-row.sg-user {
+  background: rgba(255, 70, 85, 0.08);
+}
+
+.sg-grid-row.sg-cutoff {
+  border-bottom: 2px solid var(--border);
+}
+
+.sg-col {
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.sg-col-rank {
+  text-align: center;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+.sg-col-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sg-team-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.sg-team-name {
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sg-you-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(255, 70, 85, 0.15);
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.sg-col-record {
+  text-align: center;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.sg-col-maps, .sg-col-rd {
+  text-align: center;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.sg-grid-head .sg-col-rank { text-align: center; }
+.sg-grid-head .sg-col-record,
+.sg-grid-head .sg-col-maps,
+.sg-grid-head .sg-col-rd { text-align: center; }
+.sg-grid-head .sg-col-status { text-align: right; padding-right: 14px; }
+
+.sg-pos { color: var(--success); }
+.sg-neg { color: var(--danger); }
+
+.sg-col-status {
+  text-align: right;
+  padding-right: 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sg-qualified-top { color: var(--success); }
+.sg-qualified { color: var(--role-sentinel); }
+.sg-qualified-low { color: var(--warning); }
+.sg-eliminated { color: var(--text-muted); opacity: 0.6; }
+.sg-on-track { color: var(--text-secondary); }
+.sg-outside { color: var(--text-muted); }
+
+@media (max-width: 900px) {
+  .stage-groups-wrap {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* stage playoff qualified teams banner */
+.stage-playoff-qualified {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stage-playoff-qualified-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--success);
+  white-space: nowrap;
+}
+
+.stage-playoff-qualified-teams {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.stage-playoff-qualified-team {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.stage-playoff-qualified-team .playoff-team-logo {
+  width: 20px;
+  height: 20px;
+}
+
+.stage-playoff-seed {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+/* match schedule */
+.sg-schedule {
+  margin-top: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.sg-schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
+}
+
+.sg-schedule-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sg-show-all-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sg-show-all-btn:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.sg-matchday {
+  border-bottom: 1px solid var(--border);
+}
+
+.sg-matchday:last-child {
+  border-bottom: none;
+}
+
+.sg-matchday-current {
+  background: rgba(255, 70, 85, 0.03);
+}
+
+.sg-matchday-label {
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
+}
+
+.sg-matchday-current .sg-matchday-label {
+  color: var(--accent);
+}
+
+.sg-matchday-grid {
+  padding: 12px 16px;
+}
+
+/* group tag in smc-card footer */
+.smc-card-group-tag {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--bg-darker);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+
+/* bracket match label */
+.bracket-match-label {
+  position: absolute;
+  top: -8px;
+  left: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 0 4px;
+  letter-spacing: 0.5px;
+  z-index: 1;
+}
+
+.bracket-card {
+  position: relative;
+}

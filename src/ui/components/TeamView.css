@@ -1,0 +1,852 @@
+/* src/ui/components/TeamView.css */
+
+.team-view-container {
+  max-width: 100%;
+  width: 100%;
+  animation: fadeInUp 0.35s ease-out;
+}
+
+/* header */
+.team-view-header {
+  animation: contentHeaderFadeIn 0.4s ease-out;
+}
+
+.team-view-header .team-header-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.team-view-header .team-badge {
+  background: var(--accent);
+  color: white;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.team-view-header .team-badge.dev-badge {
+  background: #f59e0b;
+}
+
+.team-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.team-view-header .manage-roster-btn {
+  padding: 8px 16px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.team-view-header .manage-roster-btn:hover {
+  background: var(--accent-hover);
+}
+
+.team-view-header .edit-team-btn {
+  padding: 8px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.team-view-header .edit-team-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.team-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.team-nav-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-muted);
+}
+
+.team-nav-btn .nav-icon {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* hero */
+.team-hero {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.team-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+}
+
+.team-hero-bg {
+  display: none;
+}
+
+.team-hero-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+}
+
+.team-hero-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: var(--bg-darker);
+  border-radius: var(--radius-md);
+  padding: 10px;
+}
+
+.team-hero-info {
+  flex: 1;
+}
+
+.team-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.team-region-badge {
+  background: var(--bg-darker);
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.team-founded {
+  color: var(--text-dark);
+  font-size: 12px;
+}
+
+.team-hero-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.team-hero-stats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.hero-stat-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-stat-value.positive { color: var(--success); }
+.hero-stat-value.negative { color: var(--danger); }
+
+.hero-stat-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 4px;
+}
+
+.hero-stat-divider {
+  width: 1px;
+  height: 48px;
+  background: var(--border);
+}
+
+/* team attributes row with letter grades */
+.team-attributes-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.team-attr-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 12px;
+  text-align: center;
+}
+
+.team-attr-card:hover {
+  border-color: var(--text-muted);
+}
+
+.team-attr-card.team-attr-avg {
+  border-color: var(--accent);
+}
+
+.team-attr-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.team-attr-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.team-attr-grade {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.team-attr-grade.tv-grade-s  { color: #ffd700; background: rgba(255, 215, 0, 0.15); }
+.team-attr-grade.tv-grade-a  { color: var(--success); background: rgba(10, 200, 185, 0.15); }
+.team-attr-grade.tv-grade-b  { color: var(--accent); background: rgba(255, 70, 85, 0.12); }
+.team-attr-grade.tv-grade-c  { color: var(--warning); background: rgba(255, 192, 72, 0.15); }
+.team-attr-grade.tv-grade-d  { color: var(--text-muted); background: rgba(122, 119, 114, 0.15); }
+.team-attr-grade.tv-grade-f  { color: #ef4444; background: rgba(239, 68, 68, 0.15); }
+
+.team-attr-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.team-attr-avg .team-attr-value {
+  color: var(--accent);
+}
+
+.team-attr-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.team-attr-bar {
+  height: 3px;
+  background: var(--bg-darker);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.team-attr-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.team-attr-card:nth-child(1) .team-attr-bar-fill { background: var(--role-duelist); }
+.team-attr-card:nth-child(2) .team-attr-bar-fill { background: var(--role-controller); }
+.team-attr-card:nth-child(3) .team-attr-bar-fill { background: var(--role-initiator); }
+.team-attr-card:nth-child(4) .team-attr-bar-fill { background: var(--role-sentinel); }
+.team-attr-card:nth-child(5) .team-attr-bar-fill { background: var(--warning); }
+
+/* content grid */
+.team-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+}
+
+/* role composition strip */
+.tv-comp-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg-hover-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.tv-comp-label {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-right: 4px;
+}
+
+.tv-comp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.tv-comp-pill img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.tv-comp-pill.role-natural {
+  background: rgba(10, 200, 185, 0.15);
+  color: var(--success);
+}
+
+.tv-comp-pill.role-offrole {
+  background: rgba(255, 192, 72, 0.15);
+  color: var(--warning);
+}
+
+.tv-comp-pill.role-missing {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--text-dark);
+  border: 1px dashed rgba(239, 68, 68, 0.3);
+}
+
+.tv-comp-penalty {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tv-comp-penalty.penalty-none { color: var(--success); }
+.tv-comp-penalty.penalty-minor { color: var(--warning); }
+.tv-comp-penalty.penalty-moderate { color: #f97316; }
+.tv-comp-penalty.penalty-severe { color: var(--danger); }
+
+/* roster panel */
+.team-roster-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.team-roster-panel .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
+}
+
+.roster-section-header {
+  padding: 8px 16px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--bg-hover-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.bench-header {
+  border-top: 1px solid var(--border);
+}
+
+/* roster player rows */
+.tv-roster-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.tv-player-row {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) 90px 60px 50px 80px 50px;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background 0.12s ease;
+  gap: 8px;
+}
+
+.tv-player-row:last-child {
+  border-bottom: none;
+}
+
+.tv-player-row:hover {
+  background: var(--bg-hover);
+}
+
+.tv-player-row.bench-row {
+  opacity: 0.7;
+}
+
+.tv-player-row.bench-row:hover {
+  opacity: 1;
+}
+
+/* player identity cell: avatar + name + archetype */
+.tv-player-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tv-player-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tv-player-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tv-player-name {
+  color: var(--link, var(--text));
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.12s ease;
+}
+
+.tv-player-row:hover .tv-player-name {
+  color: var(--accent);
+}
+
+.tv-player-archetype {
+  font-size: 11px;
+  color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* role pill */
+.tv-role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  width: fit-content;
+  justify-self: center;
+}
+
+.tv-role-pill img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+.tv-role-pill.role-duelist     { background: rgba(255, 70, 85, 0.15); color: var(--role-duelist); }
+.tv-role-pill.role-controller  { background: rgba(10, 200, 185, 0.15); color: var(--role-controller); }
+.tv-role-pill.role-initiator   { background: rgba(255, 192, 72, 0.15); color: var(--role-initiator); }
+.tv-role-pill.role-sentinel    { background: rgba(89, 201, 255, 0.15); color: var(--role-sentinel); }
+.tv-role-pill.role-flex        { background: rgba(197, 146, 255, 0.15); color: var(--role-flex); }
+
+/* dev stage */
+.tv-stage {
+  justify-self: center;
+}
+
+.tv-stage .stage-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.tv-stage .stage-prospect   { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+.tv-stage .stage-developing { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.tv-stage .stage-prime      { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+.tv-stage .stage-veteran    { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.tv-stage .stage-declining  { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+/* age col */
+.tv-age {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ovr cell */
+.tv-ovr-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.tv-ovr-num {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.tv-ovr-num.rating-legendary { color: #ffd700; }
+.tv-ovr-num.rating-elite     { color: var(--accent); }
+.tv-ovr-num.rating-high      { color: var(--success); }
+.tv-ovr-num.rating-mid       { color: var(--warning); }
+.tv-ovr-num.rating-low       { color: var(--text-muted); }
+
+.tv-ovr-grade {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.tv-ovr-grade.tv-grade-s { color: #ffd700; background: rgba(255, 215, 0, 0.15); }
+.tv-ovr-grade.tv-grade-a { color: var(--success); background: rgba(10, 200, 185, 0.15); }
+.tv-ovr-grade.tv-grade-b { color: var(--accent); background: rgba(255, 70, 85, 0.12); }
+.tv-ovr-grade.tv-grade-c { color: var(--warning); background: rgba(255, 192, 72, 0.15); }
+.tv-ovr-grade.tv-grade-d { color: var(--text-muted); background: rgba(122, 119, 114, 0.15); }
+.tv-ovr-grade.tv-grade-f { color: #ef4444; background: rgba(239, 68, 68, 0.15); }
+
+.tv-ovr-mod {
+  font-size: 9px;
+  font-weight: 700;
+  vertical-align: super;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+
+.tv-ovr-mod.bonus   { color: var(--success); background: rgba(10, 200, 185, 0.12); }
+.tv-ovr-mod.penalty { color: var(--danger); background: rgba(255, 70, 85, 0.1); }
+.tv-ovr-mod.comp    { color: var(--warning); background: rgba(255, 192, 72, 0.1); }
+
+/* pot col */
+.tv-pot {
+  text-align: center;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* igl badge */
+.tv-igl-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(10, 200, 185, 0.15);
+  color: var(--success);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+/* igl set button */
+.tv-igl-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  color: var(--text-dark);
+  transition: all 0.15s ease;
+}
+
+.tv-igl-btn:hover {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.tv-igl-btn.active {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+/* roster table header */
+.tv-roster-header {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) 90px 60px 50px 80px 50px;
+  padding: 8px 16px;
+  background: var(--bg-hover-subtle);
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+
+.tv-roster-header span {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.tv-roster-header .th-center {
+  text-align: center;
+}
+
+/* with igl column */
+.tv-roster-header.has-igl,
+.tv-player-row.has-igl {
+  grid-template-columns: minmax(200px, 1fr) 90px 60px 50px 80px 50px 50px;
+}
+
+/* match history panel */
+.team-history-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.team-history-panel .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
+}
+
+.team-history-body {
+  max-height: 680px;
+  overflow-y: auto;
+}
+
+.team-history-body::-webkit-scrollbar { width: 4px; }
+.team-history-body::-webkit-scrollbar-track { background: transparent; }
+.team-history-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* match cards */
+.tv-match-card {
+  display: flex;
+  align-items: stretch;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background 0.12s ease;
+  gap: 12px;
+}
+
+.tv-match-card:last-child {
+  border-bottom: none;
+}
+
+.tv-match-card:hover {
+  background: var(--bg-hover);
+}
+
+.tv-match-indicator {
+  width: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.tv-match-indicator.win  { background: var(--success); }
+.tv-match-indicator.loss { background: var(--danger); }
+
+.tv-match-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tv-match-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.tv-match-wl {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.tv-match-wl.win  { background: rgba(10, 200, 185, 0.15); color: var(--success); }
+.tv-match-wl.loss { background: rgba(255, 70, 85, 0.12); color: var(--danger); }
+
+.tv-match-vs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tv-match-vs img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.tv-match-score {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  margin-left: auto;
+  font-size: 14px;
+}
+
+.tv-match-score.win  { color: var(--success); }
+.tv-match-score.loss { color: var(--danger); }
+
+.tv-match-maps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.tv-map-score {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--bg-darker);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.tv-map-score.map-win  { color: var(--success); }
+.tv-map-score.map-loss { color: var(--danger); }
+
+.tv-match-meta {
+  font-size: 10px;
+  color: var(--text-dark);
+  margin-top: 4px;
+}
+
+/* empty state */
+.tv-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  gap: 8px;
+  color: var(--text-dark);
+}
+
+.tv-empty-icon {
+  font-size: 32px;
+  opacity: 0.4;
+}
+
+/* panel shared */
+.panel-header span {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.panel-header-sub {
+  font-size: 12px !important;
+  color: var(--text-muted) !important;
+  font-weight: 400 !important;
+  text-transform: none !important;
+}
+
+/* responsive */
+@media (max-width: 1200px) {
+  .team-attributes-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .team-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-attributes-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .tv-player-row,
+  .tv-roster-header {
+    grid-template-columns: minmax(140px, 1fr) 80px 50px 70px 40px;
+  }
+
+  .tv-col-stage {
+    display: none;
+  }
+}
+
+@media (min-width: 1400px) {
+  .team-content-grid {
+    grid-template-columns: 1fr 420px;
+  }
+}

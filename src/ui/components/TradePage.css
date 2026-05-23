@@ -327,6 +327,9 @@
   text-overflow: ellipsis;
   cursor: pointer;
   transition: color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .player-name:hover {
@@ -478,6 +481,9 @@
   font-size: 12px;
   font-weight: 500;
   color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .flow-ovr {

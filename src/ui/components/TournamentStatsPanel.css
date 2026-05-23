@@ -1,0 +1,309 @@
+/* src/ui/components/TournamentStatsPanel.css */
+
+.tsp-wrap {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tsp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tsp-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* narratives — always 3 cols, 2 rows of 3 */
+.tsp-narrative-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+/* single horizontal row: [label] | [text] | [player] */
+.tsp-narrative-item {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  min-height: 56px;
+}
+
+.tsp-narrative-cat {
+  flex-shrink: 0;
+  width: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  background: var(--bg-darker);
+  border-right: 1px solid var(--border);
+  padding: 8px 6px;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.tsp-narrative-text {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  /* inline so highlight renders as part of the sentence flow */
+  display: block;
+}
+
+/* player identity — right side of narrative card */
+.tsp-narrative-player {
+  flex-shrink: 0;
+  width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-darker);
+  border-right: 1px solid var(--border);
+}
+
+.tsp-narrative-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.tsp-narrative-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* leaderboard grid — always 3 cols */
+.tsp-boards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.tsp-board {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.tsp-board-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.tsp-board-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.tsp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background var(--transition-fast);
+}
+.tsp-row:last-child { border-bottom: none; }
+.tsp-row:hover { background: var(--bg-hover-subtle); }
+
+.tsp-rank {
+  width: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  text-align: center;
+  font-family: 'Rajdhani', sans-serif;
+}
+.tsp-rank.gold   { color: #ffd700; }
+.tsp-rank.silver { color: #b0b8c8; }
+.tsp-rank.bronze { color: #cd7f32; }
+
+.tsp-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.tsp-player-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tsp-player-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.tsp-team-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tsp-role-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+
+.tsp-team-logo {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.tsp-team-abbr {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.tsp-maps-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.tsp-stat-val {
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+  min-width: 44px;
+  text-align: right;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+/* empty state */
+.tsp-empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.tsp-empty p { margin: 0; }
+.tsp-empty p:last-child { color: var(--text-dark); }
+
+/* tab bar */
+.tsb-tabs {
+  display: flex;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-darker);
+}
+
+.tsb-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  margin-bottom: -1px;
+}
+.tsb-tab:hover { color: var(--text-secondary); }
+.tsb-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+.tsb-match-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* highlighted stat value in narrative text */
+.tsp-narrative-highlight {
+  color: var(--success);
+  font-weight: 700;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+}
+
+/* player name + age inline */
+.tsp-name-age {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.tsp-age-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* team seed badge next to abbr */
+.tsp-seed-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}

@@ -411,6 +411,9 @@
   font-size: 22px;
   font-weight: 700;
   margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .mvp-team {
@@ -556,6 +559,9 @@
   font-weight: 500;
   cursor: pointer;
   transition: color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .players-ranking-table .player-name-link:hover,
@@ -674,6 +680,9 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .role-leader-team {
@@ -732,6 +741,9 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .runner-acs {

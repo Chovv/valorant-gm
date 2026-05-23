@@ -6,6 +6,7 @@ import type { StartingSlot } from '../../types/roster';
 import { getLineupSummary } from '../../sim/rosterManagement';
 import { getIGLBonusForPlayer } from '../../sim/iglBonus';
 import { getCompositionPenalty } from '../../sim/compositionBonus';
+import { InlineFlag } from './PlayerAvatar';
 import './PowerRankingsPage.css';
 
 // Role icons
@@ -42,10 +43,15 @@ interface PowerRanking {
   momentum: number;
 }
 
-// Calculate a team's overall rating from their attributes
+// Calculate a team's overall rating from their starting lineup only
 function getTeamOverall(team: Team): number {
-  const attrs = team.attributes;
-  return Math.round((attrs.firepower + attrs.utilityDepth + attrs.macroPlay + attrs.mentalStrength) / 4);
+  const starterIds = new Set(
+    (team.startingLineup || team.roster.slice(0, 5).map(p => ({ playerId: p.id })))
+      .map(s => s.playerId)
+  );
+  const starters = team.roster.filter(p => starterIds.has(p.id));
+  if (starters.length === 0) return 50;
+  return Math.round(starters.reduce((sum, p) => sum + p.overall, 0) / starters.length);
 }
 
 // Calculate effective lineup strength including IGL bonus and composition penalty
@@ -114,7 +120,6 @@ function calculatePerformanceRating(player: Player): { rating: number; hasStats:
   const fkScore = Math.min(100, Math.max(0, stats.avgFirstKillsPerMap * 25));
   const winRate = stats.totalMatches > 0 ? stats.matchWins / stats.totalMatches : 0.5;
   const winScore = winRate * 100;
-  const sampleFactor = Math.min(1.0, 0.7 + (stats.totalMaps * 0.03));
   
   const rawPerformance = 
     (acsScore * 0.40) +
@@ -122,10 +127,11 @@ function calculatePerformanceRating(player: Player): { rating: number; hasStats:
     (fkScore * 0.15) +
     (winScore * 0.15);
   
-  const performanceWeight = Math.min(0.85, stats.totalMaps * 0.08);
+  // ramp: 0 maps = 0% perf, 20 maps = 80% perf (0.04 per map, capped at 0.80)
+  const performanceWeight = Math.min(0.80, stats.totalMaps * 0.04);
   const potentialWeight = 1 - performanceWeight;
   
-  const blendedRating = (rawPerformance * sampleFactor * performanceWeight) + (player.overall * potentialWeight);
+  const blendedRating = (rawPerformance * performanceWeight) + (player.overall * potentialWeight);
   
   return { 
     rating: blendedRating, 
@@ -155,17 +161,24 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
   );
   
   // Get all players with their team info and calculate performance ratings
-  const allPlayers: RankedPlayer[] = teams.flatMap(team => 
-    team.roster.map(player => {
-      const { rating, hasStats, breakdown } = calculatePerformanceRating(player);
-      return { player, team, performanceRating: rating, hasStats, breakdown };
-    })
-  );
+  // only include starters to prevent high-OVR bench players inflating rankings
+  const allPlayers: RankedPlayer[] = teams.flatMap(team => {
+    const starterIds = new Set(
+      (team.startingLineup || team.roster.slice(0, 5).map(p => ({ playerId: p.id })))
+        .map(s => s.playerId)
+    );
+    return team.roster
+      .filter(p => starterIds.has(p.id))
+      .map(player => {
+        const { rating, hasStats, breakdown } = calculatePerformanceRating(player);
+        return { player, team, performanceRating: rating, hasStats, breakdown };
+      });
+  });
   
   // Sort players by performance rating
   const topPlayers = [...allPlayers].sort((a, b) => b.performanceRating - a.performanceRating);
   
-  // Get top players by role
+  // role display constants
   const displayRoles: Role[] = ['duelist', 'initiator', 'controller', 'sentinel'];
   const roleNames: Record<Role, string> = {
     duelist: 'Duelists',
@@ -180,14 +193,6 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
     controller: '#9b59b6',
     sentinel: '#27ae60',
     flex: '#f39c12'
-  };
-  
-  const topByRole: Record<Role, RankedPlayer[]> = {
-    duelist: topPlayers.filter(p => p.player.role === 'duelist').slice(0, 5),
-    initiator: topPlayers.filter(p => p.player.role === 'initiator').slice(0, 5),
-    controller: topPlayers.filter(p => p.player.role === 'controller').slice(0, 5),
-    sentinel: topPlayers.filter(p => p.player.role === 'sentinel').slice(0, 5),
-    flex: topPlayers.filter(p => p.player.role === 'flex').slice(0, 5),
   };
   
   // Calculate team rankings
@@ -210,7 +215,17 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
       const winRate = totalGames > 0 ? standing.wins / totalGames : 0.5;
       const mapDiff = standing.mapWins - standing.mapLosses;
       const mapDiffBonus = mapDiff * 2;
-      const teamRating = getTeamOverall(team);
+
+      // blend static OVR with live performance ratings from starters
+      const starterIds = new Set(
+        (team.startingLineup || team.roster.slice(0, 5).map(p => ({ playerId: p.id })))
+          .map(s => s.playerId)
+      );
+      const starters = team.roster.filter(p => starterIds.has(p.id));
+      const starterRatings = starters.map(p => calculatePerformanceRating(p).rating);
+      const teamRating = starterRatings.length > 0
+        ? Math.round(starterRatings.reduce((a, b) => a + b, 0) / starterRatings.length)
+        : getTeamOverall(team);
       
       const opponents = schedule
         .filter(m => m.played && (m.homeTeamId === team.id || m.awayTeamId === team.id))
@@ -301,13 +316,22 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
     ? rankings 
     : rankings.filter(r => r.team.region === selectedRegion);
 
-  // Filter players by region
+  // filter players by region
   const filteredPlayers = selectedRegion === 'global'
     ? topPlayers
     : topPlayers.filter(p => p.team.region === selectedRegion);
 
-  // MVP player
-  const mvpPlayer = topPlayers[0];
+  // top players by role — uses filteredPlayers so region filter applies to role cards
+  const topByRole: Record<Role, RankedPlayer[]> = {
+    duelist: filteredPlayers.filter(p => p.player.role === 'duelist').slice(0, 5),
+    initiator: filteredPlayers.filter(p => p.player.role === 'initiator').slice(0, 5),
+    controller: filteredPlayers.filter(p => p.player.role === 'controller').slice(0, 5),
+    sentinel: filteredPlayers.filter(p => p.player.role === 'sentinel').slice(0, 5),
+    flex: filteredPlayers.filter(p => p.player.role === 'flex').slice(0, 5),
+  };
+
+  // mvp respects region filter
+  const mvpPlayer = filteredPlayers[0];
   
   return (
     <div className="power-rankings-page">
@@ -484,7 +508,7 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
                 <div className="mvp-main">
                   <img src={mvpPlayer.team.logo} alt="" className="mvp-team-logo" />
                   <div className="mvp-info">
-                    <div className="mvp-name">{mvpPlayer.player.name}</div>
+                    <div className="mvp-name"><InlineFlag code={mvpPlayer.player.nationality} />{mvpPlayer.player.name}</div>
                     <div className="mvp-team" onClick={(e) => { e.stopPropagation(); onViewTeam(mvpPlayer.team.id); }}>
                       {mvpPlayer.team.name}
                     </div>
@@ -554,6 +578,7 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
                                 className={`player-name-link ${isUserTeam ? 'user-team' : ''}`}
                                 onClick={() => onViewPlayer(p.player.id)}
                               >
+                                <InlineFlag code={p.player.nationality} />
                                 {p.player.name}
                               </span>
                               <img 
@@ -611,7 +636,7 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
                     <div className="role-leader-body">
                       <img src={roleLeader.team.logo} alt="" className="role-leader-logo" />
                       <div className="role-leader-info">
-                        <div className="role-leader-name">{roleLeader.player.name}</div>
+                        <div className="role-leader-name"><InlineFlag code={roleLeader.player.nationality} />{roleLeader.player.name}</div>
                         <div className="role-leader-team">{roleLeader.team.abbreviation}</div>
                         {roleLeader.hasStats && (
                           <div className="role-leader-stats">
@@ -632,7 +657,7 @@ export function PowerRankingsPage({ teams, standings, schedule, userTeamId, onVi
                           onClick={(e) => { e.stopPropagation(); onViewPlayer(p.player.id); }}
                         >
                           <span className="runner-rank">#{idx + 2}</span>
-                          <span className="runner-name">{p.player.name}</span>
+                          <span className="runner-name"><InlineFlag code={p.player.nationality} />{p.player.name}</span>
                           <span className="runner-acs">
                             {p.hasStats ? `${Math.round(p.breakdown.acs)} ACS` : `${p.player.overall} OVR`}
                           </span>

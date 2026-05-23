@@ -22,7 +22,6 @@ export const AGENTS: AgentInfo[] = [
   
   // Controllers
   { id: 'brimstone', displayName: 'Brimstone', role: 'controller' },
-  { id: 'viper', displayName: 'Viper', role: 'controller' },
   { id: 'omen', displayName: 'Omen', role: 'controller' },
   { id: 'astra', displayName: 'Astra', role: 'controller' },
   { id: 'harbor', displayName: 'Harbor', role: 'controller' },
@@ -43,6 +42,7 @@ export const AGENTS: AgentInfo[] = [
   { id: 'killjoy', displayName: 'Killjoy', role: 'sentinel' },
   { id: 'chamber', displayName: 'Chamber', role: 'sentinel' },
   { id: 'deadlock', displayName: 'Deadlock', role: 'sentinel' },
+  { id: 'viper', displayName: 'Viper', role: 'sentinel' },
   { id: 'vyse', displayName: 'Vyse', role: 'sentinel' },
   { id: 'veto', displayName: 'Veto', role: 'sentinel' },
 ];
@@ -53,9 +53,9 @@ export type AgentName = typeof AGENTS[number]['id'];
 // Also export as a union type for stricter typing
 export type AgentId = 
   | 'jett' | 'phoenix' | 'reyna' | 'raze' | 'yoru' | 'neon' | 'iso' | 'waylay'
-  | 'brimstone' | 'viper' | 'omen' | 'astra' | 'harbor' | 'clove'
+  | 'brimstone' | 'omen' | 'astra' | 'harbor' | 'clove'
   | 'sova' | 'breach' | 'skye' | 'kayo' | 'fade' | 'gekko' | 'tejo'
-  | 'sage' | 'cypher' | 'killjoy' | 'chamber' | 'deadlock' | 'vyse'| 'veto' ;
+  | 'sage' | 'cypher' | 'killjoy' | 'chamber' | 'deadlock' | 'viper' | 'vyse'| 'veto' ;
 
 export const AGENT_INFO: Record<string, AgentInfo> = Object.fromEntries(
   AGENTS.map(agent => [agent.id, agent])

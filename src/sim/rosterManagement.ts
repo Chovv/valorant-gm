@@ -1,277 +1,232 @@
 // src/sim/rosterManagement.ts
-// Roster management utilities for ValorantGM
-
-import type { Player, Role,} from '../types';
+import type { Player, Role } from '../types';
 import type { StartingSlot } from '../types/roster';
-import {  STANDARD_ROLES, getRolePenalty } from '../types/roster';
+import { STANDARD_ROLES, getRolePenalty } from '../types/roster';
 
-/**
- * Calculate effective overall for a player in an assigned role
- */
 export function getEffectiveOverall(player: Player, assignedRole: Role): number {
-  const penalty = getRolePenalty(player.role, assignedRole);
-  return Math.max(0, player.overall + penalty);
+  return Math.max(0, player.overall + getRolePenalty(player.role, assignedRole));
 }
 
-/**
- * Calculate IGL score for a player
- * Combines game sense, utility usage, and personality traits
- * Higher score = better IGL candidate
- */
 export function calculateIGLScore(player: Player): number {
-  // Ratings contribution (40% weight)
-  const ratingsScore = 
-    (player.ratings.gameSense * 0.30) +      // Core game reading
-    (player.ratings.utilityUsage * 0.10);    // Util coordination
-  
-  // Personality contribution (60% weight) - with null safety
+  const ratingsScore =
+    (player.ratings.gameSense * 0.30) +
+    (player.ratings.utilityUsage * 0.10);
   const leadership = player.personality?.leadership ?? 50;
   const teamPlayer = player.personality?.teamPlayer ?? 50;
   const mentality = player.personality?.mentality ?? 50;
   const workEthic = player.personality?.workEthic ?? 50;
-  
   const personalityScore =
-    (leadership * 0.25) +      // Most important - commanding respect
-    (teamPlayer * 0.15) +      // Selfless play, setting up teammates
-    (mentality * 0.12) +       // Composure under pressure
-    (workEthic * 0.08);        // Preparation, studying opponents
-  
+    (leadership * 0.25) +
+    (teamPlayer * 0.15) +
+    (mentality * 0.12) +
+    (workEthic * 0.08);
   return ratingsScore + personalityScore;
 }
 
-/**
- * Find the best IGL candidate from a list of players
- * Returns the player ID of the best IGL
- */
 export function findBestIGL(players: Player[]): string | null {
   if (players.length === 0) return null;
-  
-  let bestPlayer: Player | null = null;
+  let best: Player | null = null;
   let bestScore = -Infinity;
-  
-  for (const player of players) {
-    const score = calculateIGLScore(player);
-    if (score > bestScore) {
-      bestScore = score;
-      bestPlayer = player;
-    }
+  for (const p of players) {
+    const score = calculateIGLScore(p);
+    if (score > bestScore) { bestScore = score; best = p; }
   }
-  
-  return bestPlayer?.id ?? null;
+  return best?.id ?? null;
 }
 
-/**
- * Result type for optimize functions
- */
 export interface OptimizeResult {
   lineup: StartingSlot[];
   recommendedIGL: string | null;
 }
 
-/**
- * Auto-optimize starting lineup - Comfort Mode
- * Prioritizes players in their natural roles (0 penalty), then fills gaps
- * Also selects the best IGL from the resulting lineup
- */
-export function autoOptimizeLineupComfort(roster: Player[]): OptimizeResult {
-  if (roster.length < 5) {
-    throw new Error('Roster must have at least 5 players');
+// maps agents to their primary role — used to resolve flex player slot assignments
+const AGENT_ROLES: Partial<Record<string, Role>> = {
+  jett: 'duelist', raze: 'duelist', phoenix: 'duelist', reyna: 'duelist',
+  yoru: 'duelist', neon: 'duelist', iso: 'duelist', waylay: 'duelist',
+  omen: 'controller', brimstone: 'controller', astra: 'controller',
+  harbor: 'controller', clove: 'controller', viper: 'controller',
+  sova: 'initiator', breach: 'initiator', skye: 'initiator',
+  kayo: 'initiator', fade: 'initiator', gekko: 'initiator', tejo: 'initiator',
+  killjoy: 'sentinel', cypher: 'sentinel', sage: 'sentinel',
+  chamber: 'sentinel', deadlock: 'sentinel', vyse: 'sentinel', veto: 'sentinel',
+};
+
+// given a flex player and which roles still need filling, pick their best concrete role
+// checks agent pool for role coverage — falls back to first unfilled role (the gamble)
+export function resolveFlexRole(player: Player, unfilledRoles: Role[]): Role {
+  if (unfilledRoles.length === 0) return STANDARD_ROLES[0];
+  let bestRole: Role | null = null;
+  let bestComfort = 0;
+  for (const [agent, comfort] of Object.entries(player.agentPool ?? {})) {
+    if (comfort < 70) continue;
+    const role = AGENT_ROLES[agent];
+    if (!role || !unfilledRoles.includes(role)) continue;
+    if (comfort > bestComfort) { bestComfort = comfort; bestRole = role; }
   }
-
-  const lineup: StartingSlot[] = [];
-  const usedPlayerIds = new Set<string>();
-  const filledRoles = new Set<Role>();
-
-  // Sort players by overall (highest first) to prioritize better players
-  const sortedRoster = [...roster].sort((a, b) => b.overall - a.overall);
-
-  // Pass 1: Assign players to their natural roles if the role isn't filled yet
-  // This ensures players play their best position before flex players "steal" roles
-  for (const player of sortedRoster) {
-    if (usedPlayerIds.size >= 5) break;
-
-    // Check if this player's natural role is still available
-    if (!filledRoles.has(player.role)) {
-      lineup.push({
-        playerId: player.id,
-        assignedRole: player.role,
-      });
-      usedPlayerIds.add(player.id);
-      filledRoles.add(player.role);
-    }
-  }
-
-  // Pass 2: Fill remaining roles with best available players (may have penalties)
-  const remainingRoles = STANDARD_ROLES.filter(role => !filledRoles.has(role));
-
-  for (const role of remainingRoles) {
-    let bestPlayer: Player | null = null;
-    let bestEffectiveOvr = -Infinity;
-
-    for (const player of roster) {
-      if (usedPlayerIds.has(player.id)) continue;
-
-      const effectiveOvr = getEffectiveOverall(player, role);
-      if (effectiveOvr > bestEffectiveOvr) {
-        bestEffectiveOvr = effectiveOvr;
-        bestPlayer = player;
-      }
-    }
-
-    if (bestPlayer) {
-      lineup.push({
-        playerId: bestPlayer.id,
-        assignedRole: role,
-      });
-      usedPlayerIds.add(bestPlayer.id);
-      filledRoles.add(role);
-    }
-  }
-
-  // Ensure lineup is sorted by STANDARD_ROLES order for consistent display
-  lineup.sort((a, b) => 
-    STANDARD_ROLES.indexOf(a.assignedRole) - STANDARD_ROLES.indexOf(b.assignedRole)
-  );
-
-  // Find best IGL from the starters
-  const starters = lineup.map(slot => roster.find(p => p.id === slot.playerId)!).filter(Boolean);
-  const recommendedIGL = findBestIGL(starters);
-
-  return { lineup, recommendedIGL };
+  return bestRole ?? unfilledRoles[0];
 }
 
-/**
- * Auto-optimize starting lineup - Strength Mode
- * Maximizes total effective OVR using Hungarian-like greedy assignment
- * Also selects the best IGL from the resulting lineup
- */
-export function autoOptimizeLineupStrength(roster: Player[]): OptimizeResult {
-  if (roster.length < 5) {
-    throw new Error('Roster must have at least 5 players');
+// resolves a StartingSlot[] into player+role entries, filling unresolved flex slots at match time
+export function resolveLineup(
+  slots: StartingSlot[],
+  roster: Player[]
+): Array<{ player: Player; assignedRole: Role }> {
+  const filledRoles = new Set(
+    slots.filter(s => s.assignedRole !== 'flex').map(s => s.assignedRole)
+  );
+  const result: Array<{ player: Player; assignedRole: Role }> = [];
+  for (const slot of slots) {
+    const player = roster.find(p => p.id === slot.playerId);
+    if (!player) continue;
+    if (slot.assignedRole !== 'flex') {
+      result.push({ player, assignedRole: slot.assignedRole });
+    } else {
+      const unfilled = STANDARD_ROLES.filter(r => !filledRoles.has(r));
+      const resolved = resolveFlexRole(player, unfilled.length > 0 ? unfilled : STANDARD_ROLES);
+      filledRoles.add(resolved);
+      result.push({ player, assignedRole: resolved });
+    }
   }
+  return result;
+}
 
-  // Build a matrix of all player-role combinations with effective OVR
-  const candidates: Array<{
-    player: Player;
-    role: Role;
-    effectiveOvr: number;
-  }> = [];
+// comfort mode: natural roles first, then flex players fill gaps, then remaining player fills 5th slot
+export function autoOptimizeLineupComfort(roster: Player[]): OptimizeResult {
+  if (roster.length < 5) throw new Error('Roster must have at least 5 players');
 
-  for (const player of roster) {
-    for (const role of STANDARD_ROLES) {
-      candidates.push({
-        player,
-        role,
-        effectiveOvr: getEffectiveOverall(player, role),
-      });
+  const lineup: StartingSlot[] = [];
+  const used = new Set<string>();
+  const filled = new Set<Role>();
+
+  const sorted = [...roster].sort((a, b) => b.overall - a.overall);
+
+  // pass 1a: non-flex players into natural roles
+  for (const p of sorted) {
+    if (used.size >= 4) break;
+    if (p.role === 'flex') continue;
+    if (!filled.has(p.role)) {
+      lineup.push({ playerId: p.id, assignedRole: p.role });
+      used.add(p.id); filled.add(p.role);
     }
   }
 
-  // Sort by effective OVR descending - greedy approach
+  // pass 1b: flex players fill remaining core roles by agent pool
+  const flexPlayers = sorted.filter(p => p.role === 'flex');
+  for (const p of flexPlayers) {
+    if (used.has(p.id)) continue;
+    const unfilled = STANDARD_ROLES.filter(r => !filled.has(r));
+    if (unfilled.length === 0) break;
+    const role = resolveFlexRole(p, unfilled);
+    lineup.push({ playerId: p.id, assignedRole: role });
+    used.add(p.id); filled.add(role);
+  }
+
+  // pass 2: fill any still-missing core roles with best available (may incur penalties)
+  for (const role of STANDARD_ROLES.filter(r => !filled.has(r))) {
+    let best: Player | null = null;
+    let bestOvr = -Infinity;
+    for (const p of roster) {
+      if (used.has(p.id)) continue;
+      const ovr = getEffectiveOverall(p, role);
+      if (ovr > bestOvr) { bestOvr = ovr; best = p; }
+    }
+    if (best) {
+      lineup.push({ playerId: best.id, assignedRole: role });
+      used.add(best.id); filled.add(role);
+    }
+  }
+
+  // pass 3: fill 5th slot with best remaining player at their strongest role
+  if (lineup.length < 5) {
+    const remaining = sorted.filter(p => !used.has(p.id));
+    if (remaining.length > 0) {
+      const p = remaining[0];
+      const role = p.role === 'flex'
+        ? resolveFlexRole(p, STANDARD_ROLES) // flex picks best overall fit
+        : STANDARD_ROLES.reduce((best, r) =>
+            getEffectiveOverall(p, r) > getEffectiveOverall(p, best) ? r : best
+          , p.role as Role);
+      lineup.push({ playerId: p.id, assignedRole: role });
+    }
+  }
+
+  lineup.sort((a, b) => STANDARD_ROLES.indexOf(a.assignedRole) - STANDARD_ROLES.indexOf(b.assignedRole));
+
+  const starters = lineup.map(s => roster.find(p => p.id === s.playerId)!).filter(Boolean);
+  return { lineup, recommendedIGL: findBestIGL(starters) };
+}
+
+// strength mode: maximize total effective OVR across all 4 core roles, then add 5th best
+export function autoOptimizeLineupStrength(roster: Player[]): OptimizeResult {
+  if (roster.length < 5) throw new Error('Roster must have at least 5 players');
+
+  // build all player-role combos, flex players use their resolved role
+  const candidates: Array<{ player: Player; role: Role; effectiveOvr: number }> = [];
+  for (const p of roster) {
+    for (const role of STANDARD_ROLES) {
+      candidates.push({ player: p, role, effectiveOvr: getEffectiveOverall(p, role) });
+    }
+  }
   candidates.sort((a, b) => b.effectiveOvr - a.effectiveOvr);
 
   const lineup: StartingSlot[] = [];
-  const usedPlayerIds = new Set<string>();
-  const filledRoles = new Set<Role>();
+  const used = new Set<string>();
+  const filled = new Set<Role>();
 
-  // Greedily assign best player-role combinations
-  for (const candidate of candidates) {
-    if (usedPlayerIds.has(candidate.player.id)) continue;
-    if (filledRoles.has(candidate.role)) continue;
-
-    lineup.push({
-      playerId: candidate.player.id,
-      assignedRole: candidate.role,
-    });
-    usedPlayerIds.add(candidate.player.id);
-    filledRoles.add(candidate.role);
-
-    if (lineup.length >= 5) break;
+  for (const c of candidates) {
+    if (used.has(c.player.id) || filled.has(c.role)) continue;
+    lineup.push({ playerId: c.player.id, assignedRole: c.role });
+    used.add(c.player.id); filled.add(c.role);
+    if (lineup.length >= 4) break;
   }
 
-  // Ensure lineup is sorted by STANDARD_ROLES order for consistent display
-  lineup.sort((a, b) => 
-    STANDARD_ROLES.indexOf(a.assignedRole) - STANDARD_ROLES.indexOf(b.assignedRole)
-  );
+  // 5th slot: best remaining player at their strongest role (duplicate role is fine)
+  if (lineup.length < 5) {
+    const best = candidates.find(c => !used.has(c.player.id));
+    if (best) lineup.push({ playerId: best.player.id, assignedRole: best.role });
+  }
 
-  // Find best IGL from the starters
-  const starters = lineup.map(slot => roster.find(p => p.id === slot.playerId)!).filter(Boolean);
-  const recommendedIGL = findBestIGL(starters);
+  lineup.sort((a, b) => STANDARD_ROLES.indexOf(a.assignedRole) - STANDARD_ROLES.indexOf(b.assignedRole));
 
-  return { lineup, recommendedIGL };
+  const starters = lineup.map(s => roster.find(p => p.id === s.playerId)!).filter(Boolean);
+  return { lineup, recommendedIGL: findBestIGL(starters) };
 }
 
-/**
- * Auto-optimize starting lineup (default - uses comfort mode)
- */
 export function autoOptimizeLineup(roster: Player[]): OptimizeResult {
   return autoOptimizeLineupComfort(roster);
 }
 
-/**
- * Create a default starting lineup using players' natural roles
- */
 export function createDefaultLineup(roster: Player[]): StartingSlot[] {
-  return roster.slice(0, 5).map(player => ({
-    playerId: player.id,
-    assignedRole: player.role,
+  return roster.slice(0, 5).map(p => ({
+    playerId: p.id,
+    assignedRole: p.role === 'flex' ? 'duelist' as Role : p.role,
   }));
 }
 
-/**
- * Validate a starting lineup
- */
 export function validateLineup(lineup: StartingSlot[], roster: Player[]): {
   valid: boolean;
   errors: string[];
 } {
   const errors: string[] = [];
-
-  // Check we have exactly 5 starters
-  if (lineup.length !== 5) {
-    errors.push(`Lineup must have exactly 5 starters (has ${lineup.length})`);
-  }
-
-  // Check all players exist in roster
+  if (lineup.length !== 5) errors.push(`Lineup must have exactly 5 starters (has ${lineup.length})`);
   const rosterIds = new Set(roster.map(p => p.id));
   for (const slot of lineup) {
-    if (!rosterIds.has(slot.playerId)) {
-      errors.push(`Player ${slot.playerId} not found in roster`);
-    }
+    if (!rosterIds.has(slot.playerId)) errors.push(`Player ${slot.playerId} not found in roster`);
   }
-
-  // Check no duplicate players
   const playerIds = lineup.map(s => s.playerId);
-  const uniqueIds = new Set(playerIds);
-  if (uniqueIds.size !== playerIds.length) {
-    errors.push('Duplicate players in lineup');
-  }
-
-  // Check all standard roles are filled
-  const assignedRoles = new Set(lineup.map(s => s.assignedRole));
+  if (new Set(playerIds).size !== playerIds.length) errors.push('Duplicate players in lineup');
+  const assigned = new Set(lineup.filter(s => s.assignedRole !== 'flex').map(s => s.assignedRole));
   for (const role of STANDARD_ROLES) {
-    if (!assignedRoles.has(role)) {
-      errors.push(`Missing role: ${role}`);
-    }
+    if (!assigned.has(role)) errors.push(`Missing role: ${role}`);
   }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  return { valid: errors.length === 0, errors };
 }
 
-/**
- * Get bench players (players not in starting lineup)
- */
 export function getBenchPlayers(roster: Player[], lineup: StartingSlot[]): Player[] {
   const starterIds = new Set(lineup.map(s => s.playerId));
   return roster.filter(p => !starterIds.has(p.id));
 }
 
-/**
- * Swap a starter with a bench player
- */
 export function swapPlayers(
   lineup: StartingSlot[],
   starterPlayerId: string,
@@ -285,53 +240,28 @@ export function swapPlayers(
   );
 }
 
-/**
- * Change a player's assigned role
- */
 export function changeAssignedRole(
   lineup: StartingSlot[],
   playerId: string,
   newRole: Role
 ): StartingSlot[] {
-  // Find another player with the target role and swap roles
   const playerSlot = lineup.find(s => s.playerId === playerId);
   const targetSlot = lineup.find(s => s.assignedRole === newRole);
-
-  if (!playerSlot || !targetSlot) {
-    return lineup;
-  }
-
-  // Swap roles between the two players
+  if (!playerSlot || !targetSlot) return lineup;
   return lineup.map(slot => {
-    if (slot.playerId === playerId) {
-      return { ...slot, assignedRole: newRole };
-    }
-    if (slot.playerId === targetSlot.playerId) {
-      return { ...slot, assignedRole: playerSlot.assignedRole };
-    }
+    if (slot.playerId === playerId) return { ...slot, assignedRole: newRole };
+    if (slot.playerId === targetSlot.playerId) return { ...slot, assignedRole: playerSlot.assignedRole };
     return slot;
   });
 }
 
-/**
- * Calculate lineup strength (sum of effective OVRs)
- */
 export function calculateLineupStrength(roster: Player[], lineup: StartingSlot[]): number {
-  let totalStrength = 0;
-  
-  for (const slot of lineup) {
-    const player = roster.find(p => p.id === slot.playerId);
-    if (player) {
-      totalStrength += getEffectiveOverall(player, slot.assignedRole);
-    }
-  }
-  
-  return totalStrength;
+  return lineup.reduce((total, slot) => {
+    const p = roster.find(p => p.id === slot.playerId);
+    return total + (p ? getEffectiveOverall(p, slot.assignedRole) : 0);
+  }, 0);
 }
 
-/**
- * Get lineup summary with player info and penalties
- */
 export interface LineupSummary {
   playerId: string;
   playerName: string;
@@ -358,7 +288,6 @@ export function getLineupSummary(roster: Player[], lineup: StartingSlot[]): Line
         isNaturalRole: false,
       };
     }
-
     const penalty = getRolePenalty(player.role, slot.assignedRole);
     return {
       playerId: player.id,
