@@ -258,7 +258,7 @@ export function simulatePlayoffMatchup(rng: RNG, matchup: PlayoffMatchup, teams:
     throw new Error('Team not found');
   }
 
-  const result = simulateMatch(rng, team1.id, team2.id, team1.roster, team2.roster, matchup.format, team1.startingLineup, team2.startingLineup, team1, team2);
+  const result = simulateMatch(rng, team1.id, team2.id, team1.roster, team2.roster, matchup.format, team1.startingLineup, team2.startingLineup, team1, team2, true);
 
   matchup.matchResults.push(result);
   matchup.winnerId = result.homeScore > result.awayScore ? team1.id : team2.id;

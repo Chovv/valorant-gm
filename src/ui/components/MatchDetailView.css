@@ -145,7 +145,39 @@
   font-weight: 500;
 }
 
+.match-hero-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.match-hero-team-info.right .match-hero-meta-row {
+  justify-content: flex-end;
+}
+
+.match-hero-coach {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.match-hero-team-info.right .match-hero-coach {
+  justify-content: flex-end;
+}
+
 /* Score Display */
+.match-hero-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .match-detail-view .match-hero-score {
   display: flex;
   align-items: center;
@@ -177,6 +209,54 @@
   font-size: 48px;
   font-weight: 700;
   color: var(--border);
+}
+
+.match-hero-delta {
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.match-hero-delta.win {
+  color: #4ade80;
+}
+
+.match-hero-delta.loss {
+  color: var(--accent);
+}
+
+.match-hero-h2h {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.match-hero-h2h-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
+}
+
+.match-hero-h2h-num {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.match-hero-h2h-num.lead {
+  color: var(--text);
+}
+
+.match-hero-h2h-sep {
+  font-size: 12px;
+  color: var(--text-dark);
 }
 
 /* ===== MAP SCORE CARDS ===== */
@@ -253,75 +333,257 @@
   font-weight: 400;
 }
 
-/* ===== SCOREBOARD SECTIONS ===== */
-.match-detail-view .scoreboard-section {
-  margin-bottom: 24px;
-  width: 100%;
-}
-
-/* Map Header */
-.match-detail-view .scoreboard-map-header {
+/* ===== SERIES SUMMARY BAR ===== */
+.match-summary-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background: var(--bg-darker);
+  justify-content: center;
+  gap: 24px;
+  padding: 14px 0;
+  margin-bottom: 16px;
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
-  padding: 14px 24px;
+  border-radius: var(--radius-sm);
 }
 
-.match-detail-view .scoreboard-team-side {
+.match-summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.match-summary-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.match-summary-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dark);
+}
+
+.match-summary-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+}
+
+/* ===== MATCH AWARDS BAR ===== */
+.match-awards-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.match-award {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
   flex: 1;
+  min-width: 170px;
+  position: relative;
+  overflow: hidden;
 }
 
-.match-detail-view .scoreboard-team-side.left {
-  justify-content: flex-start;
+.match-award::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
 }
 
-.match-detail-view .scoreboard-team-side.right {
-  justify-content: flex-end;
+.match-award.home::before {
+  background: var(--accent);
 }
 
-.match-detail-view .scoreboard-team-logo {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
+.match-award.away::before {
+  background: var(--accent-secondary);
 }
 
-.match-detail-view .scoreboard-team-name {
-  font-size: 14px;
+.award-avatar-wrap {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.award-meta-agent {
+  width: 13px;
+  height: 13px;
+  border-radius: 2px;
+  object-fit: cover;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.award-meta-map {
+  font-size: 10px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  opacity: 0.7;
 }
 
-.match-detail-view .scoreboard-team-side.winner .scoreboard-team-name {
+.award-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.award-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dark);
+}
+
+.match-award.home .award-label {
   color: var(--accent);
 }
 
-.match-detail-view .scoreboard-rounds {
+.match-award.away .award-label {
+  color: var(--accent-secondary);
+}
+
+.award-player {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.award-value {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* ===== MAP SECTION (unified card per map) ===== */
+.match-detail-view .map-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+/* compact header: logo ABR 13-9 ABR logo · MAP */
+.match-detail-view .map-section-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.match-detail-view .map-section-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.match-detail-view .map-section-header.home-win::before { background: var(--accent); }
+.match-detail-view .map-section-header.away-win::before { background: var(--success); }
+
+.match-detail-view .map-section-score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.match-detail-view .map-section-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.match-detail-view .map-section-abbr {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.match-detail-view .map-section-abbr.winner {
+  color: var(--text);
+}
+
+.match-detail-view .map-section-rounds {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-family: 'Rajdhani', sans-serif;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-muted);
 }
 
-.match-detail-view .scoreboard-team-side.winner .scoreboard-rounds {
-  color: var(--accent);
+.match-detail-view .map-section-rounds .winner {
+  color: var(--text);
 }
 
-.match-detail-view .scoreboard-map-name {
+.match-detail-view .map-section-dash {
+  color: var(--text-dark);
+  font-weight: 400;
+}
+
+.match-detail-view .map-section-name {
   font-family: 'Rajdhani', sans-serif;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--text);
+  color: var(--text-dark);
   text-transform: uppercase;
   letter-spacing: 2px;
-  padding: 6px 16px;
-  background: var(--bg-card);
-  border-radius: var(--radius-sm);
+  margin-left: 16px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+/* scoreboards sit inside the card now */
+.match-detail-view .map-section .scoreboard-grid {
+  border-radius: 0;
+}
+
+.match-detail-view .map-section .scoreboard-table-wrapper {
+  border: none;
+  border-radius: 0;
+}
+
+.match-detail-view .map-section .scoreboard-table-wrapper.home {
+  border-right: 1px solid var(--border);
+}
+
+/* rounds area (timeline + pbp) */
+.match-detail-view .map-section-rounds-area {
+  border-top: 1px solid var(--border);
+  padding-bottom: 4px;
 }
 
 /* Scoreboard Grid - Side by Side Tables */
@@ -344,12 +606,16 @@
 }
 
 .match-detail-view .scoreboard-table-wrapper.home {
-  border-radius: 0 0 0 var(--radius-md);
+  border-radius: 0;
   border-right: none;
+  border-left: none;
+  border-top: none;
 }
 
 .match-detail-view .scoreboard-table-wrapper.away {
-  border-radius: 0 0 var(--radius-md) 0;
+  border-radius: 0;
+  border-right: none;
+  border-top: none;
 }
 
 .match-detail-view .scoreboard-table-wrapper.series {
@@ -427,7 +693,7 @@
 .match-detail-view .player-cell {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 .match-detail-view .agent-icon {
@@ -460,13 +726,16 @@
   font-weight: 600;
   color: var(--text-dark);
   text-transform: uppercase;
-  min-width: 28px;
+  margin-right: 2px;
 }
 
 .match-detail-view .player-name {
   font-weight: 600;
   font-size: 14px;
   color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .match-detail-view .player-name.clickable {
@@ -637,18 +906,18 @@
 @media (max-width: 900px) {
   .match-detail-view .scoreboard-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 0;
   }
 
   .match-detail-view .scoreboard-table-wrapper.home,
   .match-detail-view .scoreboard-table-wrapper.away {
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border);
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--border);
   }
 
-  .match-detail-view .scoreboard-map-header {
-    border-radius: var(--radius-md);
-    margin-bottom: 12px;
+  .match-detail-view .map-section .scoreboard-table-wrapper.home {
+    border-right: none;
   }
 
   .match-detail-view .map-score-cards {
@@ -676,8 +945,11 @@
     align-items: center;
   }
 
-  .match-detail-view .match-hero-score {
+  .match-detail-view .match-hero-center {
     order: -1;
+  }
+
+  .match-detail-view .match-hero-score {
     padding: 0;
   }
 
@@ -709,3 +981,386 @@
     font-size: 12px;
   }
 }
+
+/* collapsible play-by-play toggle */
+.pbp-collapsible {
+  border-top: 1px solid var(--border);
+}
+
+.pbp-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-dark);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pbp-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.pbp-chevron {
+  font-size: 14px;
+  transition: transform 0.2s ease;
+}
+
+.pbp-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+/* storylines dropdown */
+.storylines-dropdown {
+  margin-top: 8px;
+  margin-bottom: 24px;
+}
+
+.storylines-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+
+.storylines-toggle:hover {
+  opacity: 1;
+}
+
+.storylines-chevron {
+  font-size: 13px;
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+
+.storylines-chevron.open {
+  transform: rotate(180deg);
+}
+
+.storylines-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .storylines-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.storyline-award {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  flex: 1;
+  min-width: 160px;
+  position: relative;
+  overflow: hidden;
+}
+
+.storyline-award::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--sl-accent, var(--accent));
+}
+
+.storyline-award-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255,255,255,0.05);
+  flex-shrink: 0;
+}
+
+.storyline-award-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.storyline-award-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--sl-accent, var(--accent));
+}
+
+.storyline-award-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.storyline-award-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: nowrap;
+}
+
+.storyline-award-mapline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.storyline-mapline-agent {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.storyline-mapline-map {
+  color: var(--text-muted, var(--text-secondary));
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-right: 2px;
+}
+
+/* duel cards now use single-player layout */
+
+.storyline-duel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.storyline-duel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.storyline-duel-player {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.storyline-duel-player.right {
+  flex-direction: row-reverse;
+}
+
+.storyline-duel-player-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.storyline-duel-player-info.right {
+  align-items: flex-end;
+}
+
+.storyline-duel-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.storyline-duel-score-block {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.storyline-duel-score-num {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.storyline-duel-score-num.winner {
+  color: var(--sl-accent, var(--accent));
+}
+
+.storyline-duel-score-num.loser {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.storyline-duel-score-sep {
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 0 1px;
+}
+
+.storyline-duel-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.storyline-duel-score {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+/* agent badge on duel avatar */
+.storyline-duel-avatar-wrap,
+.storyline-single-avatar-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.storyline-duel-agent {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  background: var(--bg-card);
+  box-shadow: 0 0 0 1.5px var(--bg-card);
+  object-fit: cover;
+}
+
+.storyline-award-name {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* kills card layout: label top, then photo → agent → name/stat/map in a row */
+.storyline-award.kills {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.storyline-kills-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.storyline-kills-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.storyline-kills-name {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.storyline-kills-stat {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sl-accent, var(--text));
+  white-space: nowrap;
+}
+
+.storyline-kills-map {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary, #888);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.award-map-line {
+  margin-top: 1px;
+}
+
+/* international seed tag in hero */
+.match-hero-seed-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid;
+  white-space: nowrap;
+  display: inline-block;
+  width: fit-content;
+}
+

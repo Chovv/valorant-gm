@@ -90,3 +90,25 @@
   width: 60%;
   height: 60%;
 }
+
+/* Outer wrapper allows flag to overflow the avatar */
+.player-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.player-avatar-flag {
+  position: absolute;
+  object-fit: contain;
+  border-radius: 2px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Inline flag before player names */
+.inline-flag {
+  object-fit: contain;
+  vertical-align: middle;
+  flex-shrink: 0;
+}

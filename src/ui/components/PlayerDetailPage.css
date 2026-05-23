@@ -52,7 +52,7 @@
   flex: 1;
 }
 
-.player-avatar-hero {
+.player-avatar-hero .player-avatar {
   border: 3px solid var(--border);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
@@ -115,6 +115,15 @@
 .player-meta .igl-badge {
   padding: 2px 8px;
   background: var(--warning);
+  color: var(--bg-dark);
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}
+
+.player-meta .gun-pref-badge {
+  padding: 2px 8px;
+  background: var(--accent);
   color: var(--bg-dark);
   font-size: 10px;
   font-weight: 700;
@@ -942,4 +951,38 @@
   .development-banner .phase-detail {
     margin-left: 0;
   }
+}
+
+/* player awards card */
+.awards-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.player-awards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.player-award-row {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.player-award-row:last-child {
+  border-bottom: none;
+}
+
+.player-award-count {
+  font-weight: 700;
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+.player-award-text {
+  font-weight: 500;
 }

@@ -123,7 +123,9 @@
 }
 
 .fa-roster-name {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
@@ -344,7 +346,7 @@
 
 /* Column widths */
 .fa-col-role { width: 50px; flex-shrink: 0; }
-.fa-col-name { flex: 1; min-width: 0; }
+.fa-col-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; }
 .fa-col-age { width: 50px; text-align: center; flex-shrink: 0; }
 .fa-col-ovr { width: 50px; text-align: center; flex-shrink: 0; }
 .fa-col-pot { width: 50px; text-align: center; flex-shrink: 0; }
@@ -483,9 +485,14 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  height: fit-content;
   max-height: calc(100vh - 140px);
   animation: faSlideInRight 0.4s ease-out 0.15s both;
+}
+
+.fa-detail-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 @keyframes faSlideInRight {
@@ -569,6 +576,22 @@
   color: var(--text);
   padding: 16px;
   padding-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fa-igl-badge {
+  display: inline-block;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  background: linear-gradient(135deg, var(--warning) 0%, #ffb020 100%);
+  color: var(--bg-darker);
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 .fa-detail-meta {
@@ -749,6 +772,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex-shrink: 0;
+  background: var(--bg-card);
 }
 
 .fa-sign-btn {
@@ -837,3 +862,23 @@
     max-height: 400px;
   }
 }
+/* ── Language compatibility ──────────────────────────────────────────────── */
+.fa-col-lang { display: flex; align-items: center; justify-content: flex-end; min-width: 56px; }
+
+.fa-lang-badge {
+  font-size: 10px; font-weight: 700; border-radius: 10px;
+  padding: 2px 7px; white-space: nowrap; letter-spacing: 0.02em;
+}
+.fa-lang-native  { background: rgba(10, 200, 185, 0.15); color: #0ac8b9; border: 1px solid rgba(10,200,185,0.3); }
+.fa-lang-bridge  { background: rgba(255, 192, 72, 0.12); color: #ffc048; border: 1px solid rgba(255,192,72,0.3); }
+.fa-lang-barrier { background: rgba(255, 70, 84, 0.12);  color: #ff4654; border: 1px solid rgba(255,70,84,0.3);  }
+
+.fa-lang-synergy {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 6px; margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.fa-lang-synergy-native  { background: rgba(10, 200, 185, 0.06); }
+.fa-lang-synergy-bridge  { background: rgba(255, 192, 72, 0.06); }
+.fa-lang-synergy-barrier { background: rgba(255, 70, 84, 0.06);  }
+.fa-lang-synergy-msg { font-size: 12px; color: var(--text-muted); line-height: 1.4; }

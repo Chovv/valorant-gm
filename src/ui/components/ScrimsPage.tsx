@@ -3,10 +3,12 @@
 
 import { useState } from 'react';
 import type { GameState } from '../../sim/gameState';
-import type { Player, Ratings } from '../../types';
-import type { ScrimResult } from '../../types/scrims';
+import type { Player, Ratings, Region } from '../../types';
+import type { ScrimResult, Tier2Team } from '../../types/scrims';
 import { getFatigueLevel, getFatigueDisplay } from '../../types/scrims';
+import { InlineFlag } from './PlayerAvatar';
 import { getAvailableScrimOpponents, isScrimRisky } from '../../sim/scrims';
+import { AcademyTeamEditModal } from './AcademyTeamEditModal';
 import './ScrimsPage.css';
 
 interface ScrimsPageProps {
@@ -15,11 +17,29 @@ interface ScrimsPageProps {
   onViewPlayer: (playerId: string) => void;
   onViewMatch: (matchResult: ScrimResult) => void;
   scrimHistory: ScrimResult[];
+  // Dev mode props
+  devMode?: boolean;
+  onAddAcademyTeam?: (team: Tier2Team) => void;
+  onEditAcademyTeam?: (team: Tier2Team) => void;
+  onDeleteAcademyTeam?: (teamId: string, region: Region) => void;
 }
 
-export function ScrimsPage({ gameState, onRunScrim, onViewPlayer, onViewMatch, scrimHistory }: ScrimsPageProps) {
+export function ScrimsPage({ 
+  gameState, 
+  onRunScrim, 
+  onViewPlayer, 
+  onViewMatch, 
+  scrimHistory,
+  devMode = false,
+  onAddAcademyTeam,
+  onEditAcademyTeam,
+  onDeleteAcademyTeam,
+}: ScrimsPageProps) {
   const [showScrimModal, setShowScrimModal] = useState(false);
   const [selectedScrim, setSelectedScrim] = useState<ScrimResult | null>(null);
+  const [showAcademyModal, setShowAcademyModal] = useState(false);
+  const [editingAcademyTeam, setEditingAcademyTeam] = useState<Tier2Team | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   
   const userTeam = gameState.teams.find(t => t.id === gameState.userTeamId);
   if (!userTeam) return null;
@@ -28,8 +48,7 @@ export function ScrimsPage({ gameState, onRunScrim, onViewPlayer, onViewMatch, s
   const fatigueDisplay = getFatigueDisplay(fatigueLevel);
   
   // Check if scrims are available
-  const canScrim = gameState.phase !== 'regional_playoffs' && 
-                   gameState.phase !== 'international' &&
+  const canScrim = gameState.phase !== 'international' &&
                    gameState.lastScrimDay !== gameState.currentDay;
   
   // Get upcoming match days to check for risky scrims
@@ -64,8 +83,16 @@ export function ScrimsPage({ gameState, onRunScrim, onViewPlayer, onViewMatch, s
     return { overall: overallDiff, ratings: ratingsDiff };
   };
 
-  // Get scrim opponents
-  const { regional, tier2 } = getAvailableScrimOpponents(userTeam, gameState.teams);
+  // Get scrim opponents (including custom academy teams)
+  const { regional, tier2 } = getAvailableScrimOpponents(
+    userTeam, 
+    gameState.teams, 
+    [], 
+    gameState.customTier2Teams
+  );
+  
+  // User-created teams have IDs starting with 't2_custom_'
+  const isUserCreatedTeam = (teamId: string) => teamId.startsWith('t2_custom_');
 
   // Format stat name for display
   const formatStatName = (stat: string): string => {
@@ -132,9 +159,9 @@ export function ScrimsPage({ gameState, onRunScrim, onViewPlayer, onViewMatch, s
                   ✓ Already scrimmaged today
                 </div>
               )}
-              {(gameState.phase === 'regional_playoffs' || gameState.phase === 'international') && (
+              {gameState.phase === 'international' && (
                 <div className="scrim-alert info">
-                  🏆 Scrims disabled during playoffs
+                  🏆 Scrims disabled during international tournament
                 </div>
               )}
 
@@ -166,7 +193,7 @@ export function ScrimsPage({ gameState, onRunScrim, onViewPlayer, onViewMatch, s
                       onClick={() => onViewPlayer(player.id)}
                     >
                       <div className="dev-player-info">
-                        <span className="dev-player-name">{player.name}</span>
+                        <span className="dev-player-name"><InlineFlag code={player.nationality} />{player.name}</span>
                         <span className={`dev-player-role role-${player.role}`}>
                           {player.role.charAt(0).toUpperCase() + player.role.slice(1)}
                         </span>
@@ -329,27 +356,106 @@ export function ScrimsPage({ gameState, onRunScrim, onViewPlayer, onViewMatch, s
 
               {/* Tier 2 / Academy Teams Section */}
               <div className="scrim-section">
-                <h3>Academy Teams</h3>
-                <p className="scrim-section-desc">Easier sparring partners, always available</p>
-                <div className="scrim-opponent-list">
-                  {tier2.map(team => (
+                <div className="scrim-section-header">
+                  <div>
+                    <h3>Academy Teams</h3>
+                    <p className="scrim-section-desc">Easier sparring partners, always available</p>
+                  </div>
+                  {devMode && onAddAcademyTeam && (
                     <button
-                      key={team.id}
-                      className="scrim-opponent-btn tier2"
+                      className="btn-add-academy"
                       onClick={() => {
-                        onRunScrim(team.id, 'tier2', team.name);
-                        setShowScrimModal(false);
+                        setEditingAcademyTeam(null);
+                        setShowAcademyModal(true);
                       }}
+                      title="Create new academy team"
                     >
-                      <span className="scrim-opponent-name">{team.name}</span>
-                      <span className="scrim-opponent-ovr">{team.averageOVR} OVR</span>
+                      + Create
                     </button>
-                  ))}
+                  )}
+                </div>
+                <div className="scrim-opponent-list">
+                  {tier2.map(team => {
+                    const isUserCreated = isUserCreatedTeam(team.id);
+                    const isConfirmingDelete = confirmDeleteId === team.id;
+                    return (
+                      <div key={team.id} className={`scrim-opponent-row ${isUserCreated ? 'custom' : ''}`}>
+                        <button
+                          className="scrim-opponent-btn tier2"
+                          onClick={() => {
+                            onRunScrim(team.id, 'tier2', team.name);
+                            setShowScrimModal(false);
+                          }}
+                        >
+                          <span className="scrim-opponent-name">{team.name}</span>
+                          <span className="scrim-opponent-ovr">{team.averageOVR} OVR</span>
+                          {isUserCreated && <span className="custom-badge">Custom</span>}
+                        </button>
+                        {devMode && (
+                          <div className="academy-dev-actions">
+                            <button
+                              className="btn-edit-academy"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingAcademyTeam(team);
+                                setShowAcademyModal(true);
+                              }}
+                              title="Edit team"
+                            >
+                              ✏️
+                            </button>
+                            {isUserCreated && (
+                              <button
+                                className={`btn-delete-academy ${isConfirmingDelete ? 'confirm' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isConfirmingDelete) {
+                                    onDeleteAcademyTeam?.(team.id, team.region);
+                                    setConfirmDeleteId(null);
+                                  } else {
+                                    setConfirmDeleteId(team.id);
+                                  }
+                                }}
+                                onBlur={() => setConfirmDeleteId(null)}
+                                title={isConfirmingDelete ? 'Click to confirm' : 'Delete team'}
+                              >
+                                {isConfirmingDelete ? '✓' : '🗑'}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {tier2.length === 0 && (
+                    <p className="no-opponents">No academy teams available</p>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Academy Team Edit Modal */}
+      {showAcademyModal && (
+        <AcademyTeamEditModal
+          team={editingAcademyTeam}
+          region={userTeam.region}
+          onSave={(team) => {
+            if (editingAcademyTeam) {
+              onEditAcademyTeam?.(team);
+            } else {
+              onAddAcademyTeam?.(team);
+            }
+            setShowAcademyModal(false);
+            setEditingAcademyTeam(null);
+          }}
+          onClose={() => {
+            setShowAcademyModal(false);
+            setEditingAcademyTeam(null);
+          }}
+        />
       )}
 
       {/* Scrim Detail Modal - Shows development + link to match */}
@@ -404,7 +510,7 @@ export function ScrimsPage({ gameState, onRunScrim, onViewPlayer, onViewMatch, s
                               if (player) onViewPlayer(player.id);
                             }}
                           >
-                            <span className="player-name">{change.playerName}</span>
+                            <span className="player-name"><InlineFlag code={player?.nationality} />{change.playerName}</span>
                             {player && (
                               <span className={`player-role role-${player.role}`}>
                                 {player.role.charAt(0).toUpperCase() + player.role.slice(1)}

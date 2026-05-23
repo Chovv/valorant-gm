@@ -1,5 +1,5 @@
 /* src/ui/components/SchedulePage.css */
-/* Revamped schedule page with week view and match cards */
+/* Daily matchups — bracket-based schedule */
 
 .schedule-page {
   width: 100%;
@@ -11,463 +11,459 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Filters Bar */
-.schedule-filters {
+/* ── Round Banner with Navigation ── */
+.smc-round-banner {
   display: flex;
-  gap: 20px;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 12px 16px;
+  margin-bottom: 12px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  margin-bottom: 16px;
-  flex-wrap: wrap;
 }
 
-.filter-group {
+.smc-nav-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.smc-nav-btn:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.smc-nav-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.smc-round-info {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
-.filter-group label {
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
+.smc-phase-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.smc-round-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
-.toggle-buttons {
-  display: flex;
-  gap: 4px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 6px;
-  padding: 3px;
-}
-
-.toggle-buttons button {
-  padding: 6px 14px;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  color: var(--text-muted);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.toggle-buttons button:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.toggle-buttons button.active {
-  background: var(--accent);
-  color: white;
-}
-
-.team-filter-select {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 8px 12px;
-  color: var(--text-primary);
-  font-size: 13px;
-  min-width: 180px;
-  cursor: pointer;
-}
-
-.team-filter-select:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  color: var(--text-secondary);
-  user-select: none;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-/* Week View */
-.schedule-weeks {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.schedule-week {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.schedule-week.current {
-  border-color: var(--accent);
-  box-shadow: 0 0 20px rgba(255, 70, 85, 0.15);
-}
-
-.schedule-week.past {
-  opacity: 0.7;
-}
-
-.week-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: var(--bg-darker);
-  border-bottom: 1px solid var(--border);
-}
-
-.week-title {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.current-badge {
-  background: var(--accent);
-  color: white;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.week-days {
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.week-matches {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-  padding: 20px;
-}
-
-/* Match Card */
-.match-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 16px;
-  position: relative;
-  transition: all 0.2s;
-}
-
-.match-card.clickable {
-  cursor: pointer;
-}
-
-.match-card.clickable:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-}
-
-.match-card.user-match {
-  border-left: 3px solid var(--accent);
-}
-
-.match-card.user-match.win {
-  border-left-color: var(--success);
-  background: rgba(10, 200, 185, 0.05);
-}
-
-.match-card.user-match.loss {
-  border-left-color: var(--danger);
-  background: rgba(255, 70, 85, 0.05);
-}
-
-.match-card.today {
-  border-color: var(--warning);
-  box-shadow: 0 0 15px rgba(255, 192, 72, 0.15);
-}
-
-.match-day-badge {
-  position: absolute;
-  top: 12px;
-  left: 16px;
-  font-size: 12px;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.today-indicator {
-  background: var(--warning);
-  color: #1a1a2e;
+.smc-current-badge,
+.smc-past-badge,
+.smc-future-badge {
   font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
+  font-weight: 600;
+  padding: 1px 8px;
   border-radius: 3px;
-  text-transform: uppercase;
-}
-
-.match-teams {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 24px;
-  margin-bottom: 8px;
-}
-
-.match-team {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  min-width: 80px;
-}
-
-.match-team.is-user .match-team-name {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.match-team-logo {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-}
-
-.match-team-name {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.match-team-score {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
-.match-team-score.winner {
-  color: var(--success);
-}
-
-.match-vs {
-  font-size: 12px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.match-upcoming-badge,
-.match-result-badge {
-  text-align: center;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.match-upcoming-badge {
-  color: var(--text-muted);
-}
-
-.match-result-badge {
-  color: var(--success);
-  font-weight: 600;
-}
-
-/* List View */
-.schedule-list-view {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.schedule-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.schedule-table th {
-  background: var(--bg-darker);
-  padding: 12px 16px;
-  text-align: left;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--border);
-}
-
-.schedule-table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-.schedule-table tbody tr {
-  transition: background 0.15s;
-}
-
-.schedule-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.schedule-table tbody tr.clickable {
-  cursor: pointer;
-}
-
-.schedule-table tbody tr.clickable:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.schedule-table tbody tr.user-match-row {
-  background: rgba(255, 70, 85, 0.05);
-}
-
-.schedule-table tbody tr.user-match-row.win {
-  background: rgba(10, 200, 185, 0.05);
-  border-left: 3px solid var(--success);
-}
-
-.schedule-table tbody tr.user-match-row.loss {
-  background: rgba(255, 70, 85, 0.05);
-  border-left: 3px solid var(--danger);
-}
-
-.schedule-table tbody tr.today-row {
-  background: rgba(255, 192, 72, 0.08);
-  border-left: 3px solid var(--warning);
-}
-
-.day-col {
-  width: 100px;
-}
-
-.day-num {
-  font-family: 'Rajdhani', sans-serif;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.today-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: var(--warning);
-  border-radius: 50%;
-  margin-left: 8px;
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.team-col {
-  width: 180px;
-}
-
-.team-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.team-cell.is-user {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.table-team-logo {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-}
-
-.vs-col {
-  width: 40px;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.result-col {
-  width: 100px;
-}
-
-.result-score {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 16px;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.result-score.home-win {
-  color: var(--text-primary);
-}
-
-.result-score.away-win {
-  color: var(--text-primary);
-}
-
-.result-pending {
-  color: var(--text-muted);
-}
-
-.status-col {
-  width: 100px;
-}
-
-.status-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 4px;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
-.status-badge.completed {
+.smc-current-badge {
   background: rgba(10, 200, 185, 0.15);
   color: var(--success);
 }
 
-.status-badge.today {
-  background: rgba(255, 192, 72, 0.2);
-  color: var(--warning);
-}
-
-.status-badge.upcoming {
-  background: rgba(255, 255, 255, 0.08);
+.smc-past-badge {
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text-muted);
 }
 
-/* Empty State */
+.smc-future-badge {
+  background: rgba(255, 192, 72, 0.12);
+  color: var(--warning);
+}
+
+/* Jump to current button */
+.smc-jump-current {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 12px;
+  background: rgba(10, 200, 185, 0.08);
+  border: 1px dashed rgba(10, 200, 185, 0.3);
+  border-radius: 6px;
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.smc-jump-current:hover {
+  background: rgba(10, 200, 185, 0.15);
+  border-color: var(--success);
+}
+
+/* ── TBD Team Row ── */
+.smc-team-row.tbd {
+  opacity: 0.45;
+}
+
+.smc-logo-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.smc-name.tbd {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* TBD card border */
+.smc-card.tbd {
+  border-color: rgba(255, 255, 255, 0.04);
+  opacity: 0.7;
+}
+
+.smc-status-badge.tbd-badge {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Region Groups ── */
+.smc-regions {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.smc-region-group {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.smc-region-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
+}
+
+.smc-region-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.smc-region-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.smc-region-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Matchup Card Grid ── */
+.smc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+/* ── Single Matchup Card ── */
+.smc-card {
+  background: var(--bg-darker);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.smc-card.user-match {
+  border-left: 3px solid var(--accent);
+}
+
+.smc-card.pending {
+  border-color: rgba(255, 192, 72, 0.25);
+}
+
+/* ── Divider between teams ── */
+.smc-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0 12px;
+}
+
+/* ── Team Row ── */
+.smc-team-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  min-height: 48px;
+}
+
+.smc-team-row.is-winner {
+  background: rgba(10, 200, 185, 0.05);
+}
+
+.smc-team-row.is-loser {
+  opacity: 0.55;
+}
+
+.smc-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Team name + record */
+.smc-team-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.smc-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.smc-name.user {
+  color: var(--accent);
+}
+
+.smc-meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.smc-record-hl {
+  font-weight: 700;
+}
+
+.smc-record-hl.win {
+  color: #4ade80;
+}
+
+.smc-record-hl.loss {
+  color: var(--accent);
+}
+
+/* Star player */
+.smc-star {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+  padding-right: 8px;
+}
+
+.smc-star-role-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.smc-star-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.smc-star-ovr {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Action cell — score or button */
+.smc-action {
+  flex-shrink: 0;
+  width: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.smc-score {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.smc-score.winner {
+  color: var(--success);
+}
+
+/* Watch / Sim buttons */
+.smc-btn {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.smc-btn.watch {
+  background: rgba(255, 192, 72, 0.12);
+  color: var(--warning);
+  border-color: rgba(255, 192, 72, 0.25);
+}
+
+.smc-btn.watch:not(:disabled):hover {
+  background: rgba(255, 192, 72, 0.25);
+}
+
+.smc-btn.sim {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+}
+
+.smc-btn.sim:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.smc-btn.live {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.35);
+  animation: smc-live-pulse 2s ease-in-out infinite;
+}
+
+.smc-btn.live:not(:disabled):hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+@keyframes smc-live-pulse {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.35); }
+  50% { border-color: rgba(239, 68, 68, 0.65); }
+}
+
+.smc-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Clickable played card */
+.smc-card.clickable {
+  cursor: pointer;
+}
+
+.smc-card.clickable:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ── Card Footer ── */
+.smc-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.smc-format-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+
+.smc-status-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.smc-status-badge.final {
+  background: rgba(10, 200, 185, 0.15);
+  color: var(--success);
+}
+
+.smc-status-badge.pending {
+  background: rgba(255, 192, 72, 0.15);
+  color: var(--warning);
+}
+
+.smc-status-badge.live-badge {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  animation: smc-live-pulse 2s ease-in-out infinite;
+}
+
+.smc-card.live {
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+/* ── Empty State ── */
 .schedule-empty {
   text-align: center;
   padding: 60px 20px;
@@ -492,116 +488,29 @@
   font-size: 14px;
 }
 
-/* Season Progress Panel */
-.season-progress-panel {
-  margin-top: 24px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.progress-header h3 {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.progress-text {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.progress-bar-container {
-  height: 8px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--success));
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-.progress-weeks {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.progress-week-dot {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 50%;
-  cursor: default;
-}
-
-.progress-week-dot.complete {
-  background: var(--success);
-  color: white;
-}
-
-.progress-week-dot.current {
-  background: var(--accent);
-  color: white;
-  box-shadow: 0 0 10px rgba(255, 70, 85, 0.4);
-}
-
-/* Responsive */
-@media (max-width: 1200px) {
-  .week-matches {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .schedule-filters {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-  
-  .filter-group {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .week-matches {
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .smc-grid {
     grid-template-columns: 1fr;
   }
-  
-  .match-team-logo {
-    width: 40px;
-    height: 40px;
-  }
-  
-  .schedule-table th,
-  .schedule-table td {
-    padding: 10px 12px;
-    font-size: 13px;
-  }
-  
-  .status-col {
+
+  .smc-star {
     display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .smc-round-banner {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .smc-round-name {
+    font-size: 17px;
+  }
+
+  .smc-nav-btn {
+    padding: 6px 8px;
+    font-size: 12px;
   }
 }

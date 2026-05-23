@@ -2,9 +2,11 @@
 // Player generation for ValorantGM
 
 import type { Player, Role, PlayerBackground, PlayerArchetype, Ratings } from '../types';
+import type { Region } from '../types/team';
 import type { RNG } from '../utils/random';
 import { randomInt } from '../utils/random';
 import { ALL_ARCHETYPES } from '../data/archetypes';
+import { drawName, type NamePoolCtx } from './namePool';
 
 // First names pool
 const FIRST_NAMES = [
@@ -158,6 +160,10 @@ interface GeneratorOptions {
   forceRatings?: ForcedRatings; // Force specific ratings (for config-based players)
   forceName?: string;        // Force a specific name (for config-based players)
   forcePersonality?: ForcedPersonality; // Force specific personality traits (for config-based players)
+  forceConsistency?: number; // Force a specific consistency value (for config-based players)
+  namePool?: NamePoolCtx | null; // esports name pool context
+  nationality?: string;      // for pool lookup
+  region?: Region;           // for pool fallback
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -340,6 +346,10 @@ export function generatePlayer(rng: RNG, options: GeneratorOptions = {}): Player
     forceRatings,
     forceName,
     forcePersonality,
+    forceConsistency,
+    namePool,
+    nationality,
+    region,
   } = options;
 
   // Use forced age if provided, otherwise generate random
@@ -384,7 +394,16 @@ export function generatePlayer(rng: RNG, options: GeneratorOptions = {}): Player
   const peakAge = randomInt(rng, 22, 27);
 
   // Use forced name if provided, otherwise generate
-  const name = forceName !== undefined ? forceName : generateName(rng);
+  // resolve name: forced > pool > random
+  let name: string;
+  if (forceName !== undefined) {
+    name = forceName;
+  } else if (namePool) {
+    name = drawName(rng, namePool.used, nationality, region) ?? generateName(rng);
+    namePool.used.add(name);
+  } else {
+    name = generateName(rng);
+  }
 
   // Generate personality - use forced values if provided, otherwise random
   const personality = {
@@ -395,6 +414,30 @@ export function generatePlayer(rng: RNG, options: GeneratorOptions = {}): Player
     teamPlayer: forcePersonality?.teamPlayer ?? randomInt(rng, 50, 95),
   };
 
+  // Generate consistency - archetype-biased match-day reliability
+  // Doesn't affect OVR, only controls form variance in matches
+  let consistency: number;
+  if (forceConsistency !== undefined) {
+    consistency = forceConsistency;
+  } else {
+    // Archetype-based ranges
+    switch (archetype) {
+      case 'anchor':           consistency = randomInt(rng, 70, 95); break; // Rock solid
+      case 'support_leader':   consistency = randomInt(rng, 65, 90); break; // Reliable
+      case 'clutch_star':      consistency = randomInt(rng, 60, 90); break; // Steady performers
+      case 'utility_specialist': consistency = randomInt(rng, 60, 85); break;
+      case 'macro_brain':      consistency = randomInt(rng, 60, 85); break;
+      case 'info_gatherer':    consistency = randomInt(rng, 55, 85); break;
+      case 'support_initiator': consistency = randomInt(rng, 55, 85); break;
+      case 'lurker':           consistency = randomInt(rng, 50, 85); break;
+      case 'entry_fragger':    consistency = randomInt(rng, 45, 80); break; // Aggressive = volatile
+      case 'playmaker':        consistency = randomInt(rng, 40, 80); break; // High risk plays
+      case 'aggressive_smoker': consistency = randomInt(rng, 40, 75); break;
+      case 'feast_or_famine':  consistency = randomInt(rng, 25, 60); break; // Boom or bust
+      default:                 consistency = randomInt(rng, 45, 85); break;
+    }
+  }
+
   const player: Player = {
     id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     name,
@@ -403,6 +446,7 @@ export function generatePlayer(rng: RNG, options: GeneratorOptions = {}): Player
     background,
     archetype,
     overall,
+    consistency,
     ratings: {
       aim,
       sprayControl,
@@ -444,6 +488,7 @@ export function generatePlayerFromConfig(
     gameSense: number;
     clutch: number;
     age: number;
+    consistency?: number;
     personality?: ForcedPersonality;
   }
 ): Player {
@@ -459,6 +504,7 @@ export function generatePlayerFromConfig(
       clutch: config.clutch,
     },
     forcePersonality: config.personality,
+    forceConsistency: config.consistency,
   });
 }
 

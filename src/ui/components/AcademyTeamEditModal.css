@@ -1,0 +1,461 @@
+/* src/ui/components/AcademyTeamEditModal.css */
+/* Academy Team Edit Modal Styles */
+
+.academy-team-modal {
+  max-width: 450px;
+  width: 90%;
+}
+
+.academy-team-modal.expanded {
+  max-width: 600px;
+}
+
+.academy-team-modal .modal-header h2 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.academy-team-modal .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Section Styles */
+.atm-section {
+  background: var(--bg-darker);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+
+.atm-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.atm-section-hint {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Team Info Grid */
+.atm-team-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Field Styles */
+.atm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.atm-field label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.atm-field input[type="text"],
+.atm-field input[type="number"],
+.atm-field select {
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  transition: border-color 0.15s ease;
+}
+
+.atm-field input[type="text"]:focus,
+.atm-field input[type="number"]:focus,
+.atm-field select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.atm-field select {
+  cursor: pointer;
+}
+
+/* Average OVR Display */
+.atm-avg-ovr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.atm-avg-ovr-value {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.atm-avg-ovr-hint {
+  font-size: 10px;
+  color: var(--text-dark);
+}
+
+/* Roster Table */
+.atm-roster-table {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.atm-roster-header {
+  display: grid;
+  grid-template-columns: 32px 1fr 100px 60px;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-darker);
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.atm-roster-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.atm-roster-row {
+  display: grid;
+  grid-template-columns: 32px 1fr 100px 60px;
+  gap: 8px;
+  padding: 8px 12px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s ease;
+}
+
+.atm-roster-row:last-child {
+  border-bottom: none;
+}
+
+.atm-roster-row:hover {
+  background: var(--bg-hover);
+}
+
+.atm-col-num {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark);
+  text-align: center;
+}
+
+.atm-col-name input {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.atm-col-name input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.atm-col-role select {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.atm-col-role select:focus {
+  outline: none;
+}
+
+.atm-col-ovr input {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.atm-col-ovr input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Quick Actions */
+.atm-quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.atm-quick-btn {
+  padding: 6px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.atm-quick-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* Preview Card */
+.atm-preview {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.atm-preview-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.atm-preview-card {
+  background: var(--bg-darker);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.atm-preview-team-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.atm-preview-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.atm-preview-abbr {
+  padding: 3px 8px;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.atm-preview-ovr {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.atm-preview-region {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+}
+
+.atm-preview-region.region-americas {
+  background: rgba(255, 70, 85, 0.15);
+  color: var(--accent);
+}
+
+.atm-preview-region.region-emea {
+  background: rgba(89, 201, 255, 0.15);
+  color: var(--role-sentinel);
+}
+
+.atm-preview-region.region-pacific {
+  background: rgba(10, 200, 185, 0.15);
+  color: var(--success);
+}
+
+.atm-preview-region.region-china {
+  background: rgba(255, 192, 72, 0.15);
+  color: var(--warning);
+}
+
+/* Preview Roster */
+.atm-preview-roster {
+  display: flex;
+  flex-direction: column;
+}
+
+.atm-preview-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.atm-preview-player:last-child {
+  border-bottom: none;
+}
+
+.atm-preview-player-role {
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 3px;
+  text-transform: uppercase;
+  min-width: 32px;
+  text-align: center;
+}
+
+.atm-preview-player-role.role-duelist {
+  background: rgba(255, 70, 85, 0.15);
+  color: var(--role-duelist);
+}
+
+.atm-preview-player-role.role-controller {
+  background: rgba(10, 200, 185, 0.15);
+  color: var(--role-controller);
+}
+
+.atm-preview-player-role.role-initiator {
+  background: rgba(255, 192, 72, 0.15);
+  color: var(--role-initiator);
+}
+
+.atm-preview-player-role.role-sentinel {
+  background: rgba(89, 201, 255, 0.15);
+  color: var(--role-sentinel);
+}
+
+.atm-preview-player-role.role-flex {
+  background: rgba(197, 146, 255, 0.15);
+  color: var(--role-flex);
+}
+
+.atm-preview-player-name {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.atm-preview-player-ovr {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* Modal Footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-darker);
+}
+
+.modal-footer .btn-secondary {
+  padding: 10px 20px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-footer .btn-secondary:hover {
+  background: var(--border);
+}
+
+.modal-footer .btn-primary {
+  padding: 10px 20px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-footer .btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+  .atm-team-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .atm-roster-header,
+  .atm-roster-row {
+    grid-template-columns: 24px 1fr 80px 50px;
+    gap: 6px;
+    padding: 6px 10px;
+  }
+  
+  .atm-col-name input,
+  .atm-col-role select,
+  .atm-col-ovr input {
+    padding: 5px 6px;
+    font-size: 12px;
+  }
+}

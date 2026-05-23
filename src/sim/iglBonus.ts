@@ -3,6 +3,7 @@
 
 import type { Player, Team, Ratings } from '../types';
 import type { StartingSlot } from '../types/roster';
+import { coachMod, specMod } from './coachBonus';
 
 /**
  * IGL Bonus System
@@ -64,7 +65,10 @@ export function calculateIGLBonus(
   }
 
   // Calculate bonus: (gameSense - 70) * 0.15, capped at ±4
-  const rawBonus = (igl.ratings.gameSense - 70) * 0.15;
+  // coach amplifies the IGL effect: elite tactical coach = ~30% boost
+  const coach = team.staff.headCoach;
+  const coachAmp = 1 + coachMod(coach?.rating) * 0.25 * specMod(coach?.specialty, 'tactical');
+  const rawBonus = (igl.ratings.gameSense - 70) * 0.15 * coachAmp;
   const clampedBonus = Math.max(-4, Math.min(4, Math.round(rawBonus)));
 
   return {

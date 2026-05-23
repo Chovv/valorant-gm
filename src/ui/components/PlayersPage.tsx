@@ -2,9 +2,12 @@
 import { useState, useMemo } from 'react';
 import type { Team, Player, Role, Region } from '../../types';
 import type { StartingSlot } from '../../types/roster';
+import type { Tier2Team } from '../../types/scrims';
 import { getRolePenalty } from '../../types/roster';
 import { getIGLBonusForPlayer } from '../../sim/iglBonus';
 import { analyzeComposition } from '../../sim/compositionBonus';
+import { InlineFlag } from './PlayerAvatar';
+import { ALL_COUNTRIES, flagSrc } from './MassPlayerEditor';
 
 // Role icons
 const ROLE_ICONS: Record<Role, string> = {
@@ -23,8 +26,13 @@ const REGION_LOGOS: Record<Region, string> = {
   china: '/logos/regions/China.png',
 };
 
+// Player source type for filtering/display
+type PlayerSource = 'vct' | 'academy' | 'freeagent';
+
 interface PlayersPageProps {
   teams: Team[];
+  freeAgents?: Player[];
+  academyTeams?: Record<Region, Tier2Team[]>;
   onViewPlayer: (playerId: string) => void;
   onViewTeam: (teamId: string) => void;
 }
@@ -107,17 +115,24 @@ function calculatePlayerEffectiveOvr(
   };
 }
 
-export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProps) {
+export function PlayersPage({ teams, freeAgents = [], academyTeams, onViewPlayer, onViewTeam }: PlayersPageProps) {
   const [sortKey, setSortKey] = useState<SortKey>('effectiveOvr');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [regionFilter, setRegionFilter] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [countryFilter, setCountryFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Flatten all players with their team info and effective OVR
   const allPlayers = useMemo(() => {
     const players: Array<Player & { 
-      team: Team; 
+      team: Team | null;
+      teamName: string;
+      teamAbbr: string;
+      teamLogo: string | null;
+      region: Region | null;
+      source: PlayerSource;
       effectiveOvr: number; 
       assignedRole: Role | null;
       isStarter: boolean;
@@ -125,6 +140,8 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
       iglBonus: number;
       compPenalty: number;
     }> = [];
+    
+    // VCT team players
     for (const team of teams) {
       for (const player of team.roster) {
         const { effectiveOvr, assignedRole, isStarter, rolePenalty, iglBonus, compPenalty } = calculatePlayerEffectiveOvr(
@@ -133,7 +150,12 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
         );
         players.push({ 
           ...player, 
-          team, 
+          team,
+          teamName: team.name,
+          teamAbbr: team.abbreviation,
+          teamLogo: team.logo,
+          region: team.region,
+          source: 'vct',
           effectiveOvr,
           assignedRole,
           isStarter,
@@ -143,25 +165,89 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
         });
       }
     }
+    
+    // Academy team players
+    if (academyTeams) {
+      const regions: Region[] = ['americas', 'emea', 'pacific', 'china'];
+      for (const region of regions) {
+        const regionTeams = academyTeams[region] || [];
+        for (const academyTeam of regionTeams) {
+          if (academyTeam.players) {
+            for (const player of academyTeam.players) {
+              players.push({
+                ...player,
+                team: null,
+                teamName: academyTeam.name,
+                teamAbbr: academyTeam.abbreviation,
+                teamLogo: null,
+                region: academyTeam.region,
+                source: 'academy',
+                effectiveOvr: player.overall,
+                assignedRole: null,
+                isStarter: false,
+                rolePenalty: 0,
+                iglBonus: 0,
+                compPenalty: 0,
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    // Free agents
+    for (const player of freeAgents) {
+      players.push({
+        ...player,
+        team: null,
+        teamName: 'Free Agent',
+        teamAbbr: 'FA',
+        teamLogo: null,
+        region: null,
+        source: 'freeagent',
+        effectiveOvr: player.overall,
+        assignedRole: null,
+        isStarter: false,
+        rolePenalty: 0,
+        iglBonus: 0,
+        compPenalty: 0,
+      });
+    }
+    
     return players;
-  }, [teams]);
+  }, [teams, freeAgents, academyTeams]);
+
+  // Collect unique countries present in player data
+  const uniqueCountries = useMemo(() => {
+    const codes = new Set<string>();
+    allPlayers.forEach(p => { if (p.nationality) codes.add(p.nationality); });
+    return ALL_COUNTRIES
+      .filter(c => codes.has(c.code))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allPlayers]);
 
   // Filter players
   const filteredPlayers = useMemo(() => {
     return allPlayers.filter(player => {
       if (roleFilter !== 'all' && player.role !== roleFilter) return false;
-      if (regionFilter !== 'all' && player.team.region !== regionFilter) return false;
+      if (regionFilter !== 'all') {
+        if (!player.region || player.region !== regionFilter) return false;
+      }
+      if (sourceFilter !== 'all' && player.source !== sourceFilter) return false;
+      if (countryFilter !== 'all') {
+        if (!player.nationality || player.nationality !== countryFilter) return false;
+      }
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         if (!player.name.toLowerCase().includes(query) && 
-            !player.team.name.toLowerCase().includes(query) &&
-            !player.team.abbreviation.toLowerCase().includes(query)) {
+            !player.teamName.toLowerCase().includes(query) &&
+            !player.teamAbbr.toLowerCase().includes(query)) {
           return false;
         }
       }
       return true;
     });
-  }, [allPlayers, roleFilter, regionFilter, searchQuery]);
+  }, [allPlayers, roleFilter, regionFilter, sourceFilter, countryFilter, searchQuery]);
 
   // Sort players
   const sortedPlayers = useMemo(() => {
@@ -177,12 +263,12 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
           bVal = b.name.toLowerCase();
           break;
         case 'team':
-          aVal = a.team.name.toLowerCase();
-          bVal = b.team.name.toLowerCase();
+          aVal = a.teamName.toLowerCase();
+          bVal = b.teamName.toLowerCase();
           break;
         case 'region':
-          aVal = a.team.region;
-          bVal = b.team.region;
+          aVal = a.region || 'zzz'; // Sort null regions to end
+          bVal = b.region || 'zzz';
           break;
         case 'role':
           aVal = a.role;
@@ -339,6 +425,34 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
             <option value="china">China</option>
           </select>
         </div>
+
+        <div className="filter-group">
+          <label>Source</label>
+          <select 
+            className="filter-select"
+            value={sourceFilter} 
+            onChange={(e) => setSourceFilter(e.target.value)}
+          >
+            <option value="all">All Sources</option>
+            <option value="vct">VCT Teams</option>
+            <option value="academy">Academy</option>
+            <option value="freeagent">Free Agents</option>
+          </select>
+        </div>
+
+        <div className="filter-group">
+          <label>Country</label>
+          <select 
+            className="filter-select"
+            value={countryFilter} 
+            onChange={(e) => setCountryFilter(e.target.value)}
+          >
+            <option value="all">All Countries</option>
+            {uniqueCountries.map(c => (
+              <option key={c.code} value={c.code}>{c.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Players Table */}
@@ -371,33 +485,49 @@ export function PlayersPage({ teams, onViewPlayer, onViewTeam }: PlayersPageProp
             </thead>
             <tbody>
               {sortedPlayers.map((player, index) => {
+                const isVctPlayer = player.source === 'vct' && player.team;
+                const sourceClass = player.source === 'academy' ? 'academy-player' : player.source === 'freeagent' ? 'freeagent-player' : '';
                 return (
-                  <tr key={player.id} className={`player-row ${player.isStarter ? 'is-starter' : ''}`}>
+                  <tr key={player.id} className={`player-row ${player.isStarter ? 'is-starter' : ''} ${sourceClass}`}>
                     <td className="rank-col">{index + 1}</td>
                     <td className="player-col">
                       <span 
                         className="player-name-link"
                         onClick={() => onViewPlayer(player.id)}
                       >
+                        <InlineFlag code={player.nationality} />
                         {player.name}
                       </span>
-                      {player.team.iglId === player.id && (
+                      {isVctPlayer && player.team?.iglId === player.id && (
                         <span className="igl-badge" title="In-Game Leader">IGL</span>
                       )}
                     </td>
                     <td className="team-col">
-                      <div className="team-cell" onClick={() => onViewTeam(player.team.id)}>
-                        <img src={player.team.logo} alt={player.team.abbreviation} className="team-mini-logo" />
-                        <span className="team-abbr-link">{player.team.abbreviation}</span>
-                      </div>
+                      {isVctPlayer && player.team ? (
+                        <div className="team-cell" onClick={() => onViewTeam(player.team!.id)}>
+                          <img src={player.teamLogo || ''} alt={player.teamAbbr} className="team-mini-logo" />
+                          <span className="team-abbr-link">{player.teamAbbr}</span>
+                        </div>
+                      ) : (
+                        <div className={`team-cell non-vct ${player.source}`}>
+                          <span className={`source-badge ${player.source}`}>
+                            {player.source === 'academy' ? 'T2' : 'FA'}
+                          </span>
+                          <span className="team-name-text" title={player.teamName}>{player.teamAbbr}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="region-col">
-                      <img 
-                        src={REGION_LOGOS[player.team.region]} 
-                        alt={player.team.region} 
-                        className="region-icon"
-                        title={player.team.region.charAt(0).toUpperCase() + player.team.region.slice(1)}
-                      />
+                      {player.region ? (
+                        <img 
+                          src={REGION_LOGOS[player.region]} 
+                          alt={player.region} 
+                          className="region-icon"
+                          title={player.region.charAt(0).toUpperCase() + player.region.slice(1)}
+                        />
+                      ) : (
+                        <span className="no-region" title="No Region">—</span>
+                      )}
                     </td>
                     <td className="role-col">
                       <div className="role-cell-with-icon">

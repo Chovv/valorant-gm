@@ -1,0 +1,242 @@
+/* RoundTimeline.css — broadcast-style round tracker */
+
+.rt-container {
+  padding: 6px 8px 6px;
+  overflow-x: auto;
+}
+
+.rt-container > .rt-sections {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+/* team labels column */
+.rt-teams {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0;
+  margin-right: 8px;
+  float: left;
+}
+
+.rt-team-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  padding-right: 4px;
+  white-space: nowrap;
+}
+
+.rt-team-label.rt-spacer {
+  height: 14px;
+}
+
+.rt-team-label.home { color: var(--accent); }
+.rt-team-label.away { color: var(--success); }
+
+.rt-team-logo {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
+/* sections wrapper */
+.rt-sections {
+  display: flex;
+  align-items: flex-start;
+  overflow-x: auto;
+}
+
+.rt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.rt-section-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  text-align: center;
+  padding-bottom: 2px;
+}
+
+/* round number header row */
+.rt-round-nums {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+}
+
+.rt-round-num {
+  width: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-family: 'Rajdhani', sans-serif;
+  position: relative;
+}
+
+/* timeout indicator in cell */
+.rt-cell.has-timeout {
+  border: 1px solid rgba(255, 193, 7, 0.5);
+}
+
+.rt-timeout-mark {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 7px;
+  font-weight: 800;
+  color: #ffc107;
+  line-height: 1;
+  position: absolute;
+  top: 1px;
+  right: 2px;
+  letter-spacing: 0.3px;
+}
+
+.rt-round-num.clickable {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.rt-round-num.clickable:hover {
+  color: var(--text);
+}
+
+.rt-round-num.active {
+  color: var(--accent);
+}
+
+/* clickable cells */
+.rt-cell.clickable {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.rt-cell.clickable:hover {
+  opacity: 0.8;
+}
+
+/* team rows */
+.rt-row {
+  display: flex;
+  gap: 2px;
+}
+
+/* individual round cell */
+.rt-cell {
+  width: 22px;
+  height: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  position: relative;
+  gap: 2px;
+}
+
+.rt-cell.lost {
+  background: var(--bg-card);
+}
+
+.rt-cell.pending {
+  background: var(--bg-darker);
+  opacity: 0.3;
+}
+
+.rt-cell.won.atk {
+  background: rgba(255, 70, 85, 0.15);
+}
+
+.rt-cell.won.def {
+  background: rgba(10, 200, 185, 0.15);
+}
+
+/* win condition icon */
+.rt-icon {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+/* buy state dot */
+.rt-buy-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rt-buy-dot.legend {
+  width: 6px;
+  height: 6px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* halftime / OT divider */
+.rt-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.rt-divider-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+}
+
+/* legend */
+.rt-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+  clear: both;
+  flex-wrap: wrap;
+}
+
+.rt-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  color: var(--text-dark);
+}
+
+.rt-legend-icon {
+  width: 10px;
+  height: 10px;
+  object-fit: contain;
+  opacity: 0.6;
+}
+
+.rt-legend-sep {
+  width: 1px;
+  height: 12px;
+  background: var(--border);
+}

@@ -1,21 +1,70 @@
 // src/sim/gameState.ts
-// Core game state management with regional leagues and international competition
-// Updated for 12 teams per region with 6-team playoffs
+// core game state management with regional leagues and international competition
 
-import type { Team, StandingsEntry, MatchResult, PlayoffBracket, PlayoffMatchup, PlayoffRound, Region, Player } from '../types';
+import type { Team, StandingsEntry, MatchResult, PlayoffBracket, PlayoffMatchup, PlayoffRound, Region, Player, SeasonHistoryEntry, TournamentType } from '../types';
+import type { StaffMember } from '../types/team';
+import type { Tier2Team } from '../types/scrims';
+import { TIER2_TEAMS } from '../types/scrims';
 import { createRNG, generateId, shuffle } from '../utils/random';
-import { simulateMatch } from './matchSim';
+import { simulateMatch, MAPS } from './matchSim';
 import { recordMatchStats } from './matchRecorder';
+import { processProgression } from './progression';
+import { runOffseasonChurn } from './offseasonChurn';
+import { type VCTRecordBook, getDefaultRecordBook, checkMapRecords, checkSeriesRecords } from './vctRecords';
+import { generateAcademyRoster } from './scrims';
+import { generateCoach, generateCoachPool } from './coachGenerator';
+import {
+  type KickoffBracket,
+  BRACKET_ROUND_ORDER,
+  seedRegion,
+  generateKickoffBracket,
+  advanceKickoffRound,
+  isBigStageRound,
+  getRoundName,
+} from './kickoffBracket';
+import { computeSeasonHistory } from './seasonAwards';
+import { awardKickoffPoints, awardInternationalPoints, mergePoints } from './vctPoints';
+import {
+  type ChampionsBracket,
+  CHAMPIONS_ROUND_ORDER,
+  generateChampionsBracket,
+  advanceSwissRound,
+  advanceChampionsPlayoffRound,
+  getAllChampionsMatchups,
+  getChampionsRoundName,
+} from './internationalBracket';
+import {
+  type GroupStage,
+  type GroupMatch,
+  generateGroupStage,
+  updateGroupStandings,
+  sortGroupStandings,
+  isGroupStageComplete,
+  getPlayoffQualifiers,
+} from './stageGroupStage';
+import {
+  type StagePlayoffBracket,
+  STAGE_PLAYOFF_ROUND_ORDER,
+  generateStagePlayoffBracket,
+  advanceStagePlayoffRound,
+  getStagePlayoffRoundName,
+  getStagePlayoffRound,
+  isStepComplete,
+} from './stagePlayoffs';
 
 /**
- * Game phase - now includes international competition
+ * Game phase
  */
 export type GamePhase =
   | 'preseason'
-  | 'regular_season'
-  | 'regional_playoffs'
+  | 'kickoff_bracket'
   | 'international'
-  | 'offseason';
+  | 'offseason'
+  | 'stage1_groups'
+  | 'stage1_playoffs'
+  | 'mid_offseason'
+  | 'stage2_groups'
+  | 'stage2_playoffs';
 
 /**
  * Scheduled match with status
@@ -41,12 +90,12 @@ export interface PlayoffSeries {
 }
 
 /**
- * International tournament bracket
+ * International tournament (Swiss + double-elim playoffs)
  */
 export interface InternationalTournament {
   name: string;
   teams: Array<{ teamId: string; region: Region; seed: number }>;
-  bracket: PlayoffBracket;
+  bracket: ChampionsBracket;
   champion: string | null;
 }
 
@@ -58,16 +107,21 @@ export interface GameState {
   currentDay: number;
   currentYear: number;
   phase: GamePhase;
+  currentTournamentType?: TournamentType; // what the current season's main event is (defaults to 'champions')
 
   // Teams
   teams: Team[];
   userTeamId: string | null;
 
-  // Season data
+  // Season data (kept for compatibility — empty during kickoff_bracket phase)
   schedule: ScheduledMatch[];
   standings: StandingsEntry[];
   
-  // Regional playoffs (one per region)
+  // Kickoff bracket (triple-elim, one per region)
+  kickoffBrackets: Record<Region, KickoffBracket | null>;
+  currentBracketRound: number; // index into BRACKET_ROUND_ORDER
+
+  // Legacy regional playoffs (kept for old saves)
   regionalPlayoffs: Record<Region, PlayoffBracket | null>;
   currentPlayoffSeries: PlayoffSeries | null;
   currentPlayoffRegion: Region | null;
@@ -76,20 +130,155 @@ export interface GameState {
   // International competition
   internationalTournament: InternationalTournament | null;
   internationalPlayoffSeries: PlayoffSeries | null;
+  currentChampionsRound: number; // index into CHAMPIONS_ROUND_ORDER
 
   // History
   champions: Array<{ year: number; teamId: string; type: 'regional' | 'international'; region?: Region }>;
+  seasonHistory: SeasonHistoryEntry[];
 
   // Free agency
   freeAgents?: Player[];
+  freeAgentCoaches?: StaffMember[];
 
   // Scrims & Development
-  fatigueLevel: number; // 0=fresh, 1-2=trained, 3-4=tired, 5+=exhausted
+  fatigueLevel: number;
   lastScrimDay: number | null;
   seasonStartStats: Record<string, { overall: number; ratings: Record<string, number>; potential: { ceiling: number; floor: number } }>;
+  customTier2Teams?: Record<Region, Array<{ id: string; name: string; abbreviation: string; region: Region; averageOVR: number }>>;
 
   // RNG
   seed: string;
+
+  // News feed
+  newsFeed: NewsItem[];
+  lastSeenNewsCount: number;
+
+  // VCT record book
+  recordBook: VCTRecordBook;
+
+  // Active map pool
+  mapPool: string[];
+
+  // Agent meta modifiers (agent name → buff/nerf, -50 to +50, default 0)
+  agentMeta: Record<string, number>;
+
+  // agents disabled from all sim selection (won't be picked by anyone)
+  disabledAgents: string[];
+
+  // user-created custom agents
+  customAgents: { id: string; displayName: string; role: string; icon?: string }[];
+
+  // per-agent role overrides (agent → roles[], overrides DEFAULT_AGENT_ROLES)
+  agentRoleOverrides: Record<string, string[]>;
+
+  // per-map agent meta: map → role → ordered list of preferred agents for AI teams
+  mapMeta: Record<string, Partial<Record<string, string[]>>>;
+
+  // per-team map comps: teamId → map → playerId → agent
+  teamMapComps: Record<string, Record<string, Record<string, string>>>;
+
+  // per-team penalty bypass: teamId → map → playerIds[] where role/pool penalty is suppressed
+  teamMapCompNoPenalty: Record<string, Record<string, string[]>>;
+
+  // per-team map-specific OVR buffs: teamId → map → playerId → ovr modifier (-15 to +15)
+  teamMapCompBuffs: Record<string, Record<string, Record<string, number>>>;
+
+  // global agent variance (0-100): chance a player deviates from their top priority agent
+  agentVariance: number;
+
+  // per-agent ability data override (optional — sim falls back to data/agentAbilities.ts defaults)
+  agentAbilities?: Record<string, import('../data/agentAbilities').AgentAbility[]>;
+
+  // match sim tunables (optional — sim falls back to defaults in data/matchSimConfig.ts)
+  matchSimConfig?: import('../data/matchSimConfig').MatchSimConfig;
+
+  // esports name pool: toggle + permanently consumed names
+  useEsportsNames: boolean;
+  usedNames: string[];
+
+  // VCT championship points (teamId → cumulative points this year)
+  vctPoints: Record<string, number>;
+
+  // real-world event override — manually set which teams attend the international
+  realEventConfig?: {
+    enabled: boolean;
+    eventName?: string; // e.g. "Masters Santiago 2026"
+    slots: Array<{ teamId: string; seed: number }>;
+    swissR1?: Array<[string, string]>; // 4 pairs of teamIds for Swiss Round 1
+  };
+
+  // offseason roster churn events (populated when next season starts)
+  offseasonChurnEvents?: Array<{
+    type: 'release' | 'signing';
+    teamId: string;
+    teamName: string;
+    teamRegion: string;
+    playerId: string;
+    playerName: string;
+    role: string;
+    overall: number;
+    playerAge?: number;
+    source?: 'free_agent' | 'bench_promotion';
+    reason?: string;
+  }>;
+
+  // configurable churn settings (editable in dev mode)
+  churnConfig?: {
+    releaseScoreCeiling: number;   // max player score that can be released (0-100)
+    sameRegionWeight: number;      // signing weight multiplier for same-region players (0-1)
+    crossRegionWeight: number;     // signing weight multiplier for cross-region players (0-1)
+    tier1Quota: number;            // releases for decent-run teams (0-2)
+    tier2Quota: number;            // releases for average teams (0-2)
+    tier3Quota: number;            // releases for early-exit teams (0-2)
+  };
+
+  // Offseason progression results (populated when offseason begins)
+  offseasonProgression?: Array<{
+    playerId: string;
+    playerName: string;
+    teamId: string;
+    teamAbbr: string;
+    age: number;
+    role: string;
+    oldOverall: number;
+    newOverall: number;
+    change: number;
+    ratingChanges: Record<string, number>;
+    stage?: 'prospect' | 'developing' | 'prime' | 'veteran' | 'declining';
+    oldStage?: 'prospect' | 'developing' | 'prime' | 'veteran' | 'declining';
+  }>;
+
+  // stage group stages (one per region, indexed by stage number 1 or 2)
+  stageGroupStages: Record<Region, { 1?: GroupStage; 2?: GroupStage }>;
+
+  // stage playoffs (one per region, indexed by stage number)
+  stagePlayoffBrackets: Record<Region, { 1?: StagePlayoffBracket; 2?: StagePlayoffBracket }>;
+
+  // current stage (1 or 2) — tracks which stage we're in
+  currentStage: 1 | 2;
+
+  // current step index within stage playoffs (index into STAGE_PLAYOFF_ROUND_ORDER)
+  currentStagePlayoffRound: number;
+
+  // which international is next: 'kickoff' | 'stage1' | 'stage2'
+  // tracks the source of qualifiers for the upcoming international
+  internationalSource?: 'kickoff' | 'stage1' | 'stage2';
+}
+
+export interface NewsItem {
+  id: string;
+  day: number;
+  year: number;
+  type: 'monster_map' | 'historic_map' | 'series_record' | 'record_broken';
+  headline: string;
+  body: string;
+  playerId: string;
+  teamId: string;
+  region: Region;
+  stat: { kills?: number; deaths?: number; kd?: number; acs?: number; firstKills?: number; totalKills?: number };
+  // For record_broken type
+  oldRecordHolder?: string;
+  oldRecordValue?: number;
 }
 
 /**
@@ -116,21 +305,417 @@ export interface GameEvent {
  */
 export interface SeasonConfig {
   year: number;
-  gamesPerTeam: number;
-  playoffTeams: number; // Per region
+  gamesPerTeam: number; // legacy — unused in kickoff format
+  playoffTeams: number;
   playoffFormat: 'bo3' | 'bo5';
-  internationalQualifiers: number; // Top N from each region go to international
+  internationalQualifiers: number; // 3 per region (upper/middle/lower finals winners)
 }
 
 export const DEFAULT_SEASON_CONFIG: SeasonConfig = {
   year: 2025,
-  gamesPerTeam: 11, // Single round-robin with 12 teams = 11 games
-  playoffTeams: 6,  // Top 6 from each region
+  gamesPerTeam: 11,
+  playoffTeams: 12,
   playoffFormat: 'bo5',
-  internationalQualifiers: 3, // Top 3 from each region
+  internationalQualifiers: 3,
 };
 
 const REGIONS: Region[] = ['americas', 'emea', 'pacific', 'china'];
+
+/**
+ * A matchup visible on the schedule / daily matchups page.
+ * Extracted from whichever bracket phase is active.
+ */
+export interface TodayMatchup {
+  matchupId: string;           // PlayoffMatchup.id — used to resolve in Step 2
+  team1Id: string | null;      // null = TBD
+  team2Id: string | null;      // null = TBD
+  region: Region | 'international';
+  roundName: string;
+  format: 'bo1' | 'bo3' | 'bo5';
+  played: boolean;
+  winnerId: string | null;
+  result: MatchResult | null;
+}
+
+/**
+ * Get matchups for the current bracket round.
+ */
+export function getTodayMatchups(state: GameState): TodayMatchup[] {
+  // stage phases have their own matchup getters
+  if (state.phase === 'stage1_groups' || state.phase === 'stage2_groups') {
+    return getStageGroupMatchups(state);
+  }
+  if (state.phase === 'stage1_playoffs' || state.phase === 'stage2_playoffs') {
+    return getStagePlayoffMatchups(state);
+  }
+  return getRoundMatchups(state, getCurrentRoundIndex(state));
+}
+
+/**
+ * Get the current round index (across kickoff + champions).
+ * Kickoff rounds: 0..14, Champions rounds: 15..26
+ * Stage phases return a sentinel so the timeline knows they exist.
+ */
+export function getCurrentRoundIndex(state: GameState): number {
+  if (state.phase === 'preseason' || state.phase === 'kickoff_bracket') {
+    return state.currentBracketRound;
+  }
+  if (state.phase === 'international') {
+    return BRACKET_ROUND_ORDER.length + state.currentChampionsRound;
+  }
+  if (state.phase === 'stage1_groups' || state.phase === 'stage1_playoffs') {
+    // after first international, before stage 1 completes
+    return BRACKET_ROUND_ORDER.length + CHAMPIONS_ROUND_ORDER.length;
+  }
+  if (state.phase === 'stage2_groups' || state.phase === 'stage2_playoffs') {
+    return BRACKET_ROUND_ORDER.length + CHAMPIONS_ROUND_ORDER.length + 1;
+  }
+  // offseason / mid_offseason — show last completed phase
+  return BRACKET_ROUND_ORDER.length + CHAMPIONS_ROUND_ORDER.length - 1;
+}
+
+/**
+ * Total number of rounds across the whole season.
+ */
+export function getTotalRounds(state: GameState): number {
+  const hasChampions = state.phase === 'international' || state.phase === 'offseason' || state.phase === 'mid_offseason' || state.internationalTournament;
+  let total = BRACKET_ROUND_ORDER.length + (hasChampions ? CHAMPIONS_ROUND_ORDER.length : 0);
+  // add slots for stage phases if they've started
+  if (state.stageGroupStages?.americas?.[1]) total += 1;
+  if (state.stageGroupStages?.americas?.[2]) total += 1;
+  return total;
+}
+
+/**
+ * Get the round name for a given global round index.
+ */
+export function getRoundLabel(roundIdx: number): string {
+  if (roundIdx < BRACKET_ROUND_ORDER.length) {
+    return getRoundName(roundIdx);
+  }
+  const champIdx = roundIdx - BRACKET_ROUND_ORDER.length;
+  if (champIdx < CHAMPIONS_ROUND_ORDER.length) {
+    return getChampionsRoundName(champIdx);
+  }
+  return 'Unknown';
+}
+
+/**
+ * Get the phase label for a given global round index or current phase.
+ */
+export function getPhaseLabel(roundIdx: number, state?: GameState): string {
+  if (state) {
+    if (state.phase === 'stage1_groups') return 'Stage 1 Groups';
+    if (state.phase === 'stage1_playoffs') return 'Stage 1 Playoffs';
+    if (state.phase === 'stage2_groups') return 'Stage 2 Groups';
+    if (state.phase === 'stage2_playoffs') return 'Stage 2 Playoffs';
+    if (state.phase === 'mid_offseason') return 'Transfer Window';
+  }
+  if (roundIdx < BRACKET_ROUND_ORDER.length) return 'VCT Kickoff';
+  return 'VALORANT Champions';
+}
+
+/**
+ * Get matchups for any round index (past, current, or future).
+ * Future rounds may have TBD (null) team IDs.
+ */
+export function getRoundMatchups(state: GameState, roundIdx: number): TodayMatchup[] {
+  const matchups: TodayMatchup[] = [];
+
+  if (roundIdx < BRACKET_ROUND_ORDER.length) {
+    // Kickoff round
+    if (roundIdx >= BRACKET_ROUND_ORDER.length) return matchups;
+    const step = BRACKET_ROUND_ORDER[roundIdx];
+    const roundName = getRoundName(roundIdx);
+
+    for (const region of REGIONS) {
+      const bracket = state.kickoffBrackets[region];
+      if (!bracket) continue;
+      const section = bracket[step.section];
+      if (!section || !section[step.roundIdx]) continue;
+      const round = section[step.roundIdx];
+
+      for (const m of round.matchups) {
+        matchups.push({
+          matchupId: m.id,
+          team1Id: m.team1Id,
+          team2Id: m.team2Id,
+          region,
+          roundName,
+          format: m.format,
+          played: !!m.winnerId,
+          winnerId: m.winnerId,
+          result: m.matchResults.length > 0 ? m.matchResults[m.matchResults.length - 1] : null,
+        });
+      }
+    }
+  } else if (state.internationalTournament) {
+    // Champions round
+    const champIdx = roundIdx - BRACKET_ROUND_ORDER.length;
+    if (champIdx >= CHAMPIONS_ROUND_ORDER.length) return matchups;
+    const champBracket = state.internationalTournament.bracket;
+    const step = CHAMPIONS_ROUND_ORDER[champIdx];
+    const roundName = getChampionsRoundName(champIdx);
+
+    let round: PlayoffRound | undefined;
+    if (step.phase === 'swiss') round = champBracket.swiss.rounds[step.roundIdx];
+    else if (step.phase === 'upper') round = champBracket.upper[step.roundIdx];
+    else round = champBracket.lower[step.roundIdx];
+
+    if (!round) return matchups;
+
+    for (const m of round.matchups) {
+      matchups.push({
+        matchupId: m.id,
+        team1Id: m.team1Id,
+        team2Id: m.team2Id,
+        region: 'international',
+        roundName,
+        format: m.format,
+        played: !!m.winnerId,
+        winnerId: m.winnerId,
+        result: m.matchResults.length > 0 ? m.matchResults[m.matchResults.length - 1] : null,
+      });
+    }
+  }
+
+  return matchups;
+}
+
+/**
+ * Sync currentTournamentType from pre-planned history entries.
+ * Finds the next unfilled entry for the current year and sets the type accordingly.
+ */
+function syncTournamentTypeFromHistory(state: GameState): void {
+  if (!state.seasonHistory?.length) return;
+  const year = state.currentYear;
+  // get all entries for this year, sorted by sortIndex
+  const yearEntries = state.seasonHistory
+    .filter(h => h.year === year)
+    .sort((a, b) => (a.sortIndex ?? 999) - (b.sortIndex ?? 999));
+  if (!yearEntries.length) return;
+  // find first entry that has no results yet (no champion)
+  const next = yearEntries.find(h => !h.worldChampionId && !h.worldChampionCustom);
+  if (next && next.tournamentType) {
+    state.currentTournamentType = next.tournamentType;
+  }
+}
+
+/**
+ * Resolve a single bracket matchup by its PlayoffMatchup.id.
+ * Records stats/news and auto-advances the bracket round when all matchups are done.
+ * Returns the MatchResult (or null if matchup not found / already played).
+ */
+export function simSingleMatchup(
+  state: GameState,
+  matchupId: string,
+): { result: MatchResult | null; events: GameEvent[] } {
+  const events: GameEvent[] = [];
+
+  // Auto-transition from preseason to kickoff when user sims first match
+  if (state.phase === 'preseason') {
+    syncTournamentTypeFromHistory(state);
+    state.phase = 'kickoff_bracket';
+    state.currentBracketRound = 0;
+    state.currentDay++;
+    for (const region of REGIONS) {
+      if (!state.kickoffBrackets[region]) {
+        const regionTeams = state.teams.filter(t => t.region === region);
+        const seeds = seedRegion(regionTeams, getPreviousQualifiers(state, region), state.vctPoints);
+        state.kickoffBrackets[region] = generateKickoffBracket(`${state.seed}-kickoff-${region}`, seeds);
+      }
+    }
+    events.push({ type: 'phase_change', message: `VCT ${state.currentYear} Kickoff has begun!` });
+  }
+
+  if (state.phase === 'kickoff_bracket') {
+    if (state.currentBracketRound >= BRACKET_ROUND_ORDER.length) return { result: null, events };
+    const step = BRACKET_ROUND_ORDER[state.currentBracketRound];
+    const isBigStage = isBigStageRound(state.currentBracketRound);
+    const roundName = getRoundName(state.currentBracketRound);
+
+    // Find the matchup across all regions
+    let foundMatchup: PlayoffMatchup | null = null;
+    let foundRegion: Region | null = null;
+
+    for (const region of REGIONS) {
+      const bracket = state.kickoffBrackets[region];
+      if (!bracket) continue;
+      const round = bracket[step.section][step.roundIdx];
+      const m = round.matchups.find(mu => mu.id === matchupId);
+      if (m) { foundMatchup = m; foundRegion = region; break; }
+    }
+
+    if (!foundMatchup || !foundRegion || foundMatchup.winnerId || !foundMatchup.team1Id || !foundMatchup.team2Id) {
+      return { result: null, events };
+    }
+
+    const rng = createRNG(`${state.seed}-matchup-${matchupId}`);
+    const winnerId = simulatePlayoffMatchup(rng, foundMatchup, state.teams, isBigStage, state.mapPool, state.agentMeta, state.mapMeta, state.agentVariance, state.teamMapComps ?? {}, state.userTeamId, state.agentRoleOverrides ?? {}, state.teamMapCompNoPenalty ?? {}, state.teamMapCompBuffs ?? {}, state.disabledAgents ?? [], state.agentAbilities, state.matchSimConfig);
+    const result = foundMatchup.matchResults[foundMatchup.matchResults.length - 1];
+
+    // Record stats
+    const team1 = state.teams.find(t => t.id === foundMatchup!.team1Id);
+    const team2 = state.teams.find(t => t.id === foundMatchup!.team2Id);
+    if (team1 && team2 && result) {
+      recordMatchStats(result, team1, team2, state.currentDay, state.currentYear, true, 'regional');
+      updateStandings(state.standings, result);
+      const newsItems = generateNewsFromMatch(result, state.teams, state.currentDay, state.currentYear, (state.recordBook ?? (state.recordBook = getDefaultRecordBook())));
+      if (!state.newsFeed) state.newsFeed = [];
+      state.newsFeed.push(...newsItems);
+    }
+
+    const winner = state.teams.find(t => t.id === winnerId);
+    const loserId = foundMatchup.team1Id === winnerId ? foundMatchup.team2Id : foundMatchup.team1Id;
+    const loser = state.teams.find(t => t.id === loserId);
+    events.push({
+      type: 'match_result',
+      message: `[${foundRegion.toUpperCase()}] ${roundName}: ${winner?.abbreviation} def. ${loser?.abbreviation} ${result.homeScore}-${result.awayScore}`,
+      data: result,
+    });
+
+    // Check if ALL regions finished this round
+    checkKickoffRoundComplete(state, events);
+
+    return { result, events };
+
+  } else if (state.phase === 'international' && state.internationalTournament) {
+    const champBracket = state.internationalTournament.bracket;
+    const stepIdx = state.currentChampionsRound;
+    if (stepIdx >= CHAMPIONS_ROUND_ORDER.length) return { result: null, events };
+
+    const step = CHAMPIONS_ROUND_ORDER[stepIdx];
+    let round: PlayoffRound | undefined;
+    if (step.phase === 'swiss') round = champBracket.swiss.rounds[step.roundIdx];
+    else if (step.phase === 'upper') round = champBracket.upper[step.roundIdx];
+    else round = champBracket.lower[step.roundIdx];
+
+    if (!round) return { result: null, events };
+
+    const foundMatchup = round.matchups.find(m => m.id === matchupId);
+    if (!foundMatchup || foundMatchup.winnerId || !foundMatchup.team1Id || !foundMatchup.team2Id) {
+      return { result: null, events };
+    }
+
+    const rng = createRNG(`${state.seed}-matchup-${matchupId}`);
+    const isPlayoff = step.phase !== 'swiss';
+    const winnerId = simulatePlayoffMatchup(rng, foundMatchup, state.teams, isPlayoff, state.mapPool, state.agentMeta, state.mapMeta, state.agentVariance, state.teamMapComps ?? {}, state.userTeamId, state.agentRoleOverrides ?? {}, state.teamMapCompNoPenalty ?? {}, state.teamMapCompBuffs ?? {}, state.disabledAgents ?? [], state.agentAbilities, state.matchSimConfig);
+    const result = foundMatchup.matchResults[0];
+
+    const team1 = state.teams.find(t => t.id === foundMatchup.team1Id);
+    const team2 = state.teams.find(t => t.id === foundMatchup.team2Id);
+    if (team1 && team2 && result) {
+      recordMatchStats(result, team1, team2, state.currentDay, state.currentYear, true, 'international');
+      updateStandings(state.standings, result);
+      const newsItems = generateNewsFromMatch(result, state.teams, state.currentDay, state.currentYear, (state.recordBook ?? (state.recordBook = getDefaultRecordBook())));
+      if (!state.newsFeed) state.newsFeed = [];
+      state.newsFeed.push(...newsItems);
+    }
+
+    const winner = state.teams.find(t => t.id === winnerId);
+    const loserId = foundMatchup.team1Id === winnerId ? foundMatchup.team2Id : foundMatchup.team1Id;
+    const loser = state.teams.find(t => t.id === loserId);
+    const roundName = getChampionsRoundName(stepIdx);
+    events.push({
+      type: 'match_result',
+      message: `[CHAMPIONS] ${roundName}: ${winner?.abbreviation} def. ${loser?.abbreviation} ${result.homeScore}-${result.awayScore}`,
+      data: result,
+    });
+
+    // Check if round is complete
+    const allDone = round.matchups.every(m => !m.team1Id || !m.team2Id || m.winnerId);
+    if (allDone) {
+      if (step.phase === 'swiss') {
+        advanceSwissRound(champBracket, step.roundIdx, rng);
+      } else {
+        advanceChampionsPlayoffRound(champBracket, stepIdx);
+      }
+
+      if (champBracket.champion) {
+        state.internationalTournament.champion = champBracket.champion;
+        const champion = state.teams.find(t => t.id === champBracket.champion);
+        events.push({ type: 'champion_crowned', message: `🏆🌍 ${champion?.name} are the VALORANT World Champions!` });
+
+        state.champions.push({ year: state.currentYear, teamId: champBracket.champion, type: 'international' });
+        for (const region of REGIONS) {
+          const bracket = state.kickoffBrackets[region];
+          if (bracket) {
+            for (const q of bracket.qualifiers) {
+              state.champions.push({ year: state.currentYear, teamId: q.teamId, type: 'regional', region });
+            }
+          }
+        }
+        // award VCT championship points for international placements
+        const intlPts = awardInternationalPoints(champBracket);
+        state.vctPoints = mergePoints(state.vctPoints ?? {}, intlPts);
+        events.push(...handlePostInternational(state));
+      } else {
+        state.currentChampionsRound++;
+      }
+    }
+
+    return { result, events };
+  } else if (state.phase === 'stage1_groups' || state.phase === 'stage2_groups') {
+    return simGroupStageMatch(state, matchupId);
+  } else if (state.phase === 'stage1_playoffs' || state.phase === 'stage2_playoffs') {
+    return simStagePlayoffMatchup(state, matchupId);
+  }
+
+  return { result: null, events };
+}
+
+/**
+ * Helper: check if the current kickoff bracket round is complete across all regions.
+ * If so, advance routing and bump currentBracketRound.
+ */
+function checkKickoffRoundComplete(state: GameState, events: GameEvent[]): void {
+  const step = BRACKET_ROUND_ORDER[state.currentBracketRound];
+  if (!step) return;
+
+  for (const region of REGIONS) {
+    const bracket = state.kickoffBrackets[region];
+    if (!bracket) continue;
+    const round = bracket[step.section][step.roundIdx];
+    if (round.matchups.some(m => m.team1Id && m.team2Id && !m.winnerId)) {
+      return; // still unplayed matchups
+    }
+  }
+
+  // All done — advance bracket routing for every region
+  for (const region of REGIONS) {
+    const bracket = state.kickoffBrackets[region];
+    if (!bracket) continue;
+    advanceKickoffRound(bracket, state.currentBracketRound);
+
+    const round = bracket[step.section][step.roundIdx];
+    for (const q of bracket.qualifiers) {
+      const team = state.teams.find(t => t.id === q.teamId);
+      const bracketLabel = q.bracket === 'upper' ? 'Upper Final' : q.bracket === 'middle' ? 'Middle Final' : 'Lower Final';
+      const alreadyAnnounced = events.some(e => e.type === 'international_qualifier' && (e.data as any)?.teamId === q.teamId);
+      if (team && !alreadyAnnounced) {
+        const justQualified = round.matchups.some(m => m.winnerId === q.teamId);
+        if (justQualified) {
+          events.push({
+            type: 'international_qualifier',
+            message: `🏆 ${team.name} win the ${region.toUpperCase()} ${bracketLabel} and qualify for Champions!`,
+            data: { teamId: q.teamId, region, seed: q.seed },
+          });
+        }
+      }
+    }
+  }
+
+  state.currentBracketRound++;
+
+  if (state.currentBracketRound >= BRACKET_ROUND_ORDER.length) {
+    state.phase = 'international';
+    state.internationalSource = 'kickoff';
+    // award VCT championship points for kickoff placements
+    const kickoffPts = awardKickoffPoints(state.kickoffBrackets);
+    state.vctPoints = mergePoints(state.vctPoints ?? {}, kickoffPts);
+    events.push({ type: 'phase_change', message: 'All Kickoff brackets complete! VALORANT Champions begins!' });
+  }
+}
 
 /**
  * Initialize standings for all teams
@@ -138,6 +723,7 @@ const REGIONS: Region[] = ['americas', 'emea', 'pacific', 'china'];
 export function initializeStandings(teams: Team[]): StandingsEntry[] {
   return teams.map(team => ({
     teamId: team.id,
+          region: team.region,
     wins: 0,
     losses: 0,
     mapWins: 0,
@@ -416,81 +1002,34 @@ export function generatePlayoffBracket(
 }
 
 /**
- * Get international seeds from playoff results
- * #1 = Regional Champion
- * #2 = Finals loser
- * #3 = Best semifinal loser (by regular season standing)
+ * Get international seeds from kickoff bracket qualifiers
  */
 export function getInternationalSeeds(
   state: GameState,
   region: Region,
   numQualifiers: number
 ): Array<{ teamId: string; seed: number }> {
-  const bracket = state.regionalPlayoffs[region];
+  const source = state.internationalSource ?? 'kickoff';
+
+  if (source === 'stage1' || source === 'stage2') {
+    const stageNum = source === 'stage1' ? 1 : 2;
+    const bracket = state.stagePlayoffBrackets[region]?.[stageNum];
+    if (!bracket || bracket.qualifiedTeams.length === 0) return [];
+    return bracket.qualifiedTeams.slice(0, numQualifiers).map((id, i) => ({
+      teamId: id,
+      seed: i + 1,
+    }));
+  }
+
+  // default: kickoff qualifiers
+  const bracket = state.kickoffBrackets[region];
   if (!bracket) return [];
 
-  const seeds: Array<{ teamId: string; seed: number }> = [];
-  
-  // Get finals
-  const finals = bracket.rounds.find(r => r.name === 'Finals');
-  if (!finals || finals.matchups.length === 0) return [];
-  
-  const finalsMatchup = finals.matchups[0];
-  
-  // #1 seed = Champion
-  if (finalsMatchup.winnerId) {
-    seeds.push({ teamId: finalsMatchup.winnerId, seed: 1 });
-  }
-  
-  // #2 seed = Finals loser
-  if (numQualifiers >= 2 && finalsMatchup.winnerId) {
-    const loserId = finalsMatchup.team1Id === finalsMatchup.winnerId 
-      ? finalsMatchup.team2Id 
-      : finalsMatchup.team1Id;
-    if (loserId) {
-      seeds.push({ teamId: loserId, seed: 2 });
-    }
-  }
-  
-  // #3 seed = Winner of 3rd place match
-  if (numQualifiers >= 3) {
-    const thirdPlace = bracket.rounds.find(r => r.name === '3rd Place Match');
-    if (thirdPlace && thirdPlace.matchups[0]?.winnerId) {
-      seeds.push({ teamId: thirdPlace.matchups[0].winnerId, seed: 3 });
-    } else {
-      // Fallback: Best semifinal loser by regular season standing (if 3rd place match not yet played)
-      const semis = bracket.rounds.find(r => r.name === 'Semi-Finals');
-      if (semis) {
-        const semiLosers: string[] = [];
-        for (const matchup of semis.matchups) {
-          if (matchup.winnerId) {
-            const loserId = matchup.team1Id === matchup.winnerId 
-              ? matchup.team2Id 
-              : matchup.team1Id;
-            if (loserId) semiLosers.push(loserId);
-          }
-        }
-        
-        // Sort by regular season standing
-        const regionTeamIds = new Set(state.teams.filter(t => t.region === region).map(t => t.id));
-        const regionStandings = sortStandings(
-          state.standings.filter(s => regionTeamIds.has(s.teamId))
-        );
-        
-        const bestLoser = semiLosers.sort((a, b) => {
-          const aIdx = regionStandings.findIndex(s => s.teamId === a);
-          const bIdx = regionStandings.findIndex(s => s.teamId === b);
-          return aIdx - bIdx;
-        })[0];
-        
-        if (bestLoser) {
-          seeds.push({ teamId: bestLoser, seed: 3 });
-        }
-      }
-    }
-  }
-  
-  return seeds;
+  // qualifiers are already populated by advanceKickoffRound
+  return bracket.qualifiers.slice(0, numQualifiers).map(q => ({
+    teamId: q.teamId,
+    seed: q.seed,
+  }));
 }
 
 /**
@@ -595,7 +1134,20 @@ export function generateInternationalBracket(
 export function simulatePlayoffMatchup(
   rng: ReturnType<typeof createRNG>,
   matchup: PlayoffMatchup,
-  teams: Team[]
+  teams: Team[],
+  isPlayoff: boolean = true,
+  mapPool?: string[],
+  agentMeta?: Record<string, number>,
+  mapMeta?: Record<string, Partial<Record<string, string[]>>>,
+  agentVariance?: number,
+  teamMapComps?: Record<string, Record<string, Record<string, string>>>,
+  userTeamId?: string | null,
+  agentRoleOverrides?: Record<string, string[]>,
+  teamMapCompNoPenalty?: Record<string, Record<string, string[]>>,
+  teamMapCompBuffs?: Record<string, Record<string, Record<string, number>>>,
+  disabledAgents?: string[],
+  agentAbilities?: Record<string, import('../data/agentAbilities').AgentAbility[]>,
+  matchSimConfig?: import('../data/matchSimConfig').MatchSimConfig
 ): string {
   if (!matchup.team1Id || !matchup.team2Id) {
     throw new Error('Matchup teams not set');
@@ -608,12 +1160,198 @@ export function simulatePlayoffMatchup(
     throw new Error('Team not found');
   }
 
-  const result = simulateMatch(rng, team1.id, team2.id, team1.roster, team2.roster, matchup.format, team1.startingLineup, team2.startingLineup, team1, team2);
+  const result = simulateMatch(rng, team1.id, team2.id, team1.roster, team2.roster, matchup.format, team1.startingLineup, team2.startingLineup, team1, team2, isPlayoff, mapPool, agentMeta, mapMeta, agentVariance, teamMapComps, userTeamId, agentRoleOverrides, teamMapCompNoPenalty, teamMapCompBuffs, disabledAgents, agentAbilities, matchSimConfig);
 
   matchup.matchResults.push(result);
   matchup.winnerId = result.homeScore > result.awayScore ? team1.id : team2.id;
 
   return matchup.winnerId;
+}
+
+/**
+ * Check a match result for notable stat lines and generate news items.
+ * Thresholds calibrated to real VCT data:
+ * 
+ * SINGLE MAP (real benchmarks):
+ *   aspas 47 kills (record), Monyet 39, Tehbotol 38, BuZz 36 — top 5 ever all 36+
+ *   PatMen 516 ACS (record), Meiy 509, TenZ 478
+ *   PatMen 6.4 KD (short map), aspas 2.47 KD on 36-round map
+ * 
+ * SERIES (real benchmarks):
+ *   marteen 126 kills BO5 (record), ZmjjKK 111, t3xture 105
+ *   aspas 82 kills BO3 (record), Dep 78
+ * 
+ * NEWS TIERS:
+ *   record_broken — beats an actual VCT record (highest priority)
+ *   historic_map  — 35+ kills, or 30+ kills with 3.0+ KD (top ~10 maps ever)
+ *   monster_map   — 30+ kills, or 400+ ACS (top ~30 maps ever)
+ *   series_record — 75+ kills BO3, 100+ kills BO5
+ */
+export function generateNewsFromMatch(
+  result: MatchResult,
+  teams: Team[],
+  day: number,
+  year: number,
+  recordBook: VCTRecordBook
+): NewsItem[] {
+  const news: NewsItem[] = [];
+  const homeTeam = teams.find(t => t.id === result.homeTeamId);
+  const awayTeam = teams.find(t => t.id === result.awayTeamId);
+  if (!homeTeam || !awayTeam) return news;
+
+  const allPlayers = [...homeTeam.roster, ...awayTeam.roster];
+  const getPlayer = (id: string) => allPlayers.find(p => p.id === id);
+  const getTeamForPlayer = (id: string) => homeTeam.roster.find(p => p.id === id) ? homeTeam : awayTeam;
+
+  // Track which players already got a record_broken news item on a given map
+  // to avoid duplicate lesser news for the same performance
+  const playerRecordBrokenMaps = new Set<string>();
+
+  // Aggregate per-player stats across all maps in the series
+  const playerSeriesStats: Record<string, { kills: number; deaths: number; assists: number; firstKills: number; maps: number }> = {};
+
+  for (const map of result.mapScores) {
+    const allMapStats = [...map.homePlayerStats, ...map.awayPlayerStats];
+    const totalRounds = map.homeRounds + map.awayRounds;
+
+    for (const ps of allMapStats) {
+      // Aggregate for series totals
+      if (!playerSeriesStats[ps.playerId]) {
+        playerSeriesStats[ps.playerId] = { kills: 0, deaths: 0, assists: 0, firstKills: 0, maps: 0 };
+      }
+      playerSeriesStats[ps.playerId].kills += ps.kills;
+      playerSeriesStats[ps.playerId].deaths += ps.deaths;
+      playerSeriesStats[ps.playerId].assists += ps.assists;
+      playerSeriesStats[ps.playerId].firstKills += ps.firstKills;
+      playerSeriesStats[ps.playerId].maps++;
+
+      const player = getPlayer(ps.playerId);
+      const team = getTeamForPlayer(ps.playerId);
+      if (!player || !team) continue;
+
+      const kd = ps.deaths === 0 ? ps.kills : Math.round((ps.kills / ps.deaths) * 100) / 100;
+
+      // --- RECORD CHECK (highest priority) ---
+      const brokenRecords = checkMapRecords(
+        recordBook, ps.kills, ps.deaths, ps.acs, totalRounds,
+        player.name, team.abbreviation, map.map,
+        ps.playerId, team.id, day, year
+      );
+
+      if (brokenRecords.length > 0) {
+        playerRecordBrokenMaps.add(`${ps.playerId}_${map.map}`);
+        for (const rec of brokenRecords) {
+          const prevHolder = rec.oldRecord.isRealWorld
+            ? `${rec.oldRecord.playerName} (${rec.oldRecord.teamAbbr}, ${rec.oldRecord.year})`
+            : `${rec.oldRecord.playerName} (${rec.oldRecord.teamAbbr})`;
+          news.push({
+            id: `news_${day}_${ps.playerId}_record_${rec.recordCategory}_${map.map}`,
+            day, year,
+            type: 'record_broken',
+            headline: `NEW VCT RECORD: ${player.name} breaks ${rec.recordCategory}`,
+            body: `${team.abbreviation}'s ${player.name} set a new record with ${rec.newValue}${rec.recordCategory.includes('ACS') ? ' ACS' : rec.recordCategory.includes('KD') ? ' KD' : ' kills'} ${rec.context}, surpassing the previous record of ${rec.oldRecord.value} held by ${prevHolder}.`,
+            playerId: ps.playerId,
+            teamId: team.id,
+            region: team.region,
+            stat: { kills: ps.kills, deaths: ps.deaths, kd, acs: ps.acs },
+            oldRecordHolder: rec.oldRecord.playerName,
+            oldRecordValue: rec.oldRecord.value,
+          });
+        }
+        continue; // Skip normal news tiers — record broken is the story
+      }
+
+      // --- NORMAL NEWS TIERS (only if no record broken on this map for this player) ---
+      // Historic map: 35+ kills, or 30+ kills with 3.0+ KD
+      if (ps.kills >= 35 || (ps.kills >= 30 && kd >= 3.0)) {
+        news.push({
+          id: `news_${day}_${ps.playerId}_historic_${map.map}`,
+          day, year,
+          type: 'historic_map',
+          headline: `${player.name} puts up HISTORIC ${ps.kills}/${ps.deaths}/${ps.assists} on ${map.map}`,
+          body: `${team.abbreviation}'s ${player.name} delivered a jaw-dropping performance with ${ps.kills} kills, just ${ps.deaths} deaths, and ${ps.acs} ACS across ${totalRounds} rounds.`,
+          playerId: ps.playerId,
+          teamId: team.id,
+          region: team.region,
+          stat: { kills: ps.kills, deaths: ps.deaths, kd, acs: ps.acs },
+        });
+      }
+      // Monster map: 30+ kills, or 400+ ACS
+      else if (ps.kills >= 30 || ps.acs >= 400) {
+        news.push({
+          id: `news_${day}_${ps.playerId}_monster_${map.map}`,
+          day, year,
+          type: 'monster_map',
+          headline: `${player.name} goes off with ${ps.kills}/${ps.deaths}/${ps.assists} on ${map.map}`,
+          body: `${team.abbreviation}'s ${player.name} dominated with a ${kd.toFixed(2)} KD and ${ps.acs} ACS in a ${totalRounds}-round ${map.map}.`,
+          playerId: ps.playerId,
+          teamId: team.id,
+          region: team.region,
+          stat: { kills: ps.kills, deaths: ps.deaths, kd, acs: ps.acs },
+        });
+      }
+    }
+  }
+
+  // --- SERIES-LEVEL CHECKS (BO3/BO5 only) ---
+  if (result.mapScores.length >= 2) {
+    const isBo5 = result.format === 'bo5';
+    const notableThreshold = isBo5 ? 100 : 75;
+
+    for (const [playerId, stats] of Object.entries(playerSeriesStats)) {
+      const player = getPlayer(playerId);
+      const team = getTeamForPlayer(playerId);
+      if (!player || !team) continue;
+      const opponentAbbr = homeTeam.id === team.id ? awayTeam.abbreviation : homeTeam.abbreviation;
+
+      // Record check for series
+      const seriesBroken = checkSeriesRecords(
+        recordBook, stats.kills, stats.firstKills, stats.maps, result.format,
+        player.name, team.abbreviation, opponentAbbr,
+        playerId, team.id, day, year
+      );
+
+      if (seriesBroken.length > 0) {
+        for (const rec of seriesBroken) {
+          const prevHolder = rec.oldRecord.isRealWorld
+            ? `${rec.oldRecord.playerName} (${rec.oldRecord.teamAbbr}, ${rec.oldRecord.year})`
+            : `${rec.oldRecord.playerName} (${rec.oldRecord.teamAbbr})`;
+          const isFirstKillRecord = rec.recordCategory.includes('First Kill');
+          const statDesc = isFirstKillRecord
+            ? `${rec.newValue} first kills across ${stats.maps} maps`
+            : `${rec.newValue} kills across ${stats.maps} maps`;
+          news.push({
+            id: `news_${day}_${playerId}_record_${rec.recordCategory}`,
+            day, year,
+            type: 'record_broken',
+            headline: `NEW VCT RECORD: ${player.name} breaks ${rec.recordCategory}`,
+            body: `${team.abbreviation}'s ${player.name} accumulated ${statDesc} vs ${opponentAbbr}, surpassing the previous record of ${rec.oldRecord.value} held by ${prevHolder}.`,
+            playerId,
+            teamId: team.id,
+            region: team.region,
+            stat: { totalKills: stats.kills, deaths: stats.deaths },
+            oldRecordHolder: rec.oldRecord.playerName,
+            oldRecordValue: rec.oldRecord.value,
+          });
+        }
+      } else if (stats.kills >= notableThreshold) {
+        // Notable series (not record-breaking but still impressive)
+        news.push({
+          id: `news_${day}_${playerId}_series_notable`,
+          day, year,
+          type: 'series_record',
+          headline: `${player.name} drops ${stats.kills} kills across ${stats.maps} maps`,
+          body: `${team.abbreviation}'s ${player.name} accumulated ${stats.kills} kills in the ${result.format.toUpperCase()} between ${homeTeam.abbreviation} and ${awayTeam.abbreviation}.`,
+          playerId,
+          teamId: team.id,
+          region: team.region,
+          stat: { totalKills: stats.kills, deaths: stats.deaths },
+        });
+      }
+    }
+  }
+
+  return news;
 }
 
 /**
@@ -723,10 +1461,9 @@ export function createGameState(
   teams: Team[],
   userTeamId: string | null,
   seed: string,
-  config: SeasonConfig = DEFAULT_SEASON_CONFIG
+  config: SeasonConfig = DEFAULT_SEASON_CONFIG,
+  useEsportsNames: boolean = true,
 ): GameState {
-  const schedule = generateSchedule(seed, teams, config.gamesPerTeam);
-
   // Initialize season start stats for all players
   const seasonStartStats: Record<string, { overall: number; ratings: Record<string, number>; potential: { ceiling: number; floor: number } }> = {};
   for (const team of teams) {
@@ -739,14 +1476,58 @@ export function createGameState(
     }
   }
 
+  // Initialize default academy teams with full rosters
+  const regions: Region[] = ['americas', 'emea', 'pacific', 'china'];
+  const initializedTier2Teams: Record<Region, Tier2Team[]> = {
+    americas: [],
+    emea: [],
+    pacific: [],
+    china: [],
+  };
+  
+  for (const region of regions) {
+    const defaultTeams = TIER2_TEAMS[region] || [];
+    initializedTier2Teams[region] = defaultTeams.map((team, idx) => {
+      const rng = createRNG(`${seed}-tier2-${region}-${team.id}-${idx}`);
+      const players = generateAcademyRoster(rng, team.abbreviation, team.averageOVR);
+      return {
+        ...team,
+        players,
+      };
+    });
+  }
+
+  // generate kickoff brackets per region (year 1 = no previous qualifiers)
+  const kickoffBrackets: Record<Region, KickoffBracket | null> = {
+    americas: null,
+    emea: null,
+    pacific: null,
+    china: null,
+  };
+
+  for (const region of regions) {
+    const regionTeams = teams.filter(t => t.region === region);
+    if (regionTeams.length < 8) continue; // need enough teams
+    const seeds = seedRegion(regionTeams, []); // no previous qualifiers for year 1
+    kickoffBrackets[region] = generateKickoffBracket(`${seed}-kickoff-${region}`, seeds);
+  }
+
+  // seed used names with all existing roster player names
+  const usedNames: string[] = [];
+  for (const team of teams) {
+    for (const p of team.roster) usedNames.push(p.name);
+  }
+
   return {
     currentDay: 0,
     currentYear: config.year,
     phase: 'preseason',
     teams,
     userTeamId,
-    schedule,
-    standings: initializeStandings(teams),
+    schedule: [], // empty — no round-robin in kickoff format
+    standings: initializeStandings(teams), // kept for compatibility
+    kickoffBrackets,
+    currentBracketRound: 0,
     regionalPlayoffs: {
       americas: null,
       emea: null,
@@ -763,71 +1544,306 @@ export function createGameState(
     },
     internationalTournament: null,
     internationalPlayoffSeries: null,
+    currentChampionsRound: 0,
     champions: [],
+    seasonHistory: [],
     fatigueLevel: 0,
     lastScrimDay: null,
     seasonStartStats,
+    customTier2Teams: initializedTier2Teams,
     seed,
+    newsFeed: [],
+    lastSeenNewsCount: 0,
+    recordBook: getDefaultRecordBook(),
+    mapPool: [...MAPS],
+    agentMeta: {},
+    disabledAgents: [],
+    customAgents: [],
+    mapMeta: {},
+    teamMapComps: {},
+    teamMapCompNoPenalty: {},
+    teamMapCompBuffs: {},
+    agentRoleOverrides: {},
+    agentVariance: 15,
+    useEsportsNames,
+    usedNames,
+    vctPoints: {},
+    stageGroupStages: {
+      americas: {},
+      emea: {},
+      pacific: {},
+      china: {},
+    },
+    stagePlayoffBrackets: {
+      americas: {},
+      emea: {},
+      pacific: {},
+      china: {},
+    },
+    currentStage: 1,
+    currentStagePlayoffRound: 0,
   };
 }
 
 /**
- * Skip the regular season and simulate all matches to go directly to playoffs
+ * Check if there's another planned event for the current or next year.
+ * Returns the next unfilled history entry, or null.
  */
+export function getNextPlannedEvent(state: GameState): SeasonHistoryEntry | null {
+  if (!state.seasonHistory?.length) return null;
+  // look for unfilled entries this year first, then next year
+  for (const year of [state.currentYear, state.currentYear + 1]) {
+    const entries = state.seasonHistory
+      .filter(h => h.year === year)
+      .sort((a, b) => (a.sortIndex ?? 999) - (b.sortIndex ?? 999));
+    const next = entries.find(h => !h.worldChampionId && !h.worldChampionCustom);
+    if (next) return next;
+  }
+  return null;
+}
+
+/**
+ * Start the next event: reset competition state, keep rosters/history/records.
+ * Optionally bumps the year if the next event is in a future year.
+ */
+export function startNextEvent(state: GameState): GameEvent[] {
+  const events: GameEvent[] = [];
+  const next = getNextPlannedEvent(state);
+
+  // bump year if next event is in the future
+  if (next && next.year > state.currentYear) {
+    state.currentYear = next.year;
+    // reset championship points for the new year
+    state.vctPoints = {};
+  }
+
+  // count completed internationals this year to determine phase
+  const completedThisYear = (state.seasonHistory || [])
+    .filter(h => h.year === state.currentYear && (h.worldChampionId || h.worldChampionCustom))
+    .length;
+
+  // reset common competition state
+  state.currentDay = 0;
+  state.currentChampionsRound = 0;
+  state.internationalTournament = null;
+  state.internationalPlayoffSeries = null;
+  state.currentPlayoffSeries = null;
+  state.currentPlayoffRegion = null;
+  state.fatigueLevel = 0;
+  state.offseasonProgression = undefined;
+  state.offseasonChurnEvents = undefined;
+
+  // sync tournament type from history
+  syncTournamentTypeFromHistory(state);
+  const tournLabel = (state.currentTournamentType || 'champions') === 'masters' ? 'Masters' : 'Champions';
+  const eventName = next?.eventName || `VCT ${tournLabel} ${state.currentYear}`;
+
+  if (completedThisYear === 0) {
+    // no internationals done yet → start from kickoff
+    state.phase = 'preseason';
+    state.currentBracketRound = 0;
+    state.internationalSource = 'kickoff';
+
+    // reset stage state
+    state.stageGroupStages = { americas: {}, emea: {}, pacific: {}, china: {} };
+    state.stagePlayoffBrackets = { americas: {}, emea: {}, pacific: {}, china: {} };
+    state.currentStage = 1;
+    state.currentStagePlayoffRound = 0;
+
+    // regenerate kickoff brackets
+    const eventSeed = `${state.seed}-event-${state.currentYear}-${Date.now()}`;
+    for (const region of REGIONS) {
+      const regionTeams = state.teams.filter(t => t.region === region);
+      if (regionTeams.length < 8) continue;
+      const seeds = seedRegion(regionTeams, getPreviousQualifiers(state, region), state.vctPoints);
+      state.kickoffBrackets[region] = generateKickoffBracket(`${eventSeed}-kickoff-${region}`, seeds);
+    }
+
+    state.regionalChampions = { americas: null, emea: null, pacific: null, china: null };
+    events.push({ type: 'phase_change', message: `${eventName} is about to begin!` });
+  } else if (completedThisYear === 1) {
+    // kickoff international done → start stage 1 groups
+    state.currentStage = 1;
+    state.currentStagePlayoffRound = 0;
+    state.internationalSource = 'stage1';
+    state.stageGroupStages = { americas: {}, emea: {}, pacific: {}, china: {} };
+    state.stagePlayoffBrackets = { americas: {}, emea: {}, pacific: {}, china: {} };
+    events.push(...startStageGroupsPhase(state, 1));
+  } else if (completedThisYear === 2) {
+    // stage 1 international done → start stage 2 groups
+    state.currentStage = 2;
+    state.currentStagePlayoffRound = 0;
+    state.internationalSource = 'stage2';
+    // keep stage 1 data, reset stage 2
+    for (const region of REGIONS) {
+      if (state.stageGroupStages[region]) (state.stageGroupStages[region] as any)[2] = undefined;
+      if (state.stagePlayoffBrackets[region]) (state.stagePlayoffBrackets[region] as any)[2] = undefined;
+    }
+    events.push(...startStageGroupsPhase(state, 2));
+  } else {
+    // 3+ completed → fallback to preseason for a new cycle
+    state.phase = 'preseason';
+    state.currentBracketRound = 0;
+    state.internationalSource = 'kickoff';
+    state.stageGroupStages = { americas: {}, emea: {}, pacific: {}, china: {} };
+    state.stagePlayoffBrackets = { americas: {}, emea: {}, pacific: {}, china: {} };
+    state.currentStage = 1;
+    state.currentStagePlayoffRound = 0;
+
+    const eventSeed = `${state.seed}-event-${state.currentYear}-${Date.now()}`;
+    for (const region of REGIONS) {
+      const regionTeams = state.teams.filter(t => t.region === region);
+      if (regionTeams.length < 8) continue;
+      const seeds = seedRegion(regionTeams, getPreviousQualifiers(state, region), state.vctPoints);
+      state.kickoffBrackets[region] = generateKickoffBracket(`${eventSeed}-kickoff-${region}`, seeds);
+    }
+
+    state.regionalChampions = { americas: null, emea: null, pacific: null, china: null };
+    events.push({ type: 'phase_change', message: `${eventName} is about to begin!` });
+  }
+
+  return events;
+}
+
+/**
+ * Skip the kickoff bracket and simulate all remaining matches to go to international
+ */
+/**
+ * Sim only one region's kickoff bracket all the way through, leaving others untouched.
+ * Does NOT advance currentBracketRound — that still requires all regions to be done.
+ */
+export function simRegionKickoff(state: GameState, region: Region): GameEvent[] {
+  const events: GameEvent[] = [];
+  if (state.phase !== 'preseason' && state.phase !== 'kickoff_bracket') return events;
+
+  if (state.phase === 'preseason') {
+    syncTournamentTypeFromHistory(state);
+    state.phase = 'kickoff_bracket';
+    state.currentBracketRound = 0;
+    for (const r of REGIONS) {
+      if (!state.kickoffBrackets[r]) {
+        const regionTeams = state.teams.filter(t => t.region === r);
+        const seeds = seedRegion(regionTeams, getPreviousQualifiers(state, r), state.vctPoints);
+        state.kickoffBrackets[r] = generateKickoffBracket(`${state.seed}-kickoff-${r}`, seeds);
+      }
+    }
+  }
+
+  const bracket = state.kickoffBrackets[region];
+  if (!bracket) return events;
+
+  // sim all remaining rounds for this region only
+  for (let ri = state.currentBracketRound; ri < BRACKET_ROUND_ORDER.length; ri++) {
+    const step = BRACKET_ROUND_ORDER[ri];
+    const isBigStage = isBigStageRound(ri);
+    const rng = createRNG(`${state.seed}-skip-bracket-round${ri}-${region}`);
+    const section = bracket[step.section];
+    const round = section[step.roundIdx];
+    if (!round) continue;
+
+    for (const matchup of round.matchups) {
+      if (matchup.team1Id && matchup.team2Id && !matchup.winnerId) {
+        simulatePlayoffMatchup(rng, matchup, state.teams, isBigStage, state.mapPool, state.agentMeta, state.mapMeta, state.agentVariance, state.teamMapComps ?? {}, state.userTeamId, state.agentRoleOverrides ?? {}, state.teamMapCompNoPenalty ?? {}, state.teamMapCompBuffs ?? {}, state.disabledAgents ?? [], state.agentAbilities, state.matchSimConfig);
+        const team1 = state.teams.find(t => t.id === matchup.team1Id);
+        const team2 = state.teams.find(t => t.id === matchup.team2Id);
+        const result = matchup.matchResults[0];
+        if (team1 && team2 && result) {
+          recordMatchStats(result, team1, team2, state.currentDay, state.currentYear, true, 'regional');
+          updateStandings(state.standings, result);
+          const newsItems = generateNewsFromMatch(result, state.teams, state.currentDay, state.currentYear, (state.recordBook ?? (state.recordBook = getDefaultRecordBook())));
+          if (!state.newsFeed) state.newsFeed = [];
+          state.newsFeed.push(...newsItems);
+        }
+      }
+    }
+    advanceKickoffRound(bracket, ri);
+  }
+
+  return events;
+}
+
 export function skipToPlayoffs(state: GameState, config: SeasonConfig = DEFAULT_SEASON_CONFIG): GameEvent[] {
   const events: GameEvent[] = [];
   
-  // Only allow skipping during preseason or regular season
-  if (state.phase !== 'preseason' && state.phase !== 'regular_season') {
+  if (state.phase !== 'preseason' && state.phase !== 'kickoff_bracket') {
     return events;
   }
 
-  // Simulate all remaining regular season matches
-  const remainingMatches = state.schedule.filter(m => !m.played);
-  
-  for (const match of remainingMatches) {
-    const rng = createRNG(`${state.seed}-skip-${match.id}`);
-    const homeTeam = state.teams.find(t => t.id === match.homeTeamId);
-    const awayTeam = state.teams.find(t => t.id === match.awayTeamId);
-    
-    if (!homeTeam || !awayTeam) continue;
-    
-    const result = simulateMatch(rng, match.homeTeamId, match.awayTeamId, homeTeam.roster, awayTeam.roster, 'bo3', homeTeam.startingLineup, awayTeam.startingLineup, homeTeam, awayTeam);
-    match.result = result;
-    match.played = true;
-    updateStandings(state.standings, result);
-    
-    // Record player stats
-    recordMatchStats(result, homeTeam, awayTeam, match.day, state.currentYear, false);
-  }
-
-  // Set the day to the last match day
-  const maxDay = Math.max(...state.schedule.map(m => m.day));
-  state.currentDay = maxDay;
-
-  // Generate playoff brackets
-  const rng = createRNG(`${state.seed}-playoffs`);
-  state.phase = 'regional_playoffs';
-  
-  for (const region of REGIONS) {
-    const playoffTeams = getRegionalPlayoffTeams(state.standings, state.teams, region, config.playoffTeams);
-    if (playoffTeams.length >= 4) {
-      state.regionalPlayoffs[region] = generatePlayoffBracket(rng, playoffTeams, config.playoffFormat);
+  // if still in preseason, initialize brackets
+  if (state.phase === 'preseason') {
+    syncTournamentTypeFromHistory(state);
+    state.phase = 'kickoff_bracket';
+    state.currentBracketRound = 0;
+    // brackets should already be generated in createGameState
+    // but regenerate if missing (legacy saves)
+    for (const region of REGIONS) {
+      if (!state.kickoffBrackets[region]) {
+        const regionTeams = state.teams.filter(t => t.region === region);
+        const seeds = seedRegion(regionTeams, getPreviousQualifiers(state, region), state.vctPoints);
+        state.kickoffBrackets[region] = generateKickoffBracket(`${state.seed}-kickoff-${region}`, seeds);
+      }
     }
   }
-  
-  // Start with first region that has playoffs
-  state.currentPlayoffRegion = REGIONS.find(r => state.regionalPlayoffs[r] !== null) || null;
-  if (state.currentPlayoffRegion) {
-    state.currentPlayoffSeries = { roundIndex: 0, matchupIndex: 0, completed: false };
+
+  // simulate all remaining bracket rounds
+  while (state.currentBracketRound < BRACKET_ROUND_ORDER.length) {
+    const step = BRACKET_ROUND_ORDER[state.currentBracketRound];
+    const isBigStage = isBigStageRound(state.currentBracketRound);
+    const rng = createRNG(`${state.seed}-skip-bracket-round${state.currentBracketRound}`);
+
+    for (const region of REGIONS) {
+      const bracket = state.kickoffBrackets[region];
+      if (!bracket) continue;
+
+      const section = bracket[step.section];
+      const round = section[step.roundIdx];
+
+      for (const matchup of round.matchups) {
+        if (matchup.team1Id && matchup.team2Id && !matchup.winnerId) {
+          simulatePlayoffMatchup(rng, matchup, state.teams, isBigStage, state.mapPool, state.agentMeta, state.mapMeta, state.agentVariance, state.teamMapComps ?? {}, state.userTeamId, state.agentRoleOverrides ?? {}, state.teamMapCompNoPenalty ?? {}, state.teamMapCompBuffs ?? {}, state.disabledAgents ?? [], state.agentAbilities, state.matchSimConfig);
+          
+          const team1 = state.teams.find(t => t.id === matchup.team1Id);
+          const team2 = state.teams.find(t => t.id === matchup.team2Id);
+          const result = matchup.matchResults[0];
+          if (team1 && team2 && result) {
+            recordMatchStats(result, team1, team2, state.currentDay, state.currentYear, true, 'regional');
+            updateStandings(state.standings, result);
+            // Generate news from notable performances
+            const newsItems = generateNewsFromMatch(result, state.teams, state.currentDay, state.currentYear, (state.recordBook ?? (state.recordBook = getDefaultRecordBook())));
+            if (!state.newsFeed) state.newsFeed = [];
+            state.newsFeed.push(...newsItems);
+          }
+        }
+      }
+
+      advanceKickoffRound(bracket, state.currentBracketRound);
+    }
+
+    state.currentBracketRound++;
+    state.currentDay++;
   }
 
+  state.phase = 'international';
+  state.internationalSource = 'kickoff';
+  // award VCT championship points for kickoff placements
+  const kickoffPts = awardKickoffPoints(state.kickoffBrackets);
+  state.vctPoints = mergePoints(state.vctPoints ?? {}, kickoffPts);
   events.push({
     type: 'phase_change',
-    message: 'Skipped to playoffs! Regional playoffs begin!',
+    message: 'Kickoff bracket complete! International tournament begins!',
   });
 
   return events;
+}
+
+/**
+ * Get previous year's international qualifiers for a region (for seeding byes)
+ */
+function getPreviousQualifiers(state: GameState, region: Region): string[] {
+  // find teams from this region that qualified for international last year
+  return state.champions
+    .filter(c => c.type === 'regional' && c.region === region && c.year === state.currentYear - 1)
+    .map(c => c.teamId);
 }
 
 /**
@@ -845,186 +1861,195 @@ export function advanceDay(state: GameState, config: SeasonConfig = DEFAULT_SEAS
   const matchesPlayed: MatchResult[] = [];
   const rng = getDayRNG(state);
 
-  // Decay fatigue daily (minimum 0)
-  // Fatigue decreases by 1 each day, scrims increase it
+  // decay fatigue daily
   if (state.fatigueLevel > 0) {
     state.fatigueLevel = Math.max(0, state.fatigueLevel - 1);
   }
 
   if (state.phase === 'preseason') {
-    state.phase = 'regular_season';
+    syncTournamentTypeFromHistory(state);
+    state.phase = 'kickoff_bracket';
+    state.currentBracketRound = 0;
+
+    // generate brackets if not already done (legacy saves)
+    for (const region of REGIONS) {
+      if (!state.kickoffBrackets[region]) {
+        const regionTeams = state.teams.filter(t => t.region === region);
+        const seeds = seedRegion(regionTeams, getPreviousQualifiers(state, region), state.vctPoints);
+        state.kickoffBrackets[region] = generateKickoffBracket(`${state.seed}-kickoff-${region}`, seeds);
+      }
+    }
+
     events.push({
       type: 'phase_change',
-      message: `Season ${state.currentYear} has begun!`,
+      message: `VCT ${state.currentYear} Kickoff has begun!`,
     });
-    // Fall through to regular_season to play day 1
+    // Return here so the schedule page shows all matchups unplayed
+    // User can then Watch/Sim individual matchups from the schedule
+    state.currentDay++;
+    return { day: state.currentDay, matchesPlayed, events };
   }
   
-  if (state.phase === 'regular_season') {
+  if (state.phase === 'kickoff_bracket') {
     state.currentDay++;
 
-    // Get today's matches
-    const todaysMatches = state.schedule.filter(m => m.day === state.currentDay && !m.played);
-
-    for (const match of todaysMatches) {
-      const homeTeam = state.teams.find(t => t.id === match.homeTeamId);
-      const awayTeam = state.teams.find(t => t.id === match.awayTeamId);
-
-      if (!homeTeam || !awayTeam) continue;
-
-      const result = simulateMatch(rng, homeTeam.id, awayTeam.id, homeTeam.roster, awayTeam.roster, 'bo3', homeTeam.startingLineup, awayTeam.startingLineup, homeTeam, awayTeam);
-
-      match.played = true;
-      match.result = result;
-
-      updateStandings(state.standings, result);
-      matchesPlayed.push(result);
-      
-      // Record player stats
-      recordMatchStats(result, homeTeam, awayTeam, state.currentDay, state.currentYear, false);
-
-      const winner = result.homeScore > result.awayScore ? homeTeam : awayTeam;
-      const loser = result.homeScore > result.awayScore ? awayTeam : homeTeam;
-      const region = homeTeam.region.toUpperCase();
-
-      events.push({
-        type: 'match_result',
-        message: `[${region}] ${winner.abbreviation} def. ${loser.abbreviation} ${result.homeScore}-${result.awayScore}`,
-        data: result,
-      });
-    }
-
-    // Check if regular season is over - ALL matches must be played
-    const remainingMatches = state.schedule.filter(m => !m.played);
-    if (remainingMatches.length === 0) {
-      state.phase = 'regional_playoffs';
-      
-      // Generate playoff brackets for each region
-      for (const region of REGIONS) {
-        const playoffTeams = getRegionalPlayoffTeams(state.standings, state.teams, region, config.playoffTeams);
-        if (playoffTeams.length >= 4) {
-          state.regionalPlayoffs[region] = generatePlayoffBracket(rng, playoffTeams, config.playoffFormat);
-        }
-      }
-      
-      // Start with first region that has playoffs
-      state.currentPlayoffRegion = REGIONS.find(r => state.regionalPlayoffs[r] !== null) || null;
-      if (state.currentPlayoffRegion) {
-        state.currentPlayoffSeries = { roundIndex: 0, matchupIndex: 0, completed: false };
-      }
-
+    if (state.currentBracketRound >= BRACKET_ROUND_ORDER.length) {
+      // bracket complete — move to international
+      state.phase = 'international';
+      state.internationalSource = 'kickoff';
       events.push({
         type: 'phase_change',
-        message: 'Regular season complete! Regional playoffs begin!',
+        message: 'Kickoff bracket complete! International tournament begins!',
       });
-    }
-  } else if (state.phase === 'regional_playoffs') {
-    state.currentDay++;
-    
-    if (!state.currentPlayoffRegion || !state.currentPlayoffSeries) {
-      // Move to international
-      state.phase = 'international';
-      events.push({ type: 'phase_change', message: 'Regional playoffs complete!' });
       return { day: state.currentDay, matchesPlayed, events };
     }
 
-    const bracket = state.regionalPlayoffs[state.currentPlayoffRegion];
-    if (!bracket) {
-      // Move to next region or international
-      moveToNextRegionOrInternational(state, events);
-      return { day: state.currentDay, matchesPlayed, events };
+    const step = BRACKET_ROUND_ORDER[state.currentBracketRound];
+    const isBigStage = isBigStageRound(state.currentBracketRound);
+    const roundName = getRoundName(state.currentBracketRound);
+
+    // play ALL remaining unplayed matchups in this round (auto-sim)
+    for (const region of REGIONS) {
+      const bracket = state.kickoffBrackets[region];
+      if (!bracket) continue;
+
+      const section = bracket[step.section];
+      const round = section[step.roundIdx];
+
+      // sim every unplayed matchup in this region's round
+      for (const matchup of round.matchups) {
+        if (!matchup.team1Id || !matchup.team2Id || matchup.winnerId) continue;
+
+        const winnerId = simulatePlayoffMatchup(rng, matchup, state.teams, isBigStage, state.mapPool, state.agentMeta, state.mapMeta, state.agentVariance, state.teamMapComps ?? {}, state.userTeamId, state.agentRoleOverrides ?? {}, state.teamMapCompNoPenalty ?? {}, state.teamMapCompBuffs ?? {}, state.disabledAgents ?? [], state.agentAbilities, state.matchSimConfig);
+        const result = matchup.matchResults[matchup.matchResults.length - 1];
+
+        const winner = state.teams.find(t => t.id === winnerId);
+        const loserId = matchup.team1Id === winnerId ? matchup.team2Id : matchup.team1Id;
+        const loser = state.teams.find(t => t.id === loserId);
+
+        const team1 = state.teams.find(t => t.id === matchup.team1Id);
+        const team2 = state.teams.find(t => t.id === matchup.team2Id);
+        if (team1 && team2 && result) {
+          recordMatchStats(result, team1, team2, state.currentDay, state.currentYear, true, 'regional');
+          updateStandings(state.standings, result);
+          const newsItems = generateNewsFromMatch(result, state.teams, state.currentDay, state.currentYear, (state.recordBook ?? (state.recordBook = getDefaultRecordBook())));
+          if (!state.newsFeed) state.newsFeed = [];
+          state.newsFeed.push(...newsItems);
+        }
+
+        if (result) matchesPlayed.push(result);
+
+        events.push({
+          type: 'match_result',
+          message: `[${region.toUpperCase()}] ${roundName}: ${winner?.abbreviation} def. ${loser?.abbreviation} ${result.homeScore}-${result.awayScore}`,
+          data: result,
+        });
+      }
     }
 
-    const { roundIndex, matchupIndex } = state.currentPlayoffSeries;
-    const round = bracket.rounds[roundIndex];
-    const matchup = round.matchups[matchupIndex];
+    // check if ALL regions finished this round
+    let allRegionsDone = true;
+    for (const region of REGIONS) {
+      const bracket = state.kickoffBrackets[region];
+      if (!bracket) continue;
+      const section = bracket[step.section];
+      const round = section[step.roundIdx];
+      if (round.matchups.some(m => m.team1Id && m.team2Id && !m.winnerId)) {
+        allRegionsDone = false;
+        break;
+      }
+    }
 
-    if (matchup.team1Id && matchup.team2Id && !matchup.winnerId) {
-      const winnerId = simulatePlayoffMatchup(rng, matchup, state.teams);
+    if (allRegionsDone) {
+      // advance bracket routing for all regions
+      for (const region of REGIONS) {
+        const bracket = state.kickoffBrackets[region];
+        if (!bracket) continue;
+        advanceKickoffRound(bracket, state.currentBracketRound);
 
-      const winner = state.teams.find(t => t.id === winnerId);
-      const loser = state.teams.find(t => t.id === (matchup.team1Id === winnerId ? matchup.team2Id : matchup.team1Id));
-      const result = matchup.matchResults[0];
-      
-      // Record player stats for playoff match
-      const team1 = state.teams.find(t => t.id === matchup.team1Id);
-      const team2 = state.teams.find(t => t.id === matchup.team2Id);
-      if (team1 && team2 && result) {
-        recordMatchStats(result, team1, team2, state.currentDay, state.currentYear, true, 'regional');
+        // check for new qualifiers
+        const section = bracket[step.section];
+        const round = section[step.roundIdx];
+        for (const q of bracket.qualifiers) {
+          const team = state.teams.find(t => t.id === q.teamId);
+          const bracketLabel = q.bracket === 'upper' ? 'Upper Final' : q.bracket === 'middle' ? 'Middle Final' : 'Lower Final';
+          const alreadyAnnounced = events.some(e => e.type === 'international_qualifier' && (e.data as any)?.teamId === q.teamId);
+          if (team && !alreadyAnnounced) {
+            const justQualified = round.matchups.some(m => m.winnerId === q.teamId);
+            if (justQualified) {
+              events.push({
+                type: 'international_qualifier',
+                message: `🏆 ${team.name} win the ${region.toUpperCase()} ${bracketLabel} and qualify for Champions!`,
+                data: { teamId: q.teamId, region, seed: q.seed },
+              });
+            }
+          }
+        }
       }
 
-      events.push({
-        type: 'match_result',
-        message: `[${state.currentPlayoffRegion.toUpperCase()}] ${round.name}: ${winner?.abbreviation} def. ${loser?.abbreviation} ${result.homeScore}-${result.awayScore}`,
-        data: result,
-      });
+      state.currentBracketRound++;
 
-      if (result) matchesPlayed.push(result);
-
-      // Move to next matchup or round
-      if (matchupIndex < round.matchups.length - 1) {
-        state.currentPlayoffSeries.matchupIndex++;
-      } else {
-        // Use regional bracket advancement for 6-team brackets
-        advanceRegionalBracket(bracket, roundIndex);
-        
-        if (roundIndex < bracket.rounds.length - 1) {
-          state.currentPlayoffSeries = { roundIndex: roundIndex + 1, matchupIndex: 0, completed: false };
-        } else {
-          // Region playoffs complete
-          const finals = bracket.rounds[bracket.rounds.length - 1];
-          const championId = finals.matchups[0].winnerId;
-          state.regionalChampions[state.currentPlayoffRegion] = championId;
-          
-          const champion = state.teams.find(t => t.id === championId);
-          events.push({
-            type: 'champion_crowned',
-            message: `🏆 ${champion?.name} are the ${state.currentPlayoffRegion.toUpperCase()} Champions!`,
-          });
-          
-          state.champions.push({ 
-            year: state.currentYear, 
-            teamId: championId!, 
-            type: 'regional', 
-            region: state.currentPlayoffRegion 
-          });
-
-          // Move to next region or international
-          moveToNextRegionOrInternational(state, events);
-        }
+      // check if all brackets complete
+      if (state.currentBracketRound >= BRACKET_ROUND_ORDER.length) {
+        state.phase = 'international';
+        state.internationalSource = 'kickoff';
+        // award VCT championship points for kickoff placements
+        const koPts = awardKickoffPoints(state.kickoffBrackets);
+        state.vctPoints = mergePoints(state.vctPoints ?? {}, koPts);
+        events.push({
+          type: 'phase_change',
+          message: 'All Kickoff brackets complete! VALORANT Champions begins!',
+        });
       }
     }
   } else if (state.phase === 'international') {
     state.currentDay++;
 
-    // Initialize international tournament if needed
+    // initialize international tournament if needed
     if (!state.internationalTournament) {
       const qualifiedTeams: Array<{ teamId: string; region: Region; seed: number }> = [];
-      
-      for (const region of REGIONS) {
-        // Get seeds from playoff results (not regular season!)
-        const regionSeeds = getInternationalSeeds(state, region, config.internationalQualifiers);
-        regionSeeds.forEach(seed => {
-          qualifiedTeams.push({
-            ...seed,
-            region,
-          });
-          
-          const team = state.teams.find(t => t.id === seed.teamId);
+
+      const realCfg = state.realEventConfig;
+      const useOverride = realCfg?.enabled && realCfg.slots.length > 0;
+
+      if (useOverride) {
+        // use manually configured real-world teams
+        for (const slot of realCfg!.slots) {
+          const team = state.teams.find(t => t.id === slot.teamId);
+          if (!team) continue;
+          qualifiedTeams.push({ teamId: slot.teamId, region: team.region, seed: slot.seed });
           events.push({
             type: 'international_qualifier',
-            message: `${team?.name} qualifies for Champions as ${region.toUpperCase()} #${seed.seed} seed`,
+            message: `${team.name} attends the event as ${team.region.toUpperCase()} #${slot.seed} seed`,
           });
-        });
+        }
+      } else {
+        for (const region of REGIONS) {
+          const regionSeeds = getInternationalSeeds(state, region, config.internationalQualifiers);
+          regionSeeds.forEach(seed => {
+            qualifiedTeams.push({ ...seed, region });
+            const team = state.teams.find(t => t.id === seed.teamId);
+            events.push({
+              type: 'international_qualifier',
+              message: `${team?.name} qualifies for Champions as ${region.toUpperCase()} #${seed.seed} seed`,
+            });
+          });
+        }
       }
+
+      const champBracket = generateChampionsBracket(
+        `${state.seed}-champions-y${state.currentYear}`,
+        qualifiedTeams,
+        useOverride ? realCfg!.swissR1 : undefined,
+      );
 
       state.internationalTournament = {
         name: 'VALORANT Champions',
         teams: qualifiedTeams,
-        bracket: generateInternationalBracket(rng, qualifiedTeams, config.playoffFormat),
+        bracket: champBracket,
         champion: null,
       };
-      state.internationalPlayoffSeries = { roundIndex: 0, matchupIndex: 0, completed: false };
+      state.currentChampionsRound = 0;
 
       events.push({
         type: 'phase_change',
@@ -1034,55 +2059,81 @@ export function advanceDay(state: GameState, config: SeasonConfig = DEFAULT_SEAS
       return { day: state.currentDay, matchesPlayed, events };
     }
 
-    // Simulate international tournament
-    const bracket = state.internationalTournament.bracket;
-    const series = state.internationalPlayoffSeries!;
-    const { roundIndex, matchupIndex } = series;
-    const round = bracket.rounds[roundIndex];
-    const matchup = round.matchups[matchupIndex];
+    // simulate Champions tournament — 1 matchup per day click
+    const champBracket = state.internationalTournament.bracket;
+    const stepIdx = state.currentChampionsRound;
 
-    if (matchup.team1Id && matchup.team2Id && !matchup.winnerId) {
-      const winnerId = simulatePlayoffMatchup(rng, matchup, state.teams);
+    if (stepIdx >= CHAMPIONS_ROUND_ORDER.length) {
+      // tournament over
+      return { day: state.currentDay, matchesPlayed, events };
+    }
+
+    const step = CHAMPIONS_ROUND_ORDER[stepIdx];
+    let round: PlayoffRound | undefined;
+
+    if (step.phase === 'swiss') {
+      round = champBracket.swiss.rounds[step.roundIdx];
+    } else if (step.phase === 'upper') {
+      round = champBracket.upper[step.roundIdx];
+    } else {
+      round = champBracket.lower[step.roundIdx];
+    }
+
+    if (!round) {
+      state.currentChampionsRound++;
+      return { day: state.currentDay, matchesPlayed, events };
+    }
+
+    // sim ALL remaining unplayed matchups in this round (auto-sim)
+    const isPlayoff = step.phase !== 'swiss';
+    const roundName = getChampionsRoundName(stepIdx);
+
+    for (const matchup of round.matchups) {
+      if (!matchup.team1Id || !matchup.team2Id || matchup.winnerId) continue;
+
+      const winnerId = simulatePlayoffMatchup(rng, matchup, state.teams, isPlayoff, state.mapPool, state.agentMeta, state.mapMeta, state.agentVariance, state.teamMapComps ?? {}, state.userTeamId, state.agentRoleOverrides ?? {}, state.teamMapCompNoPenalty ?? {}, state.teamMapCompBuffs ?? {}, state.disabledAgents ?? [], state.agentAbilities, state.matchSimConfig);
 
       const winner = state.teams.find(t => t.id === winnerId);
-      const loser = state.teams.find(t => t.id === (matchup.team1Id === winnerId ? matchup.team2Id : matchup.team1Id));
+      const loserId = matchup.team1Id === winnerId ? matchup.team2Id : matchup.team1Id;
+      const loser = state.teams.find(t => t.id === loserId);
       const result = matchup.matchResults[0];
       
-      // Record player stats for international match
       const team1 = state.teams.find(t => t.id === matchup.team1Id);
       const team2 = state.teams.find(t => t.id === matchup.team2Id);
       if (team1 && team2 && result) {
         recordMatchStats(result, team1, team2, state.currentDay, state.currentYear, true, 'international');
+        updateStandings(state.standings, result);
+        const newsItems = generateNewsFromMatch(result, state.teams, state.currentDay, state.currentYear, (state.recordBook ?? (state.recordBook = getDefaultRecordBook())));
+        if (!state.newsFeed) state.newsFeed = [];
+        state.newsFeed.push(...newsItems);
       }
 
       events.push({
         type: 'match_result',
-        message: `[CHAMPIONS] ${round.name}: ${winner?.abbreviation} def. ${loser?.abbreviation} ${result.homeScore}-${result.awayScore}`,
+        message: `[CHAMPIONS] ${roundName}: ${winner?.abbreviation} def. ${loser?.abbreviation} ${result.homeScore}-${result.awayScore}`,
         data: result,
       });
 
       if (result) matchesPlayed.push(result);
+    }
 
-      // Move to next matchup or round
-      if (matchupIndex < round.matchups.length - 1) {
-        series.matchupIndex++;
-      } else {
-        // Special handling for play-ins -> quarterfinals
-        if (round.name === 'Play-Ins') {
-          advanceInternationalPlayIns(bracket);
+    // All matchups resolved — advance round
+    {
+      const allDone = round.matchups.every(m => !m.team1Id || !m.team2Id || m.winnerId);
+
+      if (allDone) {
+        // advance round
+        if (step.phase === 'swiss') {
+          advanceSwissRound(champBracket, step.roundIdx, rng);
         } else {
-          advancePlayoffBracket(bracket, roundIndex);
+          advanceChampionsPlayoffRound(champBracket, stepIdx);
         }
 
-        if (roundIndex < bracket.rounds.length - 1) {
-          state.internationalPlayoffSeries = { roundIndex: roundIndex + 1, matchupIndex: 0, completed: false };
-        } else {
-          // Tournament complete!
-          const finals = bracket.rounds[bracket.rounds.length - 1];
-          const championId = finals.matchups[0].winnerId;
-          state.internationalTournament.champion = championId;
+        // check for champion
+        if (champBracket.champion) {
+          state.internationalTournament.champion = champBracket.champion;
 
-          const champion = state.teams.find(t => t.id === championId);
+          const champion = state.teams.find(t => t.id === champBracket.champion);
           events.push({
             type: 'champion_crowned',
             message: `🏆🌍 ${champion?.name} are the VALORANT World Champions!`,
@@ -1090,26 +2141,156 @@ export function advanceDay(state: GameState, config: SeasonConfig = DEFAULT_SEAS
 
           state.champions.push({
             year: state.currentYear,
-            teamId: championId!,
+            teamId: champBracket.champion,
             type: 'international',
           });
 
-          state.phase = 'offseason';
+          // also record which teams qualified as "regional champions" for next year's seeding
+          for (const region of REGIONS) {
+            const bracket = state.kickoffBrackets[region];
+            if (bracket) {
+              for (const q of bracket.qualifiers) {
+                state.champions.push({
+                  year: state.currentYear,
+                  teamId: q.teamId,
+                  type: 'regional',
+                  region,
+                });
+              }
+            }
+          }
+
+          // award VCT championship points for international placements
+          const intlPts2 = awardInternationalPoints(champBracket);
+          state.vctPoints = mergePoints(state.vctPoints ?? {}, intlPts2);
+          events.push(...handlePostInternational(state));
+        } else {
+          state.currentChampionsRound++;
+        }
+      } else {
+        // TBD matchups only — skip to next round
+        state.currentChampionsRound++;
+      }
+    }
+  } else if (state.phase === 'offseason' || state.phase === 'mid_offseason') {
+    state.currentDay++;
+  } else if (state.phase === 'stage1_groups' || state.phase === 'stage2_groups') {
+    state.currentDay++;
+    const stageNum = state.currentStage;
+
+    // auto-sim all unplayed group matches for the current matchday across all regions
+    for (const region of REGIONS) {
+      const gs = state.stageGroupStages[region]?.[stageNum];
+      if (!gs || gs.complete) continue;
+
+      for (const group of gs.groups) {
+        for (const match of group.schedule) {
+          if (match.played) continue;
+
+          const team1 = state.teams.find(t => t.id === match.homeTeamId);
+          const team2 = state.teams.find(t => t.id === match.awayTeamId);
+          if (!team1 || !team2) continue;
+
+          const matchRng = createRNG(`${state.seed}-gs-${match.id}`);
+          const result = simulateMatch(
+            matchRng, team1.id, team2.id, team1.roster, team2.roster, 'bo3',
+            team1.startingLineup, team2.startingLineup, team1, team2, false,
+            state.mapPool, state.agentMeta, state.mapMeta, state.agentVariance,
+            state.teamMapComps ?? {}, state.userTeamId, state.agentRoleOverrides ?? {},
+            state.teamMapCompNoPenalty ?? {}, state.teamMapCompBuffs ?? {},
+            state.disabledAgents ?? [], state.agentAbilities, state.matchSimConfig,
+          );
+
+          match.played = true;
+          match.result = result;
+          updateGroupStandings(group, result);
+
+          recordMatchStats(result, team1, team2, state.currentDay, state.currentYear, false, 'regional');
+          updateStandings(state.standings, result);
+          const newsItems = generateNewsFromMatch(result, state.teams, state.currentDay, state.currentYear, (state.recordBook ?? (state.recordBook = getDefaultRecordBook())));
+          if (!state.newsFeed) state.newsFeed = [];
+          state.newsFeed.push(...newsItems);
+
+          matchesPlayed.push(result);
+
+          const winner = result.homeScore > result.awayScore ? team1 : team2;
+          const loser = result.homeScore > result.awayScore ? team2 : team1;
           events.push({
-            type: 'phase_change',
-            message: 'Season complete. Offseason begins.',
+            type: 'match_result',
+            message: `[${region.toUpperCase()}] ${group.name} Group: ${winner.abbreviation} def. ${loser.abbreviation} ${result.homeScore}-${result.awayScore}`,
+            data: result,
           });
         }
       }
-    } else if (!matchup.team1Id || !matchup.team2Id) {
-      // Skip this matchup if teams aren't set yet (waiting for previous round)
-      if (matchupIndex < round.matchups.length - 1) {
-        series.matchupIndex++;
+
+      if (isGroupStageComplete(gs)) gs.complete = true;
+    }
+
+    // check if ALL regions' group stages are complete
+    const allGroupsDone = REGIONS.every(r => {
+      const rgs = state.stageGroupStages[r]?.[stageNum];
+      return !rgs || rgs.complete;
+    });
+    if (allGroupsDone) {
+      events.push(...startStagePlayoffsPhase(state, stageNum));
+    }
+
+  } else if (state.phase === 'stage1_playoffs' || state.phase === 'stage2_playoffs') {
+    state.currentDay++;
+    const stageNum = state.currentStage;
+    const stepIdx = state.currentStagePlayoffRound;
+
+    if (stepIdx >= STAGE_PLAYOFF_ROUND_ORDER.length) {
+      return { day: state.currentDay, matchesPlayed, events };
+    }
+
+    // auto-sim all matchups in this step across all regions
+    for (const region of REGIONS) {
+      const bracket = state.stagePlayoffBrackets[region]?.[stageNum];
+      if (!bracket) continue;
+
+      const round = getStagePlayoffRound(bracket, stepIdx);
+      if (!round) continue;
+
+      for (const matchup of round.matchups) {
+        if (!matchup.team1Id || !matchup.team2Id || matchup.winnerId) continue;
+
+        const matchRng = createRNG(`${state.seed}-sp-${matchup.id}`);
+        const winnerId = simulatePlayoffMatchup(
+          matchRng, matchup, state.teams, true, state.mapPool, state.agentMeta,
+          state.mapMeta, state.agentVariance, state.teamMapComps ?? {},
+          state.userTeamId, state.agentRoleOverrides ?? {},
+          state.teamMapCompNoPenalty ?? {}, state.teamMapCompBuffs ?? {},
+          state.disabledAgents ?? [], state.agentAbilities,
+        );
+        const result = matchup.matchResults[matchup.matchResults.length - 1];
+
+        const team1 = state.teams.find(t => t.id === matchup.team1Id);
+        const team2 = state.teams.find(t => t.id === matchup.team2Id);
+        if (team1 && team2 && result) {
+          recordMatchStats(result, team1, team2, state.currentDay, state.currentYear, true, 'regional');
+          updateStandings(state.standings, result);
+          const newsItems = generateNewsFromMatch(result, state.teams, state.currentDay, state.currentYear, (state.recordBook ?? (state.recordBook = getDefaultRecordBook())));
+          if (!state.newsFeed) state.newsFeed = [];
+          state.newsFeed.push(...newsItems);
+        }
+
+        if (result) matchesPlayed.push(result);
+
+        const winner = state.teams.find(t => t.id === winnerId);
+        const loserId = matchup.team1Id === winnerId ? matchup.team2Id : matchup.team1Id;
+        const loser = state.teams.find(t => t.id === loserId);
+        const roundName = getStagePlayoffRoundName(stepIdx);
+        events.push({
+          type: 'match_result',
+          message: `[${region.toUpperCase()}] Stage ${stageNum} ${roundName}: ${winner?.abbreviation} def. ${loser?.abbreviation} ${result.homeScore}-${result.awayScore}`,
+          data: result,
+        });
       }
     }
-  } else if (state.phase === 'offseason') {
-    state.currentDay++;
-    // Future: handle draft, free agency, player development
+
+    // check if step is complete across all regions and advance
+    checkStagePlayoffRoundComplete(state, events);
   }
 
   return {
@@ -1118,35 +2299,6 @@ export function advanceDay(state: GameState, config: SeasonConfig = DEFAULT_SEAS
     phaseChange: events.find(e => e.type === 'phase_change') ? state.phase : undefined,
     events,
   };
-}
-
-/**
- * Helper to move to next region's playoffs or to international
- */
-function moveToNextRegionOrInternational(state: GameState, events: GameEvent[]): void {
-  const currentIdx = state.currentPlayoffRegion ? REGIONS.indexOf(state.currentPlayoffRegion) : -1;
-  
-  // Find next region with playoffs
-  for (let i = currentIdx + 1; i < REGIONS.length; i++) {
-    if (state.regionalPlayoffs[REGIONS[i]]) {
-      state.currentPlayoffRegion = REGIONS[i];
-      state.currentPlayoffSeries = { roundIndex: 0, matchupIndex: 0, completed: false };
-      events.push({
-        type: 'phase_change',
-        message: `${REGIONS[i].toUpperCase()} Regional Playoffs begin!`,
-      });
-      return;
-    }
-  }
-  
-  // No more regions - move to international
-  state.currentPlayoffRegion = null;
-  state.currentPlayoffSeries = null;
-  state.phase = 'international';
-  events.push({
-    type: 'phase_change',
-    message: 'All regional playoffs complete! International tournament begins!',
-  });
 }
 
 /**
@@ -1162,4 +2314,629 @@ export function getCurrentStandings(state: GameState): string {
       return `${(idx + 1).toString().padStart(2)}. ${name.padEnd(5)} ${entry.wins}-${entry.losses}`;
     })
     .join('\n');
+}
+
+/** Collect all match awards from the current season's completed matchups */
+export interface AwardTally {
+  playerId: string;
+  playerName: string;
+  teamId: string;
+  mvp: number;
+  clutchKing: number;
+  firstBlood: number;
+  kdDiff: number;
+  raidBoss: number;
+  total: number;
+}
+
+export function collectSeasonAwards(state: GameState): AwardTally[] {
+  const tally = new Map<string, AwardTally>();
+
+  const ensure = (a: { playerId: string; playerName: string; teamId: string }) => {
+    if (!tally.has(a.playerId)) {
+      tally.set(a.playerId, {
+        playerId: a.playerId, playerName: a.playerName, teamId: a.teamId,
+        mvp: 0, clutchKing: 0, firstBlood: 0, kdDiff: 0, raidBoss: 0, total: 0,
+      });
+    }
+    return tally.get(a.playerId)!;
+  };
+
+  // Gather all match results from all brackets
+  const allResults: MatchResult[] = [];
+
+  for (const region of ['americas', 'emea', 'pacific', 'china'] as Region[]) {
+    const bracket = state.kickoffBrackets?.[region];
+    if (bracket) {
+      for (const section of ['upper', 'middle', 'lower'] as const) {
+        for (const round of bracket[section] || []) {
+          for (const matchup of round.matchups) {
+            for (const mr of matchup.matchResults) allResults.push(mr);
+          }
+        }
+      }
+    }
+  }
+
+  const intl = state.internationalTournament;
+  if (intl?.bracket) {
+    const b = intl.bracket;
+    // Swiss rounds
+    for (const round of b.swiss?.rounds || []) {
+      for (const matchup of round.matchups) {
+        for (const mr of matchup.matchResults) allResults.push(mr);
+      }
+    }
+    // Upper/lower brackets
+    for (const section of ['upper', 'lower'] as const) {
+      for (const round of b[section] || []) {
+        for (const matchup of round.matchups) {
+          for (const mr of matchup.matchResults) allResults.push(mr);
+        }
+      }
+    }
+  }
+
+  // stage group results
+  for (const region of ['americas', 'emea', 'pacific', 'china'] as Region[]) {
+    for (const stageNum of [1, 2] as const) {
+      const gs = state.stageGroupStages?.[region]?.[stageNum];
+      if (!gs) continue;
+      for (const group of gs.groups) {
+        for (const match of group.schedule) {
+          if (match.result) allResults.push(match.result);
+        }
+      }
+    }
+  }
+
+  // stage playoff results
+  for (const region of ['americas', 'emea', 'pacific', 'china'] as Region[]) {
+    for (const stageNum of [1, 2] as const) {
+      const bracket = state.stagePlayoffBrackets?.[region]?.[stageNum];
+      if (!bracket) continue;
+      for (const section of ['upper', 'lower'] as const) {
+        for (const round of bracket[section] || []) {
+          for (const matchup of round.matchups) {
+            for (const mr of matchup.matchResults) allResults.push(mr);
+          }
+        }
+      }
+    }
+  }
+
+  // Tally awards
+  for (const mr of allResults) {
+    if (!mr.awards) continue;
+    for (const award of mr.awards) {
+      const t = ensure(award);
+      switch (award.type) {
+        case 'mvp': t.mvp++; break;
+        case 'clutch_king': t.clutchKing++; break;
+        case 'first_blood': t.firstBlood++; break;
+        case 'kd_diff': t.kdDiff++; break;
+        case 'raid_boss': t.raidBoss++; break;
+      }
+      t.total++;
+    }
+  }
+
+  return Array.from(tally.values()).sort((a, b) => b.total - a.total);
+}
+
+// ── stage group/playoff helpers ──
+
+// get kickoff finishing order for a region (used for pool draw seeding)
+// returns teams sorted by placement: winner = seed 1, runner-up = seed 2, etc.
+export function getKickoffFinishingOrder(state: GameState, region: Region): Array<{ teamId: string; seed: number }> {
+  const bracket = state.kickoffBrackets[region];
+  if (!bracket) {
+    // fallback: use all region teams ordered by VCT points
+    const regionTeams = state.teams.filter(t => t.region === region);
+    const pts = state.vctPoints ?? {};
+    return regionTeams
+      .sort((a, b) => (pts[b.id] ?? 0) - (pts[a.id] ?? 0))
+      .map((t, i) => ({ teamId: t.id, seed: i + 1 }));
+  }
+
+  // qualifiers are ordered by bracket position (upper > middle > lower)
+  const qualified = bracket.qualifiers.map((q, i) => ({ teamId: q.teamId, seed: i + 1 }));
+
+  // remaining teams: get all region teams not in qualifiers, order by VCT points
+  const qualifiedIds = new Set(qualified.map(q => q.teamId));
+  const remaining = state.teams
+    .filter(t => t.region === region && !qualifiedIds.has(t.id))
+    .sort((a, b) => (state.vctPoints?.[b.id] ?? 0) - (state.vctPoints?.[a.id] ?? 0))
+    .map((t, i) => ({ teamId: t.id, seed: qualified.length + i + 1 }));
+
+  return [...qualified, ...remaining];
+}
+
+// get stage finishing order for a region (for seeding stage 2 pool draw from stage 1)
+export function getStageFinishingOrder(state: GameState, region: Region, stageNum: 1 | 2): Array<{ teamId: string; seed: number }> {
+  const playoffs = state.stagePlayoffBrackets[region]?.[stageNum];
+  const groups = state.stageGroupStages[region]?.[stageNum];
+  if (!playoffs || !groups) return getKickoffFinishingOrder(state, region);
+
+  const result: Array<{ teamId: string; seed: number }> = [];
+  let seed = 1;
+
+  // champion first
+  if (playoffs.champion) {
+    result.push({ teamId: playoffs.champion, seed: seed++ });
+  }
+
+  // qualified teams (in order — champion, runner-up, 3rd)
+  for (const qId of playoffs.qualifiedTeams) {
+    if (!result.find(r => r.teamId === qId)) {
+      result.push({ teamId: qId, seed: seed++ });
+    }
+  }
+
+  // remaining playoff teams (lost in bracket) — ordered by how far they got
+  const allMatchups = [
+    ...playoffs.upper.flatMap(r => r.matchups),
+    ...playoffs.lower.flatMap(r => r.matchups),
+  ];
+  const playoffTeamIds = new Set<string>();
+  for (const m of allMatchups) {
+    if (m.team1Id) playoffTeamIds.add(m.team1Id);
+    if (m.team2Id) playoffTeamIds.add(m.team2Id);
+  }
+  for (const id of playoffTeamIds) {
+    if (!result.find(r => r.teamId === id)) {
+      result.push({ teamId: id, seed: seed++ });
+    }
+  }
+
+  // teams that didn't make playoffs — ordered by group standing
+  for (const group of groups.groups) {
+    const sorted = sortGroupStandings(group);
+    for (const entry of sorted) {
+      if (!result.find(r => r.teamId === entry.teamId)) {
+        result.push({ teamId: entry.teamId, seed: seed++ });
+      }
+    }
+  }
+
+  return result;
+}
+
+// initialize group stages for all regions and transition to the groups phase
+export function startStageGroupsPhase(state: GameState, stageNum: 1 | 2): GameEvent[] {
+  const events: GameEvent[] = [];
+  const phase: GamePhase = stageNum === 1 ? 'stage1_groups' : 'stage2_groups';
+  state.phase = phase;
+  state.currentStage = stageNum;
+  // clear completed international so next one creates fresh
+  state.internationalTournament = null;
+
+  const seedFn = stageNum === 1
+    ? (r: Region) => getKickoffFinishingOrder(state, r)
+    : (r: Region) => getStageFinishingOrder(state, r, 1);
+
+  for (const region of REGIONS) {
+    const seeds = seedFn(region);
+    if (seeds.length < 12) continue; // need 12 teams
+
+    const manualOverride = state.stageGroupStages[region]?.[stageNum]?.manualGroups;
+    const gs = generateGroupStage(
+      `${state.seed}-stage${stageNum}-groups-${region}-${state.currentYear}`,
+      region,
+      seeds,
+      manualOverride,
+    );
+    if (!state.stageGroupStages[region]) state.stageGroupStages[region] = {};
+    (state.stageGroupStages[region] as any)[stageNum] = gs;
+  }
+
+  events.push({
+    type: 'phase_change',
+    message: `VCT ${state.currentYear} Stage ${stageNum} Group Stage begins!`,
+  });
+
+  return events;
+}
+
+// transition from completed group stage to stage playoffs
+export function startStagePlayoffsPhase(state: GameState, stageNum: 1 | 2): GameEvent[] {
+  const events: GameEvent[] = [];
+  const phase: GamePhase = stageNum === 1 ? 'stage1_playoffs' : 'stage2_playoffs';
+  state.phase = phase;
+  state.currentStagePlayoffRound = 0;
+
+  for (const region of REGIONS) {
+    const gs = state.stageGroupStages[region]?.[stageNum];
+    if (!gs) continue;
+
+    const { alpha, omega } = getPlayoffQualifiers(gs);
+    const bracket = generateStagePlayoffBracket(
+      `${state.seed}-stage${stageNum}-playoffs-${region}-${state.currentYear}`,
+      alpha,
+      omega,
+    );
+    if (!state.stagePlayoffBrackets[region]) state.stagePlayoffBrackets[region] = {};
+    (state.stagePlayoffBrackets[region] as any)[stageNum] = bracket;
+  }
+
+  events.push({
+    type: 'phase_change',
+    message: `VCT ${state.currentYear} Stage ${stageNum} Playoffs begin!`,
+  });
+
+  return events;
+}
+
+// determine what happens after international completes
+// returns events generated during the transition
+export function handlePostInternational(state: GameState): GameEvent[] {
+  const events: GameEvent[] = [];
+  const source = state.internationalSource ?? 'kickoff';
+
+  if (source === 'stage2') {
+    // final international of the year → full offseason
+    state.phase = 'offseason';
+    const progRng = createRNG(`${state.seed}-progression-${state.currentYear}-${Date.now()}`);
+    state.offseasonProgression = processProgression(state, progRng);
+    const churnSeed = `${state.seed}-churn-${state.currentYear}`;
+    const churn = runOffseasonChurn(state.teams, state.freeAgents || [], state.kickoffBrackets, state.internationalTournament, state.userTeamId, churnSeed, state.churnConfig);
+    state.teams = churn.updatedTeams;
+    state.freeAgents = churn.updatedFreeAgents;
+    state.offseasonChurnEvents = churn.events;
+
+    // coach rating drift + replacement for sub-40 coaches
+    const coachDriftRng = createRNG(`${state.seed}-coach-drift-${state.currentYear}`);
+    for (const team of state.teams) {
+      const coach = team.staff.headCoach;
+      if (!coach) continue;
+      // small gaussian drift each offseason
+      let drift = 0;
+      for (let i = 0; i < 4; i++) drift += coachDriftRng() - 0.5;
+      drift *= 1.5;
+      coach.rating = Math.max(30, Math.min(99, Math.round(coach.rating + drift)));
+      // replace coaches below 40
+      if (coach.rating < 40 && team.id !== state.userTeamId) {
+        const replacement = generateCoach(coachDriftRng, { region: team.region });
+        if (state.freeAgentCoaches) state.freeAgentCoaches.push({ ...coach });
+        team.staff.headCoach = replacement;
+      }
+    }
+    // add fresh coaches to FA pool each offseason
+    const freshCoaches = generateCoachPool(coachDriftRng, 3);
+    state.freeAgentCoaches = [...(state.freeAgentCoaches || []), ...freshCoaches];
+    // compute season history
+    if (!state.seasonHistory) state.seasonHistory = [];
+    const histEntry = computeSeasonHistory(state);
+    const tournType = state.currentTournamentType || 'champions';
+    histEntry.id = `auto-${state.currentYear}-${tournType}`;
+    histEntry.tournamentType = tournType;
+    let existIdx = state.seasonHistory.findIndex(h =>
+      h.year === histEntry.year && (h.tournamentType || 'champions') === tournType && !h.eventName
+    );
+    if (existIdx < 0) {
+      existIdx = state.seasonHistory.findIndex(h =>
+        h.year === histEntry.year && (h.tournamentType || 'champions') === tournType && !h.worldChampionId && !h.worldChampionCustom
+      );
+    }
+    if (existIdx >= 0) {
+      const prev = state.seasonHistory[existIdx];
+      state.seasonHistory[existIdx] = {
+        ...histEntry,
+        id: prev.id || histEntry.id,
+        eventName: prev.eventName || histEntry.eventName,
+        location: prev.location || histEntry.location,
+        locationFlag: prev.locationFlag || histEntry.locationFlag,
+        dateRange: prev.dateRange || histEntry.dateRange,
+        sortIndex: prev.sortIndex,
+        isManual: false,
+        manualStatus: undefined,
+      };
+    } else {
+      state.seasonHistory.push(histEntry);
+    }
+    events.push({ type: 'phase_change', message: 'Season complete. Offseason begins.' });
+  } else {
+    // mid-season break → light transfer window
+    // keep internationalTournament alive so sidebar tab + match detail still work
+    state.phase = 'mid_offseason';
+    state.internationalSource = source === 'kickoff' ? 'stage1' : 'stage2';
+    events.push({
+      type: 'phase_change',
+      message: `International complete. Mid-season transfer window opens.`,
+    });
+  }
+
+  return events;
+}
+
+// called when user clicks "Start Stage X" from mid_offseason
+export function advanceFromMidOffseason(state: GameState): GameEvent[] {
+  if (state.phase !== 'mid_offseason') return [];
+
+  const nextSource = state.internationalSource ?? 'stage1';
+  const stageNum: 1 | 2 = nextSource === 'stage1' ? 1 : 2;
+  return startStageGroupsPhase(state, stageNum);
+}
+
+// simulate a single group stage match by its ID
+export function simGroupStageMatch(
+  state: GameState,
+  matchId: string,
+): { result: MatchResult | null; events: GameEvent[] } {
+  const events: GameEvent[] = [];
+  const stageNum = state.currentStage;
+  const phase = state.phase;
+  if (phase !== 'stage1_groups' && phase !== 'stage2_groups') return { result: null, events };
+
+  // find the match across all regions and groups
+  for (const region of REGIONS) {
+    const gs = state.stageGroupStages[region]?.[stageNum];
+    if (!gs) continue;
+
+    for (let gi = 0; gi < gs.groups.length; gi++) {
+      const group = gs.groups[gi];
+      const match = group.schedule.find(m => m.id === matchId);
+      if (!match || match.played) continue;
+
+      const team1 = state.teams.find(t => t.id === match.homeTeamId);
+      const team2 = state.teams.find(t => t.id === match.awayTeamId);
+      if (!team1 || !team2) return { result: null, events };
+
+      const rng = createRNG(`${state.seed}-matchup-${matchId}`);
+      const result = simulateMatch(
+        rng, team1.id, team2.id, team1.roster, team2.roster, 'bo3',
+        team1.startingLineup, team2.startingLineup, team1, team2, false,
+        state.mapPool, state.agentMeta, state.mapMeta, state.agentVariance,
+        state.teamMapComps ?? {}, state.userTeamId, state.agentRoleOverrides ?? {},
+        state.teamMapCompNoPenalty ?? {}, state.teamMapCompBuffs ?? {},
+        state.disabledAgents ?? [], state.agentAbilities, state.matchSimConfig,
+      );
+
+      match.played = true;
+      match.result = result;
+      updateGroupStandings(group, result);
+
+      // force new object references so React detects nested changes
+      gs.groups = [...gs.groups] as [typeof gs.groups[0], typeof gs.groups[1]];
+      state.stageGroupStages = { ...state.stageGroupStages };
+      (state.stageGroupStages[region] as any) = { ...state.stageGroupStages[region] };
+      (state.stageGroupStages[region] as any)[stageNum] = { ...gs };
+
+      // record stats + news
+      recordMatchStats(result, team1, team2, state.currentDay, state.currentYear, false, 'regional');
+      updateStandings(state.standings, result);
+      const newsItems = generateNewsFromMatch(result, state.teams, state.currentDay, state.currentYear, (state.recordBook ?? (state.recordBook = getDefaultRecordBook())));
+      if (!state.newsFeed) state.newsFeed = [];
+      state.newsFeed.push(...newsItems);
+
+      const winner = result.homeScore > result.awayScore ? team1 : team2;
+      const loser = result.homeScore > result.awayScore ? team2 : team1;
+      events.push({
+        type: 'match_result',
+        message: `[${region.toUpperCase()}] ${group.name} Group: ${winner.abbreviation} def. ${loser.abbreviation} ${result.homeScore}-${result.awayScore}`,
+        data: result,
+      });
+
+      // check if all groups in this region are complete
+      if (isGroupStageComplete(gs)) {
+        gs.complete = true;
+        // mark any other regions that finished without the flag being set
+        for (const r of REGIONS) {
+          const rgs = state.stageGroupStages[r]?.[stageNum];
+          if (rgs && !rgs.complete && isGroupStageComplete(rgs)) rgs.complete = true;
+        }
+        // check if ALL regions' group stages are complete
+        const allDone = REGIONS.every(r => {
+          const rgs = state.stageGroupStages[r]?.[stageNum];
+          return !rgs || rgs.complete;
+        });
+        if (allDone) {
+          events.push(...startStagePlayoffsPhase(state, stageNum));
+        }
+      }
+
+      return { result, events };
+    }
+  }
+
+  return { result: null, events };
+}
+
+// simulate a single stage playoff matchup by its ID
+export function simStagePlayoffMatchup(
+  state: GameState,
+  matchupId: string,
+): { result: MatchResult | null; events: GameEvent[] } {
+  const events: GameEvent[] = [];
+  const stageNum = state.currentStage;
+  const phase = state.phase;
+  if (phase !== 'stage1_playoffs' && phase !== 'stage2_playoffs') return { result: null, events };
+
+  for (const region of REGIONS) {
+    const bracket = state.stagePlayoffBrackets[region]?.[stageNum];
+    if (!bracket) continue;
+
+    const stepIdx = state.currentStagePlayoffRound;
+    const round = getStagePlayoffRound(bracket, stepIdx);
+    if (!round) continue;
+
+    const matchup = round.matchups.find(m => m.id === matchupId);
+    if (!matchup || matchup.winnerId || !matchup.team1Id || !matchup.team2Id) continue;
+
+    const rng = createRNG(`${state.seed}-matchup-${matchupId}`);
+    const isPlayoff = true;
+    const winnerId = simulatePlayoffMatchup(
+      rng, matchup, state.teams, isPlayoff, state.mapPool, state.agentMeta,
+      state.mapMeta, state.agentVariance, state.teamMapComps ?? {},
+      state.userTeamId, state.agentRoleOverrides ?? {},
+      state.teamMapCompNoPenalty ?? {}, state.teamMapCompBuffs ?? {},
+      state.disabledAgents ?? [], state.agentAbilities,
+    );
+    const result = matchup.matchResults[matchup.matchResults.length - 1];
+
+    const team1 = state.teams.find(t => t.id === matchup.team1Id);
+    const team2 = state.teams.find(t => t.id === matchup.team2Id);
+    if (team1 && team2 && result) {
+      recordMatchStats(result, team1, team2, state.currentDay, state.currentYear, true, 'regional');
+      updateStandings(state.standings, result);
+      const newsItems = generateNewsFromMatch(result, state.teams, state.currentDay, state.currentYear, (state.recordBook ?? (state.recordBook = getDefaultRecordBook())));
+      if (!state.newsFeed) state.newsFeed = [];
+      state.newsFeed.push(...newsItems);
+    }
+
+    const winner = state.teams.find(t => t.id === winnerId);
+    const loserId = matchup.team1Id === winnerId ? matchup.team2Id : matchup.team1Id;
+    const loser = state.teams.find(t => t.id === loserId);
+    const roundName = getStagePlayoffRoundName(stepIdx);
+    events.push({
+      type: 'match_result',
+      message: `[${region.toUpperCase()}] Stage ${stageNum} ${roundName}: ${winner?.abbreviation} def. ${loser?.abbreviation} ${result.homeScore}-${result.awayScore}`,
+      data: result,
+    });
+
+    // check if this round step is complete across all regions
+    checkStagePlayoffRoundComplete(state, events);
+
+    // force fresh references so React re-renders bracket view
+    state.stagePlayoffBrackets = { ...state.stagePlayoffBrackets };
+    (state.stagePlayoffBrackets[region] as any) = { ...state.stagePlayoffBrackets[region] };
+    (state.stagePlayoffBrackets[region] as any)[stageNum] = { ...bracket };
+
+    return { result, events };
+  }
+
+  return { result: null, events };
+}
+
+// check if the current stage playoff step is done across all regions
+function checkStagePlayoffRoundComplete(state: GameState, events: GameEvent[]): void {
+  const stageNum = state.currentStage;
+  const stepIdx = state.currentStagePlayoffRound;
+
+  for (const region of REGIONS) {
+    const bracket = state.stagePlayoffBrackets[region]?.[stageNum];
+    if (!bracket) continue;
+    if (!isStepComplete(bracket, stepIdx)) return; // still pending
+  }
+
+  // all regions done — advance bracket routing
+  for (const region of REGIONS) {
+    const bracket = state.stagePlayoffBrackets[region]?.[stageNum];
+    if (!bracket) continue;
+    advanceStagePlayoffRound(bracket, stepIdx);
+
+    // check for qualifications
+    if (bracket.qualifiedTeams.length > 0) {
+      for (const qId of bracket.qualifiedTeams) {
+        const already = events.some(e => e.type === 'international_qualifier' && (e.data as any)?.teamId === qId);
+        if (!already) {
+          const team = state.teams.find(t => t.id === qId);
+          if (team) {
+            events.push({
+              type: 'international_qualifier',
+              message: `🏆 ${team.name} qualify for the international from Stage ${stageNum}!`,
+              data: { teamId: qId, region: team.region, seed: bracket.qualifiedTeams.indexOf(qId) + 1 },
+            });
+          }
+        }
+      }
+    }
+  }
+
+  state.currentStagePlayoffRound++;
+
+  // check if all brackets are complete
+  if (state.currentStagePlayoffRound >= STAGE_PLAYOFF_ROUND_ORDER.length) {
+    // stage playoffs complete → transition to international
+    state.phase = 'international';
+    state.internationalTournament = null; // clear previous so advanceDay creates a new one
+    state.currentChampionsRound = 0;
+    state.internationalSource = stageNum === 1 ? 'stage1' : 'stage2';
+    events.push({
+      type: 'phase_change',
+      message: `Stage ${stageNum} Playoffs complete! International tournament begins!`,
+    });
+  }
+}
+
+// get all stage group matchups for the current matchday (for schedule page)
+export function getStageGroupMatchups(state: GameState): TodayMatchup[] {
+  const matchups: TodayMatchup[] = [];
+  const stageNum = state.currentStage;
+
+  for (const region of REGIONS) {
+    const gs = state.stageGroupStages[region]?.[stageNum];
+    if (!gs) continue;
+
+    for (const group of gs.groups) {
+      for (const match of group.schedule) {
+        matchups.push({
+          matchupId: match.id,
+          team1Id: match.homeTeamId,
+          team2Id: match.awayTeamId,
+          region,
+          roundName: `${group.name} Group Day ${match.matchday}`,
+          format: 'bo3',
+          played: match.played,
+          winnerId: match.result
+            ? (match.result.homeScore > match.result.awayScore ? match.homeTeamId : match.awayTeamId)
+            : null,
+          result: match.result,
+        });
+      }
+    }
+  }
+
+  return matchups;
+}
+
+// get all stage playoff matchups for the current step (for schedule page)
+export function getStagePlayoffMatchups(state: GameState): TodayMatchup[] {
+  const matchups: TodayMatchup[] = [];
+  const stageNum = state.currentStage;
+  const stepIdx = state.currentStagePlayoffRound;
+
+  for (const region of REGIONS) {
+    const bracket = state.stagePlayoffBrackets[region]?.[stageNum];
+    if (!bracket) continue;
+
+    const round = getStagePlayoffRound(bracket, stepIdx);
+    if (!round) continue;
+    const roundName = getStagePlayoffRoundName(stepIdx);
+
+    for (const m of round.matchups) {
+      matchups.push({
+        matchupId: m.id,
+        team1Id: m.team1Id,
+        team2Id: m.team2Id,
+        region,
+        roundName: `Stage ${stageNum} ${roundName}`,
+        format: m.format,
+        played: !!m.winnerId,
+        winnerId: m.winnerId,
+        result: m.matchResults.length > 0 ? m.matchResults[m.matchResults.length - 1] : null,
+      });
+    }
+  }
+
+  return matchups;
+}
+// return all scheduled matches across regular season + stage groups
+export function getAllPlayedMatches(state: GameState): ScheduledMatch[] {
+  const matches = [...state.schedule];
+
+  const regions: Region[] = ['americas', 'emea', 'pacific', 'china'];
+  for (const region of regions) {
+    for (const stageNum of [1, 2] as const) {
+      const gs = state.stageGroupStages?.[region]?.[stageNum];
+      if (!gs) continue;
+      for (const group of gs.groups ?? []) {
+        for (const m of group.schedule ?? []) {
+          matches.push(m);
+        }
+      }
+    }
+  }
+
+  return matches;
 }

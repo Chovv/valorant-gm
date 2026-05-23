@@ -4,6 +4,7 @@
 import { useState, useMemo } from 'react';
 import type { Team, Region, Role } from '../../types';
 import { getTradeValue, canTrade } from '../../sim/trading';
+import { InlineFlag } from './PlayerAvatar';
 import './TradePage.css';
 
 // Role icons
@@ -197,6 +198,7 @@ export function TradePage({ teams, userTeamId, onExecuteTrade, onViewPlayer }: T
                           className="player-name"
                           onClick={(e) => { e.stopPropagation(); onViewPlayer(player.id); }}
                         >
+                          <InlineFlag code={player.nationality} />
                           {player.name}
                           {isIGL && <span className="igl-tag">IGL</span>}
                         </span>
@@ -234,7 +236,7 @@ export function TradePage({ teams, userTeamId, onExecuteTrade, onViewPlayer }: T
                   userPlayers.map(player => player && (
                     <div key={player.id} className="flow-player">
                       <img src={ROLE_ICONS[player.role]} alt="" className="flow-role-icon" />
-                      <span className="flow-name">{player.name}</span>
+                      <span className="flow-name"><InlineFlag code={player.nationality} />{player.name}</span>
                       <span className={`flow-ovr ${getRatingClass(player.overall)}`}>{player.overall}</span>
                     </div>
                   ))
@@ -266,7 +268,7 @@ export function TradePage({ teams, userTeamId, onExecuteTrade, onViewPlayer }: T
                   otherPlayersSelected.map(player => player && (
                     <div key={player.id} className="flow-player">
                       <img src={ROLE_ICONS[player.role]} alt="" className="flow-role-icon" />
-                      <span className="flow-name">{player.name}</span>
+                      <span className="flow-name"><InlineFlag code={player.nationality} />{player.name}</span>
                       <span className={`flow-ovr ${getRatingClass(player.overall)}`}>{player.overall}</span>
                     </div>
                   ))
@@ -436,6 +438,7 @@ export function TradePage({ teams, userTeamId, onExecuteTrade, onViewPlayer }: T
                               className="player-name"
                               onClick={(e) => { e.stopPropagation(); onViewPlayer(player.id); }}
                             >
+                              <InlineFlag code={player.nationality} />
                               {player.name}
                               {isIGL && <span className="igl-tag">IGL</span>}
                             </span>
