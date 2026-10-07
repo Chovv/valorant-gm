@@ -23,12 +23,9 @@ function getSaves(): SavedGame[] {
   }
 }
 
+// throws when the browser's storage quota is exceeded — callers surface it, a silent miss loses the save
 function setSaves(saves: SavedGame[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saves));
-  } catch (e) {
-    console.error('Failed to save to localStorage:', e);
-  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saves));
 }
 
 export async function saveGame(

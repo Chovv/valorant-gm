@@ -40,6 +40,7 @@ import {
   type SavedGame,
 } from "./db/gameDatabase";
 import { getAgentsForRole } from "./data/agents";
+import { downloadJson } from "./utils/devToolsIO";
 import {
   AMERICAS_TEAMS,
   EMEA_TEAMS,
@@ -521,12 +522,23 @@ export default function App() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const json = JSON.parse(e.target?.result as string);
         
-        // Check if it's a full league export or team configs
-        if (json.teams && Array.isArray(json.teams) && json.teams[0]?.roster) {
+        // full save backup: restore everything (meta, comps, calendar, coaches) through the normal load path
+        if (Array.isArray(json.gameState?.teams)) {
+          let saved: SavedGame;
+          try {
+            saved = await saveGame(json.gameState, `${json.name || 'Imported save'} (imported)`, undefined, json.devMode);
+          } catch {
+            showToast('Browser storage is full. Delete an old save, then import again.', 'error');
+            return;
+          }
+          setSaves(await getAllSaves());
+          await handleLoad(saved.id);
+          showToast(`Restored "${saved.name}"`, 'success');
+        } else if (json.teams && Array.isArray(json.teams) && json.teams[0]?.roster) {
           // Full league export - has complete team data with rosters
           interface ImportedTeamData {
             id: string;
@@ -1953,15 +1965,31 @@ export default function App() {
     const name = currentSaveId
       ? saves.find((s) => s.id === currentSaveId)?.name
       : `Save - Day ${gameState.currentDay}`;
-    const saved = await saveGame(
-      gameState,
-      name || "Unnamed Save",
-      currentSaveId || undefined,
-      devMode,
-    );
+    let saved: SavedGame;
+    try {
+      saved = await saveGame(
+        gameState,
+        name || "Unnamed Save",
+        currentSaveId || undefined,
+        devMode,
+      );
+    } catch {
+      showToast('Save failed: browser storage is full. Export a Full Save Backup, then delete an old save.', 'error');
+      return;
+    }
     setCurrentSaveId(saved.id);
     setSaves(await getAllSaves());
     showToast(`Game saved! (${name || "Unnamed Save"})`, 'success');
+  };
+
+  // Download the whole save as one file — the only export that round-trips everything
+  const handleExportSave = () => {
+    if (!gameState) return;
+    const name = saves.find((s) => s.id === currentSaveId)?.name || `Save - Day ${gameState.currentDay}`;
+    downloadJson(
+      { kind: 'valorantgm-save', exportVersion: '2.0', exportDate: new Date().toISOString(), name, devMode, gameState },
+      `valorantgm-save-${gameState.currentYear}-${name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'save'}.json`,
+    );
   };
 
   // Export league data as JSON for customization
@@ -1979,55 +2007,9 @@ export default function App() {
         phase: gameState.phase,
         userTeamId: gameState.userTeamId,
       },
-      teams: gameState.teams.map(team => ({
-        id: team.id,
-        name: team.name,
-        abbreviation: team.abbreviation,
-        logo: team.logo,
-        region: team.region,
-        founded: team.founded,
-        championships: team.championships,
-        playoffAppearances: team.playoffAppearances,
-        iglId: team.iglId,
-        startingLineup: team.startingLineup,
-        attributes: team.attributes,
-        finances: team.finances,
-        roster: team.roster.map(player => ({
-          id: player.id,
-          name: player.name,
-          age: player.age,
-          role: player.role,
-          overall: player.overall,
-          potential: player.potential,
-          ratings: player.ratings,
-          personality: player.personality,
-          background: player.background,
-          archetype: player.archetype,
-          development: player.development,
-          agentPool: player.agentPool,
-          contract: player.contract,
-          careerStats: player.careerStats,
-          imageUrl: player.imageUrl,
-          awards: player.awards,
-        })),
-      })),
-      freeAgents: (gameState.freeAgents || []).map(player => ({
-        id: player.id,
-        name: player.name,
-        age: player.age,
-        role: player.role,
-        overall: player.overall,
-        potential: player.potential,
-        ratings: player.ratings,
-        personality: player.personality,
-        background: player.background,
-        archetype: player.archetype,
-        development: player.development,
-        agentPool: player.agentPool,
-        contract: player.contract,
-        imageUrl: player.imageUrl,
-        awards: player.awards,
-      })),
+      // whole objects, not a field list — a hand-kept list silently dropped every field added since
+      teams: gameState.teams,
+      freeAgents: gameState.freeAgents || [],
       standings: gameState.standings,
       champions: gameState.champions,
       customTier2Teams: gameState.customTier2Teams,
@@ -2225,7 +2207,9 @@ export default function App() {
   };
 
   const handleDuplicate = async (id: string) => {
-    const copy = await duplicateSave(id);
+    // a copy is the likeliest write to hit the storage quota
+    const copy = await duplicateSave(id).catch(() => null);
+    if (!copy) showToast('Could not duplicate: browser storage is full or the save is missing.', 'error');
     if (copy) {
       setSaves(await getAllSaves());
       handleLoad(copy.id);
@@ -3217,9 +3201,13 @@ export default function App() {
             </button>
             <div className="export-dropdown-content">
               <div className="export-dropdown-menu">
+                <button onClick={handleExportSave}>
+                  💾 Full Save Backup
+                  <span className="export-desc">Everything in this save. Restore with Import JSON</span>
+                </button>
                 <button onClick={handleExportLeague}>
-                  📋 Full League Export
-                  <span className="export-desc">All data including stats & history</span>
+                  📋 League Export
+                  <span className="export-desc">Rosters, coaches & history. Imports as a new league</span>
                 </button>
                 <button onClick={handleExportTeamConfigs}>
                   ⚙️ Team Configs Only
