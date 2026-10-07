@@ -1429,6 +1429,25 @@ export function getNextPlannedEvent(state: GameState): SeasonHistoryEntry | null
  * Optionally bumps the year if the next event is in a future year.
  */
 export function startNextEvent(state: GameState): GameEvent[] {
+  // year is done and nothing is planned: lay out next year so there is always a way forward
+  if (!checkSkipToNextEvent(state).ok && isYearOver(state)) {
+    const year = state.currentYear + 1;
+    state.seasonHistory = [...(state.seasonHistory || []), ...DEFAULT_QUALIFIER_ORDER.map((qualifier, i): SeasonHistoryEntry => ({
+      id: `plan-${year}-${qualifier}`,
+      year,
+      isManual: true,
+      tournamentType: qualifier === 'stage2' ? 'champions' : 'masters',
+      qualifierStage: qualifier,
+      sortIndex: i,
+      worldChampionId: null, runnerUpId: null,
+      finalsMvp: null, seasonMvp: null, rookieOfYear: null,
+      kickoffWinners: { americas: null, emea: null, pacific: null, china: null },
+      allVctFirst: [], allVctSecond: [],
+      clutchKing: null, entryFragger: null,
+      bestDuelist: null, bestController: null, bestInitiator: null, bestSentinel: null,
+    }))];
+  }
+
   // prefer the calendar — it knows each event's declared lead-in
   const check = checkSkipToNextEvent(state);
   if (check.ok) return bootEventSlot(state, check.target);
@@ -2094,7 +2113,7 @@ export function advanceDay(state: GameState, config: SeasonConfig = DEFAULT_SEAS
           state.mapMeta, state.agentVariance, state.teamMapComps ?? {},
           state.userTeamId, state.agentRoleOverrides ?? {},
           state.teamMapCompNoPenalty ?? {}, state.teamMapCompBuffs ?? {},
-          state.disabledAgents ?? [], state.agentAbilities,
+          state.disabledAgents ?? [], state.agentAbilities, state.matchSimConfig,
         );
         const result = matchup.matchResults[matchup.matchResults.length - 1];
 
@@ -2400,6 +2419,55 @@ export function startStagePlayoffsPhase(state: GameState, stageNum: 1 | 2): Game
   return events;
 }
 
+// progression, ai roster churn and coach drift; runs once when a year closes
+function enterOffseason(state: GameState): void {
+  state.phase = 'offseason';
+  const progRng = createRNG(`${state.seed}-progression-${state.currentYear}-${Date.now()}`);
+  state.offseasonProgression = processProgression(state, progRng);
+  const churnSeed = `${state.seed}-churn-${state.currentYear}`;
+  const churn = runOffseasonChurn(state.teams, state.freeAgents || [], state.kickoffBrackets, state.internationalTournament, state.userTeamId, churnSeed, state.churnConfig);
+  state.teams = churn.updatedTeams;
+  state.freeAgents = churn.updatedFreeAgents;
+  state.offseasonChurnEvents = churn.events;
+
+  // coach rating drift + replacement for sub-40 coaches
+  const coachDriftRng = createRNG(`${state.seed}-coach-drift-${state.currentYear}`);
+  for (const team of state.teams) {
+    const coach = team.staff.headCoach;
+    if (!coach) continue;
+    // small gaussian drift each offseason
+    let drift = 0;
+    for (let i = 0; i < 4; i++) drift += coachDriftRng() - 0.5;
+    drift *= 1.5;
+    coach.rating = Math.max(30, Math.min(99, Math.round(coach.rating + drift)));
+    // replace coaches below 40
+    if (coach.rating < 40 && team.id !== state.userTeamId) {
+      const replacement = generateCoach(coachDriftRng, { region: team.region });
+      if (state.freeAgentCoaches) state.freeAgentCoaches.push({ ...coach });
+      team.staff.headCoach = replacement;
+    }
+  }
+  // add fresh coaches to FA pool each offseason
+  const freshCoaches = generateCoachPool(coachDriftRng, 3);
+  state.freeAgentCoaches = [...(state.freeAgentCoaches || []), ...freshCoaches];
+}
+
+// a year is over once nothing on its calendar is unfilled and its last event is on record
+export function isYearOver(state: GameState): boolean {
+  const cal = getEventCalendar(state, state.currentYear);
+  if (!cal.every(s => s.completed)) return false;
+  return cal.length >= DEFAULT_QUALIFIER_ORDER.length
+    || cal.some(s => s.qualifier === 'stage2')
+    || (state.phase === 'offseason' && !!state.offseasonProgression);
+}
+
+// closes a year whose last result was typed into history, so the offseason still happens
+export function endSeason(state: GameState): GameEvent[] {
+  if (state.phase === 'offseason' || !isYearOver(state)) return [];
+  enterOffseason(state);
+  return [{ type: 'phase_change', message: 'Season complete. Offseason begins.' }];
+}
+
 // determine what happens after international completes
 // returns events generated during the transition
 export function handlePostInternational(state: GameState): GameEvent[] {
@@ -2408,35 +2476,7 @@ export function handlePostInternational(state: GameState): GameEvent[] {
 
   if (source === 'stage2') {
     // final international of the year → full offseason
-    state.phase = 'offseason';
-    const progRng = createRNG(`${state.seed}-progression-${state.currentYear}-${Date.now()}`);
-    state.offseasonProgression = processProgression(state, progRng);
-    const churnSeed = `${state.seed}-churn-${state.currentYear}`;
-    const churn = runOffseasonChurn(state.teams, state.freeAgents || [], state.kickoffBrackets, state.internationalTournament, state.userTeamId, churnSeed, state.churnConfig);
-    state.teams = churn.updatedTeams;
-    state.freeAgents = churn.updatedFreeAgents;
-    state.offseasonChurnEvents = churn.events;
-
-    // coach rating drift + replacement for sub-40 coaches
-    const coachDriftRng = createRNG(`${state.seed}-coach-drift-${state.currentYear}`);
-    for (const team of state.teams) {
-      const coach = team.staff.headCoach;
-      if (!coach) continue;
-      // small gaussian drift each offseason
-      let drift = 0;
-      for (let i = 0; i < 4; i++) drift += coachDriftRng() - 0.5;
-      drift *= 1.5;
-      coach.rating = Math.max(30, Math.min(99, Math.round(coach.rating + drift)));
-      // replace coaches below 40
-      if (coach.rating < 40 && team.id !== state.userTeamId) {
-        const replacement = generateCoach(coachDriftRng, { region: team.region });
-        if (state.freeAgentCoaches) state.freeAgentCoaches.push({ ...coach });
-        team.staff.headCoach = replacement;
-      }
-    }
-    // add fresh coaches to FA pool each offseason
-    const freshCoaches = generateCoachPool(coachDriftRng, 3);
-    state.freeAgentCoaches = [...(state.freeAgentCoaches || []), ...freshCoaches];
+    enterOffseason(state);
     // compute season history
     recordEventResult(state);
     events.push({ type: 'phase_change', message: 'Season complete. Offseason begins.' });
@@ -2580,7 +2620,7 @@ export function simStagePlayoffMatchup(
       state.mapMeta, state.agentVariance, state.teamMapComps ?? {},
       state.userTeamId, state.agentRoleOverrides ?? {},
       state.teamMapCompNoPenalty ?? {}, state.teamMapCompBuffs ?? {},
-      state.disabledAgents ?? [], state.agentAbilities,
+      state.disabledAgents ?? [], state.agentAbilities, state.matchSimConfig,
     );
     const result = matchup.matchResults[matchup.matchResults.length - 1];
 

@@ -19,6 +19,8 @@ import {
   advanceFromMidOffseason,
   checkSkipToNextEvent,
   bootEventSlot,
+  isYearOver,
+  endSeason,
   type GameState,
   type DayResult,
   getAllPlayedMatches,
@@ -353,6 +355,7 @@ type NavView =
   | "map-pool"
   | "switch-team"
   | "mass-editor"
+  | "progression"
   | "sim-config"
   | "real-event"
   | "sandbox"
@@ -1141,6 +1144,27 @@ export default function App() {
     });
   };
 
+  // Close out a year whose last result was entered by hand, so the offseason still runs
+  const handleEndSeason = () => {
+    if (!gameState) return;
+    setPromptModal({
+      kind: 'confirm', title: `End ${gameState.currentYear} Season`,
+      message: 'Every event this year has a champion on record. Run player progression and open the offseason? This cannot be undone.',
+      confirmLabel: 'End Season',
+      onConfirm: () => {
+        setPromptModal(null);
+        setSuspendedSim(null);
+        watchingMatchupIdRef.current = null;
+        const events = endSeason(gameState);
+        setGameState({ ...gameState });
+        setRecentResults((prev) => [...prev, { day: gameState.currentDay, matchesPlayed: [], events }]);
+        showToast('Season complete!', 'info');
+        setView('progression');
+      },
+      onCancel: () => setPromptModal(null),
+    });
+  };
+
   // Start next event from offseason
   const handleStartNextEvent = () => {
     if (!gameState) return;
@@ -1172,13 +1196,17 @@ export default function App() {
     const completedThisYear = (gameState.seasonHistory || [])
       .filter(h => h.year === gameState.currentYear && (h.worldChampionId || h.worldChampionCustom))
       .length;
-    const isStageNext = completedThisYear >= 1;
+    // nothing planned and the year is done: startNextEvent lays out next year
+    const newYear = !next && isYearOver(gameState);
+    const isStageNext = !newYear && completedThisYear >= 1;
     const stageNum = completedThisYear === 1 ? 1 : completedThisYear === 2 ? 2 : 0;
-    const msg = isStageNext
+    const msg = newYear
+      ? `Begin the ${gameState.currentYear + 1} season? Its three events (Masters, Masters, Champions) are added to History, where you can rename or reorder them.`
+      : isStageNext
       ? `Begin Stage ${stageNum} Group Stage leading into ${label}? Teams will be drawn into two groups of 6 for round-robin play.`
       : `Begin the regional stage leading into ${label}? Teams will compete in their regional brackets first to qualify for the international event.`;
     setPromptModal({
-      kind: 'confirm', title: isStageNext ? `Start Stage ${stageNum}` : 'Start Next Event',
+      kind: 'confirm', title: newYear ? `Start ${gameState.currentYear + 1} Season` : isStageNext ? `Start Stage ${stageNum}` : 'Start Next Event',
       message: msg,
       confirmLabel: 'Start',
       onConfirm: () => {
@@ -3044,7 +3072,7 @@ export default function App() {
             const done = (gameState.seasonHistory || []).filter(
               (h: any) => h.year === gameState.currentYear && (h.worldChampionId || h.worldChampionCustom)
             ).length;
-            return done >= 1 && done < 3;
+            return done >= 1;
           })()) && (
             <button className="btn btn-next-event" onClick={handleStartNextEvent} title={getNextPlannedEvent(gameState)?.eventName || 'Start next tournament'}>
               ▶ Start Next Event
@@ -3105,6 +3133,16 @@ export default function App() {
 
                       {/* ── Advance past an already-recorded event ── */}
                       {(() => {
+                        // year is finished on paper: the only way forward is the offseason
+                        if (isYearOver(gameState)) return (
+                          <>
+                            <button className="play-day-option" onClick={() => { setShowPlayDayMenu(false); handleEndSeason(); }}>
+                              End {gameState.currentYear} season
+                              <span className="simulate-desc">Run progression and open the offseason</span>
+                            </button>
+                            <div className="play-day-divider" />
+                          </>
+                        );
                         const check = checkSkipToNextEvent(gameState);
                         if (!check.ok) return null;
                         const lead = check.target.qualifier === 'none'

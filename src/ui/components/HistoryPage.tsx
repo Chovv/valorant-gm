@@ -1,7 +1,7 @@
 // src/ui/components/HistoryPage.tsx
 import { useState, useMemo, useRef, useEffect } from 'react';
 import type { GameState } from '../../sim/gameState';
-import { checkSkipToNextEvent, bootEventSlot } from '../../sim/gameState';
+import { checkSkipToNextEvent, bootEventSlot, getActiveSlot, isYearOver } from '../../sim/gameState';
 import type { SeasonHistoryEntry, Region, TournamentType, TournamentStatus, QualifierStage } from '../../types';
 import { TOURNAMENT_LABELS, QUALIFIER_STAGE_LABELS } from '../../types';
 import type { Player, PlayerAwardType } from '../../types/player';
@@ -518,24 +518,18 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
   const storedKeys = new Set(storedHistory.map(h => entryKeyOf(h)));
 
   // compute status for each entry based on manual override or game state
+  const activeKey = getActiveSlot(gameState)?.key;
   const getStatus = (entry: SeasonHistoryEntry): TournamentStatus => {
-    if (entry.manualStatus) return entry.manualStatus;
     const { currentYear, phase } = gameState;
+    // a champion on record means over, whether the sim or the user put it there
+    if (entry.worldChampionId || entry.worldChampionCustom) return 'completed';
+    // the sim's own idea of what is being played beats a status typed in earlier
+    if (phase === 'international' && activeKey === entryKeyOf(entry)) return 'ongoing';
+    if (entry.manualStatus) return entry.manualStatus;
     if (entry.year < currentYear) return 'completed';
-    if (entry.year > currentYear) return 'upcoming';
-    // entry.year === currentYear
-    const type = entry.tournamentType || 'champions';
-    const mainEventType = gameState.currentTournamentType || 'champions';
-    if (type === mainEventType) {
-      // this is the main event of the season
-      if (phase === 'international') return 'ongoing';
-      if (phase === 'offseason') return 'completed';
-      return 'upcoming'; // preseason or kickoff
-    }
-    // not the main event — treat as side event
-    if (phase === 'kickoff_bracket') return 'ongoing';
-    if (phase === 'preseason') return 'upcoming';
-    return 'completed';
+    if (entry.year > currentYear || storedKeys.has(entryKeyOf(entry))) return 'upcoming';
+    // virtual row: the event in play when nothing was planned for it
+    return phase === 'international' ? 'ongoing' : 'upcoming';
   };
 
   // generate virtual entries for current season tournaments that don't have entries yet
@@ -563,17 +557,12 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
     return entries;
   }, [gameState.currentYear, gameState.phase, gameState.currentTournamentType, storedHistory]);
 
+  // same order the sim's calendar uses: year, then sortIndex, then masters before champions
   const history = [...storedHistory, ...virtualEntries].sort((a, b) => {
-    const ai = a.sortIndex ?? null;
-    const bi = b.sortIndex ?? null;
-    // both have sortIndex — use it as primary key
-    if (ai !== null && bi !== null) return ai - bi;
-    // one has sortIndex, one doesn't — the one with sortIndex keeps its position relative to year-based sort
     if (a.year !== b.year) return a.year - b.year;
-    // within same year: use sortIndex if present
-    if (ai !== null && bi === null) return -1;
-    if (ai === null && bi !== null) return 1;
-    // fallback: masters before champions
+    const ai = a.sortIndex ?? Number.MAX_SAFE_INTEGER;
+    const bi = b.sortIndex ?? Number.MAX_SAFE_INTEGER;
+    if (ai !== bi) return ai - bi;
     const typeOrder = { masters: 0, champions: 1 };
     return (typeOrder[a.tournamentType || 'champions'] ?? 0) - (typeOrder[b.tournamentType || 'champions'] ?? 0);
   });
@@ -671,7 +660,11 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
     const toTeamId = (v: TeamPickerValue | null) => v?.mode === 'existing' ? v.teamId || null : null;
     const toCustom = (v: TeamPickerValue | null) => v?.mode === 'custom' && v.name ? { name: v.name, logo: v.logo || '', abbreviation: v.abbreviation || undefined } : undefined;
 
+    // editing keeps the entry's timeline position and the awards the form doesn't cover
+    const prev = editingKey ? (gameState.seasonHistory || []).find(h => entryKeyOf(h) === editingKey) : undefined;
+
     const entry: SeasonHistoryEntry = {
+      ...prev,
       id: entryId,
       year: editYear,
       isManual: true,
@@ -686,20 +679,20 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
       worldChampionCustom: toCustom(formChampion),
       runnerUpId: toTeamId(formRunnerUp),
       runnerUpCustom: toCustom(formRunnerUp),
-      finalsMvp: formFinalsMvp ? { playerId: formFinalsMvp.playerId, playerName: formFinalsMvp.playerName, teamId: formFinalsMvp.teamId, avgACS: 0 } : null,
-      seasonMvp: null,
-      rookieOfYear: null,
+      finalsMvp: formFinalsMvp ? { playerId: formFinalsMvp.playerId, playerName: formFinalsMvp.playerName, teamId: formFinalsMvp.teamId, avgACS: prev?.finalsMvp?.playerId === formFinalsMvp.playerId ? prev.finalsMvp.avgACS : 0 } : null,
+      seasonMvp: prev?.seasonMvp ?? null,
+      rookieOfYear: prev?.rookieOfYear ?? null,
       championRoster: formChampRoster.length > 0 ? formChampRoster : undefined,
       runnerUpRoster: formRunnerUpRoster.length > 0 ? formRunnerUpRoster : undefined,
-      kickoffWinners: { americas: null, emea: null, pacific: null, china: null },
-      allVctFirst: [],
-      allVctSecond: [],
-      clutchKing: null,
-      entryFragger: null,
-      bestDuelist: null,
-      bestController: null,
-      bestInitiator: null,
-      bestSentinel: null,
+      kickoffWinners: prev?.kickoffWinners ?? { americas: null, emea: null, pacific: null, china: null },
+      allVctFirst: prev?.allVctFirst ?? [],
+      allVctSecond: prev?.allVctSecond ?? [],
+      clutchKing: prev?.clutchKing ?? null,
+      entryFragger: prev?.entryFragger ?? null,
+      bestDuelist: prev?.bestDuelist ?? null,
+      bestController: prev?.bestController ?? null,
+      bestInitiator: prev?.bestInitiator ?? null,
+      bestSentinel: prev?.bestSentinel ?? null,
     };
 
     const updated = { ...gameState };
@@ -764,6 +757,8 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
 
   // advance the sim to this event (only offered on the next unfilled slot)
   const skipCheck = checkSkipToNextEvent(gameState);
+  // a year jump has to go through the offseason first, or nobody ages or progresses
+  const offseasonDue = gameState.phase !== 'offseason' && isYearOver(gameState);
   const handleAdvanceTo = () => {
     if (!onUpdateGameState || !skipCheck.ok) return;
     const { target, active } = skipCheck;
@@ -1157,7 +1152,7 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
                               </>
                             );
                           })()}
-                          {skipCheck.ok && skipCheck.target.key === key && (
+                          {skipCheck.ok && !offseasonDue && skipCheck.target.key === key && (
                             <button className="history-edit-btn" onClick={handleAdvanceTo} title={`Advance the sim to ${skipCheck.target.label}`}>⏩</button>
                           )}
                           <button className="history-edit-btn" onClick={() => handleEditEntry(entry)} title="Edit entry">✎</button>
