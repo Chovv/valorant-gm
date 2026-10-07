@@ -1,7 +1,8 @@
 // src/sim/gameState.ts
 // core game state management with regional leagues and international competition
 
-import type { Team, StandingsEntry, MatchResult, PlayoffBracket, PlayoffMatchup, PlayoffRound, Region, Player, SeasonHistoryEntry, TournamentType } from '../types';
+import type { Team, StandingsEntry, MatchResult, PlayoffBracket, PlayoffMatchup, PlayoffRound, Region, Player, SeasonHistoryEntry, TournamentType, QualifierStage } from '../types';
+import { DEFAULT_QUALIFIER_ORDER } from '../types/league';
 import type { StaffMember } from '../types/team';
 import type { Tier2Team } from '../types/scrims';
 import { TIER2_TEAMS } from '../types/scrims';
@@ -1585,6 +1586,251 @@ export function createGameState(
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// EVENT CALENDAR
+//
+// The year's events live in seasonHistory, ordered by sortIndex. Each entry
+// declares (or inherits by position) the competition that feeds it. This is the
+// single source of truth for "where are we in the year" — nothing infers the
+// current slot by counting completed entries any more, which is what used to
+// break as soon as a result was typed in by hand.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CalendarSlot {
+  entry: SeasonHistoryEntry;
+  key: string;
+  year: number;
+  index: number;             // position within its year
+  qualifier: QualifierStage; // resolved lead-in (explicit or by position)
+  completed: boolean;        // a champion is on record (simmed or entered by hand)
+  label: string;
+}
+
+/** stable identity for a history entry — mirrors HistoryPage's entryKeyOf */
+export function slotKeyOf(h: SeasonHistoryEntry): string {
+  return h.id || `${h.year}-${h.tournamentType || 'champions'}-${h.eventName || ''}`;
+}
+
+function isEntryCompleted(h: SeasonHistoryEntry): boolean {
+  return !!(h.worldChampionId || h.worldChampionCustom);
+}
+
+/** human label for an event, avoiding "Masters Masters London 2026" style repeats */
+export function eventLabel(h: SeasonHistoryEntry): string {
+  const tourn = (h.tournamentType || 'champions') === 'masters' ? 'Masters' : 'Champions';
+  const name = h.eventName?.trim();
+  if (!name) return `${tourn} ${h.year}`;
+  const head = name.toLowerCase().includes(tourn.toLowerCase()) ? name : `${tourn} ${name}`;
+  return head.includes(String(h.year)) ? head : `${head} ${h.year}`;
+}
+
+/** the year's events in play order, each with its resolved lead-in */
+export function getEventCalendar(state: GameState, year: number): CalendarSlot[] {
+  const typeOrder: Record<string, number> = { masters: 0, champions: 1 };
+  const entries = (state.seasonHistory || [])
+    .filter(h => h.year === year)
+    .sort((a, b) => {
+      const ai = a.sortIndex ?? Number.MAX_SAFE_INTEGER;
+      const bi = b.sortIndex ?? Number.MAX_SAFE_INTEGER;
+      if (ai !== bi) return ai - bi;
+      return (typeOrder[a.tournamentType || 'champions'] ?? 0) - (typeOrder[b.tournamentType || 'champions'] ?? 0);
+    });
+
+  return entries.map((entry, index) => ({
+    entry,
+    key: slotKeyOf(entry),
+    year,
+    index,
+    qualifier: entry.qualifierStage ?? (DEFAULT_QUALIFIER_ORDER[index] ?? 'none'),
+    completed: isEntryCompleted(entry),
+    label: eventLabel(entry),
+  }));
+}
+
+/** which qualifying competition the sim is currently playing, or null between events */
+export function getPhaseQualifier(state: GameState): QualifierStage | null {
+  switch (state.phase) {
+    case 'preseason':
+    case 'kickoff_bracket':
+      return 'kickoff';
+    case 'stage1_groups':
+    case 'stage1_playoffs':
+      return 'stage1';
+    case 'stage2_groups':
+    case 'stage2_playoffs':
+      return 'stage2';
+    case 'international':
+      return state.internationalSource ?? 'kickoff';
+    default:
+      return null; // offseason / mid_offseason — nothing in progress
+  }
+}
+
+/**
+ * The event the sim is currently working toward, or null if it's between events
+ * (offseason, or the slot matching the current phase has already been recorded).
+ */
+export function getActiveSlot(state: GameState): CalendarSlot | null {
+  const qualifier = getPhaseQualifier(state);
+  if (!qualifier) return null;
+  const pending = getEventCalendar(state, state.currentYear).filter(s => !s.completed);
+  if (!pending.length) return null;
+  // during the international itself, the event in progress is simply the next unfilled one
+  if (state.phase === 'international') return pending[0];
+  return pending.find(s => s.qualifier === qualifier) ?? null;
+}
+
+export type SkipCheck =
+  | { ok: true; target: CalendarSlot; active: CalendarSlot | null }
+  | { ok: false; reason: string };
+
+/**
+ * Can we jump forward to the next unfilled event?
+ * Yes, unless that event is the one currently being played — in which case its
+ * result has to be recorded in History first.
+ */
+export function checkSkipToNextEvent(state: GameState): SkipCheck {
+  const calendar = [
+    ...getEventCalendar(state, state.currentYear),
+    ...getEventCalendar(state, state.currentYear + 1),
+  ];
+  const target = calendar.find(s => !s.completed);
+  if (!target) {
+    return { ok: false, reason: 'No unfilled event on the calendar — add one in History first.' };
+  }
+  const active = getActiveSlot(state);
+  if (active && active.key === target.key) {
+    return {
+      ok: false,
+      reason: `${target.label} is the event in progress. Record its champion in History, then you can skip past it.`,
+    };
+  }
+  return { ok: true, target, active };
+}
+
+/**
+ * Tear down the current competition state and boot up whatever `target` needs.
+ * Works from any phase — this is the one entry point for "move the clock forward".
+ */
+export function bootEventSlot(state: GameState, target: CalendarSlot): GameEvent[] {
+  const events: GameEvent[] = [];
+
+  if (target.year > state.currentYear) {
+    state.currentYear = target.year;
+    state.vctPoints = {};
+    state.kickoffBrackets = { americas: null, emea: null, pacific: null, china: null };
+    state.stageGroupStages = { americas: {}, emea: {}, pacific: {}, china: {} };
+    state.stagePlayoffBrackets = { americas: {}, emea: {}, pacific: {}, china: {} };
+  }
+
+  // common reset
+  state.currentDay = 0;
+  state.currentChampionsRound = 0;
+  state.internationalTournament = null;
+  state.internationalPlayoffSeries = null;
+  state.currentPlayoffSeries = null;
+  state.currentPlayoffRegion = null;
+  state.fatigueLevel = 0;
+  state.offseasonProgression = undefined;
+  state.offseasonChurnEvents = undefined;
+  state.currentTournamentType = target.entry.tournamentType || 'champions';
+
+  switch (target.qualifier) {
+    case 'kickoff': {
+      state.phase = 'preseason';
+      state.currentBracketRound = 0;
+      state.internationalSource = 'kickoff';
+      state.currentStage = 1;
+      state.currentStagePlayoffRound = 0;
+      state.stageGroupStages = { americas: {}, emea: {}, pacific: {}, china: {} };
+      state.stagePlayoffBrackets = { americas: {}, emea: {}, pacific: {}, china: {} };
+      state.regionalChampions = { americas: null, emea: null, pacific: null, china: null };
+
+      const eventSeed = `${state.seed}-event-${state.currentYear}-${target.key}`;
+      for (const region of REGIONS) {
+        const regionTeams = state.teams.filter(t => t.region === region);
+        if (regionTeams.length < 8) continue;
+        const seeds = seedRegion(regionTeams, getPreviousQualifiers(state, region), state.vctPoints);
+        state.kickoffBrackets[region] = generateKickoffBracket(`${eventSeed}-kickoff-${region}`, seeds);
+      }
+      events.push({ type: 'phase_change', message: `Kickoff begins — the road to ${target.label}.` });
+      break;
+    }
+
+    case 'stage1':
+    case 'stage2': {
+      const stageNum: 1 | 2 = target.qualifier === 'stage1' ? 1 : 2;
+      state.currentStage = stageNum;
+      state.currentStagePlayoffRound = 0;
+      state.internationalSource = target.qualifier;
+      // wipe only this stage's data; earlier stages stay for seeding
+      for (const region of REGIONS) {
+        if (state.stageGroupStages[region]) (state.stageGroupStages[region] as any)[stageNum] = undefined;
+        if (state.stagePlayoffBrackets[region]) (state.stagePlayoffBrackets[region] as any)[stageNum] = undefined;
+      }
+      events.push(...startStageGroupsPhase(state, stageNum));
+      events.push({ type: 'phase_change', message: `Stage ${stageNum} begins — the road to ${target.label}.` });
+      break;
+    }
+
+    case 'none':
+    default: {
+      // standalone event — no qualifying competition, go straight to the bracket
+      state.phase = 'international';
+      events.push({ type: 'phase_change', message: `${target.label} is ready to begin.` });
+      break;
+    }
+  }
+
+  return events;
+}
+
+/** Jump forward to the next unfilled event, if allowed. */
+export function skipToNextEvent(state: GameState): GameEvent[] {
+  const check = checkSkipToNextEvent(state);
+  if (!check.ok) return [{ type: 'phase_change', message: check.reason }];
+  return bootEventSlot(state, check.target);
+}
+
+/**
+ * Write the international that just finished onto its calendar slot, keeping the
+ * planned metadata (name, location, dates, ordering, lead-in) the user set up.
+ */
+function recordEventResult(state: GameState): void {
+  if (!state.seasonHistory) state.seasonHistory = [];
+  const tournType = state.currentTournamentType || 'champions';
+  const computed = computeSeasonHistory(state);
+  computed.tournamentType = tournType;
+
+  const slot = getEventCalendar(state, state.currentYear).find(s => !s.completed);
+  if (!slot) {
+    computed.id = `auto-${state.currentYear}-${tournType}-${state.seasonHistory.length}`;
+    state.seasonHistory = [...state.seasonHistory, computed];
+    return;
+  }
+
+  const prev = slot.entry;
+  const merged: SeasonHistoryEntry = {
+    ...computed,
+    id: prev.id || `auto-${state.currentYear}-${tournType}`,
+    tournamentType: prev.tournamentType || tournType,
+    eventName: prev.eventName || computed.eventName,
+    location: prev.location || computed.location,
+    locationFlag: prev.locationFlag || computed.locationFlag,
+    dateRange: prev.dateRange || computed.dateRange,
+    sortIndex: prev.sortIndex,
+    qualifierStage: prev.qualifierStage,
+    isManual: false,
+    manualStatus: undefined,
+  };
+
+  const idx = state.seasonHistory.findIndex(h => slotKeyOf(h) === slot.key);
+  const next = [...state.seasonHistory];
+  if (idx >= 0) next[idx] = merged;
+  else next.push(merged);
+  state.seasonHistory = next;
+}
+
 /**
  * Check if there's another planned event for the current or next year.
  * Returns the next unfilled history entry, or null.
@@ -1607,6 +1853,17 @@ export function getNextPlannedEvent(state: GameState): SeasonHistoryEntry | null
  * Optionally bumps the year if the next event is in a future year.
  */
 export function startNextEvent(state: GameState): GameEvent[] {
+  // prefer the calendar — it knows each event's declared lead-in
+  const check = checkSkipToNextEvent(state);
+  if (check.ok) return bootEventSlot(state, check.target);
+  return legacyStartNextEvent(state);
+}
+
+/**
+ * Pre-calendar behaviour: infer the next slot by counting completed internationals.
+ * Only reached when the year has no unfilled history entries to work from.
+ */
+function legacyStartNextEvent(state: GameState): GameEvent[] {
   const events: GameEvent[] = [];
   const next = getNextPlannedEvent(state);
 
@@ -2605,39 +2862,13 @@ export function handlePostInternational(state: GameState): GameEvent[] {
     const freshCoaches = generateCoachPool(coachDriftRng, 3);
     state.freeAgentCoaches = [...(state.freeAgentCoaches || []), ...freshCoaches];
     // compute season history
-    if (!state.seasonHistory) state.seasonHistory = [];
-    const histEntry = computeSeasonHistory(state);
-    const tournType = state.currentTournamentType || 'champions';
-    histEntry.id = `auto-${state.currentYear}-${tournType}`;
-    histEntry.tournamentType = tournType;
-    let existIdx = state.seasonHistory.findIndex(h =>
-      h.year === histEntry.year && (h.tournamentType || 'champions') === tournType && !h.eventName
-    );
-    if (existIdx < 0) {
-      existIdx = state.seasonHistory.findIndex(h =>
-        h.year === histEntry.year && (h.tournamentType || 'champions') === tournType && !h.worldChampionId && !h.worldChampionCustom
-      );
-    }
-    if (existIdx >= 0) {
-      const prev = state.seasonHistory[existIdx];
-      state.seasonHistory[existIdx] = {
-        ...histEntry,
-        id: prev.id || histEntry.id,
-        eventName: prev.eventName || histEntry.eventName,
-        location: prev.location || histEntry.location,
-        locationFlag: prev.locationFlag || histEntry.locationFlag,
-        dateRange: prev.dateRange || histEntry.dateRange,
-        sortIndex: prev.sortIndex,
-        isManual: false,
-        manualStatus: undefined,
-      };
-    } else {
-      state.seasonHistory.push(histEntry);
-    }
+    recordEventResult(state);
     events.push({ type: 'phase_change', message: 'Season complete. Offseason begins.' });
   } else {
     // mid-season break → light transfer window
     // keep internationalTournament alive so sidebar tab + match detail still work
+    // record the result first, so the calendar knows this event is done
+    recordEventResult(state);
     state.phase = 'mid_offseason';
     state.internationalSource = source === 'kickoff' ? 'stage1' : 'stage2';
     events.push({
@@ -2652,6 +2883,9 @@ export function handlePostInternational(state: GameState): GameEvent[] {
 // called when user clicks "Start Stage X" from mid_offseason
 export function advanceFromMidOffseason(state: GameState): GameEvent[] {
   if (state.phase !== 'mid_offseason') return [];
+
+  const check = checkSkipToNextEvent(state);
+  if (check.ok) return bootEventSlot(state, check.target);
 
   const nextSource = state.internationalSource ?? 'stage1';
   const stageNum: 1 | 2 = nextSource === 'stage1' ? 1 : 2;

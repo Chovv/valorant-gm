@@ -17,6 +17,8 @@ import {
   getNextPlannedEvent,
   startNextEvent,
   advanceFromMidOffseason,
+  checkSkipToNextEvent,
+  bootEventSlot,
   type GameState,
   type DayResult,
   getAllPlayedMatches,
@@ -99,6 +101,7 @@ import { getRolePenalty } from "./types/roster";
 import { calculateEffectiveOverallWithIGL } from "./sim/iglBonus";
 import { getCompositionPenalty } from "./sim/compositionBonus";
 import type { Team, Player, Role, AgentPool, Region, SuspendedMatchInfo } from "./types";
+import { QUALIFIER_STAGE_LABELS } from "./types";
 import type { RNG } from "./utils/random";
 import { PlayerEditModal } from "./ui/components/PlayerEditModal";
 import { TeamEditModal } from "./ui/components/TeamEditModal";
@@ -1104,6 +1107,39 @@ export default function App() {
     });
   };
 
+
+  // Advance past an event whose result is already on record (simmed or entered by hand)
+  const handleAdvanceToNextEvent = () => {
+    if (!gameState) return;
+    const check = checkSkipToNextEvent(gameState);
+    if (!check.ok) {
+      showToast(check.reason, 'error');
+      return;
+    }
+    const { target, active } = check;
+    const from = active ? `${active.label} stays as recorded. ` : '';
+    setPromptModal({
+      kind: 'confirm',
+      title: `Advance to ${target.label}`,
+      message: `${from}This clears the current competition state and starts ${QUALIFIER_STAGE_LABELS[target.qualifier]}${target.qualifier === 'none' ? '' : ' as the lead-in'}. Continue?`,
+      confirmLabel: 'Advance',
+      onConfirm: () => {
+        setPromptModal(null);
+        const next = { ...gameState };
+        const events = bootEventSlot(next, target);
+        setGameState(next);
+        setRecentResults((prev) => [...prev, { day: next.currentDay, matchesPlayed: [], events }]);
+        showToast(events[0]?.message || `Advanced to ${target.label}`, 'success');
+        const p = next.phase;
+        if (p === 'stage1_groups' || p === 'stage2_groups' || p === 'stage1_playoffs' || p === 'stage2_playoffs') {
+          setView('playoffs');
+        } else {
+          setView('dashboard');
+        }
+      },
+      onCancel: () => setPromptModal(null),
+    });
+  };
 
   // Start next event from offseason
   const handleStartNextEvent = () => {
@@ -3066,6 +3102,24 @@ export default function App() {
                   <>
                     <div className="play-day-backdrop" onClick={() => setShowPlayDayMenu(false)} />
                     <div className="play-day-menu">
+
+                      {/* ── Advance past an already-recorded event ── */}
+                      {(() => {
+                        const check = checkSkipToNextEvent(gameState);
+                        if (!check.ok) return null;
+                        const lead = check.target.qualifier === 'none'
+                          ? 'Straight to the bracket — no qualifying stage'
+                          : `Start ${QUALIFIER_STAGE_LABELS[check.target.qualifier]} as the lead-in`;
+                        return (
+                          <>
+                            <button className="play-day-option" onClick={() => { setShowPlayDayMenu(false); handleAdvanceToNextEvent(); }}>
+                              Advance to {check.target.label}
+                              <span className="simulate-desc">{lead}</span>
+                            </button>
+                            <div className="play-day-divider" />
+                          </>
+                        );
+                      })()}
 
                       {/* ── Sim to end of Stage / Kickoff ── */}
                       {inKickoff && (

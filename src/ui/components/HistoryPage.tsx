@@ -1,8 +1,9 @@
 // src/ui/components/HistoryPage.tsx
 import { useState, useMemo, useRef, useEffect } from 'react';
 import type { GameState } from '../../sim/gameState';
-import type { SeasonHistoryEntry, Region, TournamentType, TournamentStatus } from '../../types';
-import { TOURNAMENT_LABELS } from '../../types';
+import { checkSkipToNextEvent, bootEventSlot } from '../../sim/gameState';
+import type { SeasonHistoryEntry, Region, TournamentType, TournamentStatus, QualifierStage } from '../../types';
+import { TOURNAMENT_LABELS, QUALIFIER_STAGE_LABELS } from '../../types';
 import type { Player, PlayerAwardType } from '../../types/player';
 import { PlayerAvatar } from './PlayerAvatar';
 import { flagSrc, ALL_COUNTRIES } from './MassPlayerEditor';
@@ -587,6 +588,7 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
   const [formTournamentType, setFormTournamentType] = useState<TournamentType>('champions');
   const [formEventName, setFormEventName] = useState('');
   const [formStatus, setFormStatus] = useState<TournamentStatus>('completed');
+  const [formQualifier, setFormQualifier] = useState<QualifierStage | ''>('');
 
   // editor form state
   const [formChampion, setFormChampion] = useState<TeamPickerValue | null>(null);
@@ -613,6 +615,7 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
     setFormTournamentType('champions');
     setFormEventName('');
     setFormStatus('upcoming');
+    setFormQualifier('');
     setFormChampRoster([]);
     setFormRunnerUpRoster([]);
     setShowEditor(false);
@@ -626,6 +629,7 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
     setFormTournamentType(entry.tournamentType || 'champions');
     setFormEventName(entry.eventName || '');
     setFormStatus(entry.manualStatus || getStatus(entry));
+    setFormQualifier(entry.qualifierStage || '');
     setFormLocation(entry.location || '');
     setFormLocationFlag(entry.locationFlag || '');
     setFormDateRange(entry.dateRange || '');
@@ -674,6 +678,7 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
       tournamentType: formTournamentType,
       eventName: formEventName || undefined,
       manualStatus: formStatus,
+      qualifierStage: formQualifier || undefined,
       location: formLocation || undefined,
       locationFlag: formLocationFlag || undefined,
       dateRange: formDateRange || undefined,
@@ -755,6 +760,18 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
       return pos !== undefined ? { ...h, sortIndex: pos } : h;
     });
     onUpdateGameState(updated);
+  };
+
+  // advance the sim to this event (only offered on the next unfilled slot)
+  const skipCheck = checkSkipToNextEvent(gameState);
+  const handleAdvanceTo = () => {
+    if (!onUpdateGameState || !skipCheck.ok) return;
+    const { target, active } = skipCheck;
+    const from = active ? `${active.label} stays as recorded.\n\n` : '';
+    if (!confirm(`${from}Advance the sim to ${target.label}? This clears the current competition state and starts ${QUALIFIER_STAGE_LABELS[target.qualifier]}.`)) return;
+    const next = { ...gameState };
+    bootEventSlot(next, target);
+    onUpdateGameState(next);
   };
 
   // rendering helpers
@@ -1001,6 +1018,15 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
                 <label>Date</label>
                 <input type="text" value={formDateRange} onChange={e => setFormDateRange(e.target.value)} placeholder="e.g. Sep 24 – Oct 18, 2026" className="history-editor-input" />
               </div>
+              <div className="history-editor-field">
+                <label>Lead-in</label>
+                <select value={formQualifier} onChange={e => setFormQualifier(e.target.value as QualifierStage | '')} className="history-editor-input">
+                  <option value="">Auto (by position in year)</option>
+                  {(Object.entries(QUALIFIER_STAGE_LABELS) as [QualifierStage, string][]).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* results — only for completed/ongoing */}
@@ -1131,6 +1157,9 @@ export function HistoryPage({ gameState, onNavigateToPlayer, onNavigateToTeam, d
                               </>
                             );
                           })()}
+                          {skipCheck.ok && skipCheck.target.key === key && (
+                            <button className="history-edit-btn" onClick={handleAdvanceTo} title={`Advance the sim to ${skipCheck.target.label}`}>⏩</button>
+                          )}
                           <button className="history-edit-btn" onClick={() => handleEditEntry(entry)} title="Edit entry">✎</button>
                           {entry.isManual && (
                             <button className="history-delete-btn" onClick={() => handleDeleteEntry(entry)} title="Delete entry">✕</button>

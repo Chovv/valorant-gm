@@ -299,6 +299,29 @@ export const TOURNAMENT_LABELS: Record<TournamentType, string> = {
   masters: 'Masters',
 };
 
+/**
+ * The in-sim competition that feeds an event's slots — i.e. what the sim
+ * boots up when you advance to this event.
+ *   kickoff → regional Kickoff brackets
+ *   stage1  → Stage 1 groups → Stage 1 playoffs
+ *   stage2  → Stage 2 groups → Stage 2 playoffs
+ *   none    → no qualifying stage; drop straight into the international
+ */
+export type QualifierStage = 'kickoff' | 'stage1' | 'stage2' | 'none';
+
+export const QUALIFIER_STAGE_LABELS: Record<QualifierStage, string> = {
+  kickoff: 'Kickoff',
+  stage1: 'Stage 1',
+  stage2: 'Stage 2',
+  none: 'No qualifier',
+};
+
+/**
+ * Lead-in inferred from an event's position within its year when
+ * `qualifierStage` is not set explicitly. Keeps old saves behaving as before.
+ */
+export const DEFAULT_QUALIFIER_ORDER: QualifierStage[] = ['kickoff', 'stage1', 'stage2'];
+
 export interface SeasonHistoryEntry {
   id?: string; // unique identifier (auto-generated use year-type, manual entries get a uuid)
   year: number;
@@ -307,6 +330,7 @@ export interface SeasonHistoryEntry {
   eventName?: string; // e.g. "Stage 1", "Stage 2", "Berlin", "Copenhagen" — distinguishes multiple events of same type
   sortIndex?: number; // manual ordering within same year (lower = earlier)
   manualStatus?: TournamentStatus; // manual override for status (upcoming/ongoing/completed)
+  qualifierStage?: QualifierStage; // which competition leads into this event (defaults by position in the year)
   location?: string;   // e.g. "Shanghai", "Los Angeles"
   locationFlag?: string; // country code for flag, e.g. "CN", "US"
   dateRange?: string;  // e.g. "Sep 24 – Oct 18, 2026"
